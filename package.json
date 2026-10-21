@@ -1,0 +1,11 @@
+{
+  "name": "brigly-preview",
+  "version": "1.2.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs && node scripts/test-state.mjs",
+    "preview": "node scripts/serve.mjs"
+  },
+  "engines": {"node": ">=20"}
+}
