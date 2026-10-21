@@ -23,8 +23,8 @@
   });
   matchMedia('(min-width: 851px)').addEventListener('change',e=>{if(e.matches)closeMenu();});
 
-  // Scroll Progress, Sticky Header & Subtle Parallax
-  const parallaxNodes=all('[data-parallax]');
+  // Scroll Progress, Sticky Header & Subtle Desktop Hero Parallax
+  const parallaxItems=all('[data-parallax]');
   function onScroll(){
     const y=window.scrollY||0;
     header?.classList.toggle('scrolled',y>18);
@@ -33,17 +33,13 @@
       const pct=Math.min(100,Math.max(0,(y/max)*100));
       progressBar.style.width=pct+'%';
     }
-    if(!reducedMotion&&window.innerWidth>900&&y<1100){
-      parallaxNodes.forEach(node=>{
-        const speed=Number(node.dataset.parallax||0);
-        if(node.classList.contains('arrival-detail')){
-          node.style.transform=`translate3d(0, ${Math.round(y*speed)}px, 0) rotate(-6deg)`;
-        }else if(node.classList.contains('arrival-shift')){
-          node.style.transform=`translate3d(0, ${Math.round(y*speed)}px, 0) rotate(3deg)`;
-        }else{
-          node.style.transform=`translate3d(0, ${Math.round(y*speed)}px, 0)`;
-        }
+    if(!reducedMotion&&matchMedia('(min-width: 851px)').matches&&y<950){
+      parallaxItems.forEach(el=>{
+        const speed=Number(el.dataset.parallax||0);
+        el.style.transform=`translate3d(0,${(y*speed).toFixed(1)}px,0)`;
       });
+    }else if(parallaxItems.length){
+      parallaxItems.forEach(el=>{el.style.transform='';});
     }
   }
   window.addEventListener('scroll',onScroll,{passive:true});
@@ -335,11 +331,11 @@
     $(`[data-mini-task="${i}"]`)?.focus();
   });
 
-  const tabbar=$('.preview-tabs'), mobileSlot=$('.mini-main'), desktopSlot=$('.mini-sidebar'), member=$('.mini-member');
+  const tabbar=$('.preview-tabs'), mobileSlot=$('.mini-main'), previewPanel=$('#preview-panel'), desktopSlot=$('.mini-sidebar'), member=$('.mini-member');
   function placeTabs(){
-    if(!tabbar||!mobileSlot||!desktopSlot||!member)return;
+    if(!tabbar||!mobileSlot||!previewPanel||!desktopSlot||!member)return;
     if(matchMedia('(max-width:850px)').matches){
-      mobileSlot.prepend(tabbar);
+      mobileSlot.insertBefore(tabbar,previewPanel);
       tabbar.classList.add('mobile-tabs');
     }else{
       desktopSlot.insertBefore(tabbar,member);
@@ -355,13 +351,13 @@
     employee:[
       'Your shift, without the guesswork.',
       'Open your phone to see tonight’s schedule, acknowledge the briefing, check off station tasks, look up wine or allergen notes, and request a shift swap or restock.',
-      'Open Team View in the demo',
+      'Open Team View in the workspace',
       'demo.html'
     ],
     manager:[
       'Less chasing. More leading on the floor.',
       'Publish pre-shift briefings with versioned read receipts, review submitted station checklists, approve shift swaps, and consolidate supply requests from one command inbox.',
-      'Open Manager Command in the demo',
+      'Open Manager Command in the workspace',
       'demo.html#inbox'
     ],
     owner:[

@@ -89,7 +89,15 @@
       &&(d.skillSignedOff===undefined||typeof d.skillSignedOff==='boolean')
       &&(d.draftVerified===undefined||typeof d.draftVerified==='boolean')
       &&(d.openShiftAssigned===undefined||typeof d.openShiftAssigned==='boolean')
-      &&Array.isArray(d.checked)&&d.checked.every(x=>num(x)&&x<checklist.length)
+      &&(d.closingChecked===undefined||(Array.isArray(d.closingChecked)&&d.closingChecked.every(num)))
+      &&(d.closingStatus===undefined||['working','submitted','approved'].includes(d.closingStatus))
+      &&(d.closingEvidence===undefined||text(d.closingEvidence))
+      &&(d.fohChecked===undefined||(Array.isArray(d.fohChecked)&&d.fohChecked.every(num)))
+      &&(d.kitchenChecked===undefined||(Array.isArray(d.kitchenChecked)&&d.kitchenChecked.every(num)))
+      &&(d.rosterVersion===undefined||num(d.rosterVersion))
+      &&(d.customShifts===undefined||(d.customShifts&&typeof d.customShifts==='object'&&!Array.isArray(d.customShifts)))
+      &&(d.extraTasks===undefined||(d.extraTasks&&typeof d.extraTasks==='object'&&!Array.isArray(d.extraTasks)))
+      &&Array.isArray(d.checked)&&d.checked.every(x=>num(x)&&x<20)
       &&new Set(d.checked).size===d.checked.length
       &&rows(d.requests,x=>num(x.id)&&catalog.some(c=>c.id===x.item)&&num(x.quantity)&&x.quantity>0&&x.quantity<=999&&text(x.requester)&&['pending','approved','declined'].includes(x.status))
       &&rows(d.messages,x=>text(x.sender)&&text(x.initials)&&text(x.text)&&text(x.time)&&(x.channel===undefined||text(x.channel)))
@@ -104,7 +112,98 @@
   let state=load();
   let activeChannel='general';
   let activeKnowledgeFilter='ALL';
+  let activeChecklistTab='bar-open';
+  let activeRosterDept='ALL';
+  let builderStaffIdx=6;
+  let builderShiftPreset='17–23 · Bar';
   let toastTimer;
+
+  const checklistCatalog={
+    'bar-open':{
+      id:'bar-open',
+      phase:'OPENING · 15:00',
+      kicker:'STATION 01 · BAR OPENING',
+      title:'Bar opening · Friday evening',
+      shortTitle:'Bar Opening',
+      assignee:'Alex Morgan & Sam Kim',
+      badge:'BAR',
+      sopNote:'Bar coolers must read below 4.0°C prior to 4:00 PM service. Log any missing stock directly in Supply.',
+      tasks:checklist
+    },
+    'bar-close':{
+      id:'bar-close',
+      phase:'CLOSING · 23:00',
+      kicker:'STATION 01 · END-OF-NIGHT CLOSING',
+      title:'Bar & floor closing · Friday night',
+      shortTitle:'Bar & Floor Closing',
+      assignee:'Sam Kim & Alex Morgan',
+      badge:'CLOSE',
+      sopNote:'Reconcile bar drawer, record safe drop envelope number, verify all coolers are under 4.0°C, and confirm patio heaters are shut off before lockup.',
+      tasks:[
+        'Break down & sanitize espresso machine and steam wands',
+        'Burn ice wells, wipe speed rails, and cap all open spirits',
+        'Count bar drawer, log safe drop, and lock high-value cellar',
+        'Run final glasswasher cycle & restock clean coupe/rocks racks',
+        'Record walk-in & low-boy closing temps (target < 4.0°C)',
+        'Confirm patio heaters off, doors locked & alarm armed'
+      ]
+    },
+    'foh-open':{
+      id:'foh-open',
+      phase:'OPENING · 15:15',
+      kicker:'STATION 02 · DINING ROOM & HOST',
+      title:'Dining room & host setup',
+      shortTitle:'Dining Room Opening',
+      assignee:'Jordan Lee & Taylor Brooks',
+      badge:'FOH',
+      sopNote:'Inspect all table settings 30 minutes prior to seating. Flag VIP tables and dietary notes on the host stand iPad.',
+      tasks:[
+        'Polish flatware, water carafes, and wine stems for Tables 1–18',
+        'Align table settings, candles, and printed evening menus',
+        'Sync reservation book & flag Table 14 (8-top VIP at 19:00)',
+        'Inspect patio heaters, windscreens, and host stand iPad',
+        'Stock server stations with linen napkins and check presenters',
+        'Confirm allergen matrix & special counts with floor lead'
+      ]
+    },
+    'kitchen-open':{
+      id:'kitchen-open',
+      phase:'OPENING · 15:30',
+      kicker:'STATION 03 · KITCHEN PASS & TEMPS',
+      title:'Kitchen pass & cold storage line check',
+      shortTitle:'Kitchen Pass & Line',
+      assignee:'Riley Chen · Head Chef',
+      badge:'BOH',
+      sopNote:'Walk-in and reach-in line coolers must be logged prior to 3:40 PM family meal and line tasting.',
+      tasks:[
+        'Calibrate probe thermometers & log walk-in cooler (3.4°C)',
+        'Verify 18 Prime Ribeye portions & herb butter bain-marie',
+        'Verify 22 Roasted Squash Risotto portions & vegan stock option',
+        'Stock garnish pass, sani-buckets (200 ppm), and allergen tickets',
+        'Conduct 15:40 line tasting with Head Chef Riley & GM Jamie'
+      ]
+    }
+  };
+
+  function getStationTasks(tabId){
+    const base=checklistCatalog[tabId]?.tasks||checklist;
+    const extras=Array.isArray(state.extraTasks?.[tabId])?state.extraTasks[tabId]:[];
+    return [...base,...extras];
+  }
+  function getStationChecked(tabId){
+    if(tabId==='bar-open')return state.checked;
+    if(tabId==='bar-close')return Array.isArray(state.closingChecked)?state.closingChecked:[0,1,2];
+    if(tabId==='foh-open')return Array.isArray(state.fohChecked)?state.fohChecked:[0,1,2,3,4,5];
+    if(tabId==='kitchen-open')return Array.isArray(state.kitchenChecked)?state.kitchenChecked:[0,1,2,3,4];
+    return [];
+  }
+  function setStationChecked(tabId,arr){
+    if(tabId==='bar-open')state.checked=arr;
+    else if(tabId==='bar-close')state.closingChecked=arr;
+    else if(tabId==='foh-open')state.fohChecked=arr;
+    else if(tabId==='kitchen-open')state.kitchenChecked=arr;
+  }
+
   const el=document.getElementById('app-content');
   const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function persist(){try{localStorage.setItem(STORAGE,JSON.stringify(state));}catch(e){}}
@@ -115,6 +214,7 @@
   const unansweredQuestions=()=>state.briefing.questions.filter(q=>!q.reply).length;
   const pendingCount=()=>state.requests.filter(x=>x.status==='pending').length
     + (state.checklistStatus==='submitted'?1:0)
+    + (state.closingStatus==='submitted'?1:0)
     + (state.swapStatus==='pending'?1:0)
     + unansweredQuestions()
     + (!state.draftVerified?1:0)
@@ -122,13 +222,16 @@
 
   const simpleButton=(label,view)=>`<button type="button" class="panel-link" data-goto="${view}">${label}</button>`;
 
-  function formatTitle(eyebrow,title,subtitle){
+  function formatTitle(eyebrow,title,subtitle,rightHtml=''){
     return `<div class="page-header-block">
-      <div class="section-eyebrow">${eyebrow}</div>
       <div class="content-top">
-        <h1 class="page-title">${title}</h1>
+        <div>
+          <div class="section-eyebrow">${eyebrow}</div>
+          <h1 class="page-title">${title}</h1>
+          <p class="page-subtitle">${subtitle}</p>
+        </div>
+        ${rightHtml?`<div class="header-right-actions">${rightHtml}</div>`:''}
       </div>
-      <p class="page-subtitle">${subtitle}</p>
     </div>`;
   }
 
@@ -136,35 +239,41 @@
     const b=state.briefing;
     const acknowledged=b.ackVersion===b.version;
     const ackCount=(b.version===1?5:0)+(acknowledged?1:0);
-    const remaining=checklist.length-state.checked.length;
+    const openTasks=getStationTasks('bar-open');
+    const remaining=Math.max(0,openTasks.length-state.checked.filter(i=>i<openTasks.length).length);
     const pendingSupply=state.requests.filter(r=>r.status==='pending');
     const approvedSupply=state.requests.filter(r=>r.status==='approved');
     const lessonsDone=state.academyDone.filter(Boolean).length;
     const pending=pendingCount();
+    const cStatus=state.closingStatus||'working';
+    const closeTasks=getStationTasks('bar-close');
+    const closeDone=getStationChecked('bar-close').filter(i=>i<closeTasks.length).length;
 
     if(isManager()){
       return `<div class="app-content">
         ${formatTitle(
           'OPERATIONS COMMAND · FRIDAY, OCT 23',
           'Service Command',
-          'Evening service readiness, station sign-offs, and pending team approvals.'
+          'Evening service readiness, station sign-offs, and pending team approvals.',
+          `<button type="button" class="secondary-btn small-btn" data-goto="shifts">Schedule Studio</button>
+           <button type="button" class="primary-btn small-btn" data-goto="briefings">Briefing v${b.version} · ${ackCount}/8 read</button>`
         )}
         <div class="dashboard-stats four-stats">
           <div class="card metric metric-highlight" data-goto="briefings" role="button" tabindex="0">
             <div class="metric-label">Briefing read (v${b.version})</div>
             <div class="metric-value">${ackCount}<span class="metric-sub"> / 8</span></div>
             <div class="task-progress"><div style="width:${ackCount/8*100}%"></div></div>
-            <div class="metric-note">${8-ackCount} unread before 4:00 PM</div>
+            <div class="metric-note">${8-ackCount} unread before 16:00</div>
           </div>
           <div class="card metric" data-goto="checklists" role="button" tabindex="0">
-            <div class="metric-label">Station checklists</div>
+            <div class="metric-label">Opening checklists</div>
             <div class="metric-value">${state.checklistStatus==='approved'?'3':'2'}<span class="metric-sub"> / 3</span></div>
-            <div class="metric-note">${state.checklistStatus==='submitted'?'Bar opening awaiting review':state.checklistStatus==='approved'?'All 3 stations approved':'Bar opening in progress ('+state.checked.length+'/'+checklist.length+')'}</div>
+            <div class="metric-note">${state.checklistStatus==='submitted'?'Bar opening awaiting review':state.checklistStatus==='approved'?'All 3 opening lists signed off':'Bar opening ('+state.checked.length+'/'+openTasks.length+')'}</div>
           </div>
           <div class="card metric" data-goto="inbox" role="button" tabindex="0">
             <div class="metric-label">Pending decisions</div>
             <div class="metric-value">${String(pending).padStart(2,'0')}</div>
-            <div class="metric-note">${pending?'Items in Review Inbox':'All decisions cleared'}</div>
+            <div class="metric-note">${pending?'Action items below':'All decisions cleared'}</div>
           </div>
           <div class="card metric" data-goto="shifts" role="button" tabindex="0">
             <div class="metric-label">Evening roster</div>
@@ -180,7 +289,7 @@
                 <span class="panel-kicker">NEEDS REVIEW</span>
                 <h2>Action queue</h2>
               </div>
-              ${simpleButton('Full inbox','inbox')}
+              ${simpleButton('Full inbox →','inbox')}
             </div>
             <div class="action-queue-list">
               ${state.checklistStatus==='submitted'?`
@@ -195,11 +304,22 @@
                     <button type="button" class="secondary-btn small-btn" data-action="reject-checklist">Return</button>
                   </div>
                 </div>`:''}
+              ${cStatus==='submitted'?`
+                <div class="queue-item urgent">
+                  <div class="activity-icon">☑</div>
+                  <div class="queue-meta">
+                    <strong>Bar &amp; floor closing checklist</strong>
+                    <span>Submitted by Sam Kim · "${esc(state.closingEvidence||'Safe drop & temps logged')}"</span>
+                  </div>
+                  <div class="queue-actions">
+                    <button type="button" class="primary-btn small-btn" data-action="approve-closing">Approve</button>
+                  </div>
+                </div>`:''}
               ${state.swapStatus==='pending'?`
                 <div class="queue-item urgent">
                   <div class="activity-icon">▦</div>
                   <div class="queue-meta">
-                    <strong>Shift swap · Friday 4:00 PM</strong>
+                    <strong>Shift swap · Friday 16:00</strong>
                     <span>Alex Morgan ↔ Chris Taylor (Server)</span>
                   </div>
                   <div class="queue-actions">
@@ -262,32 +382,41 @@
           <div class="stack">
             <section class="card panel">
               <div class="panel-head">
-                <h2>Station readiness</h2>
-                ${simpleButton('Checklists','checklists')}
+                <h2>Opening &amp; closing stations</h2>
+                ${simpleButton('All checklists →','checklists')}
               </div>
               <div class="station-grid">
-                <div class="station-row">
+                <div class="station-row station-row-clickable" data-open-station="bar-open" role="button" tabindex="0">
                   <div>
-                    <strong>Bar Opening &amp; Garnish Prep</strong>
-                    <small>Sam Kim &amp; Alex Morgan · ${state.checked.length}/${checklist.length} tasks</small>
+                    <strong>Bar Opening (15:00)</strong>
+                    <small>Alex Morgan &amp; Sam Kim · ${state.checked.length}/${openTasks.length} tasks</small>
                   </div>
                   <span class="tag ${state.checklistStatus==='approved'?'':state.checklistStatus==='submitted'||state.checklistStatus==='rejected'?'tag-orange':'tag-gray'}">
-                    ${state.checklistStatus==='approved'?'Approved':state.checklistStatus==='submitted'?'Needs Review':state.checklistStatus==='rejected'?'Changes Requested':'In Progress'}
+                    ${state.checklistStatus==='approved'?'Approved':state.checklistStatus==='submitted'?'Needs Review':state.checklistStatus==='rejected'?'Returned':'In Progress'}
                   </span>
                 </div>
-                <div class="station-row">
+                <div class="station-row station-row-clickable" data-open-station="foh-open" role="button" tabindex="0">
                   <div>
-                    <strong>Dining Room &amp; Host Stand</strong>
-                    <small>Taylor Brooks &amp; Jordan Lee · 6/6 tasks</small>
+                    <strong>Dining Room Opening (15:15)</strong>
+                    <small>Jordan Lee &amp; Taylor Brooks · 6/6 tasks</small>
                   </div>
                   <span class="tag">Approved</span>
                 </div>
-                <div class="station-row">
+                <div class="station-row station-row-clickable" data-open-station="kitchen-open" role="button" tabindex="0">
                   <div>
-                    <strong>Kitchen Pass &amp; Cold Storage</strong>
+                    <strong>Kitchen Pass &amp; Line (15:30)</strong>
                     <small>Riley Chen · 5/5 tasks · Walk-in 3.4°C</small>
                   </div>
                   <span class="tag">Approved</span>
+                </div>
+                <div class="station-row station-row-clickable" data-open-station="bar-close" role="button" tabindex="0">
+                  <div>
+                    <strong>Bar &amp; Floor Closing (23:00)</strong>
+                    <small>Sam Kim &amp; Alex Morgan · ${closeDone}/${closeTasks.length} tasks</small>
+                  </div>
+                  <span class="tag ${cStatus==='approved'?'':cStatus==='submitted'?'tag-orange':'tag-gray'}">
+                    ${cStatus==='approved'?'Signed Off':cStatus==='submitted'?'Needs Review':'Tonight 23:00'}
+                  </span>
                 </div>
               </div>
             </section>
@@ -295,12 +424,12 @@
             <section class="card panel dash-briefing">
               <div class="panel-head">
                 <h2>Evening briefing · v${b.version}</h2>
-                ${simpleButton('Briefing Studio','briefings')}
+                ${simpleButton('Briefing Studio →','briefings')}
               </div>
               <p class="mini-text">Published at ${esc(b.publishedAt)} · ${ackCount} of 8 staff acknowledged. Publishing v${b.version+1} resets read receipts.</p>
               <div class="inline-actions">
-                <button type="button" class="primary-btn" data-goto="briefings">Edit briefing</button>
-                <button type="button" class="secondary-btn" data-goto="supply">Vendor orders (${approvedSupply.length})</button>
+                <button type="button" class="primary-btn small-btn" data-goto="briefings">Edit briefing</button>
+                <button type="button" class="secondary-btn small-btn" data-goto="supply">Vendor orders (${approvedSupply.length})</button>
               </div>
             </section>
           </div>
@@ -319,7 +448,7 @@
       },
       {
         done:state.checklistStatus==='submitted'||state.checklistStatus==='approved',
-        title:`Bar Opening Checklist (${state.checked.length}/${checklist.length})`,
+        title:`Bar Opening Checklist (${state.checked.length}/${openTasks.length})`,
         sub:state.checklistStatus==='approved'?'Approved by Jamie Chen':state.checklistStatus==='submitted'?'Submitted for manager review':state.checklistStatus==='rejected'?`Returned: "${state.checklistNotes}"`:`${remaining} tasks remaining`,
         cta:state.checklistStatus==='working'&&remaining===0?'Submit':'Open',
         action:state.checklistStatus==='working'&&remaining===0?'submit-checklist':null,
@@ -348,31 +477,28 @@
       ${formatTitle(
         'MY SHIFT WORKSPACE · FRIDAY, OCT 23',
         'Good evening, Alex',
-        'Your 4:00 PM shift schedule, pre-service briefing, and station tasks.'
+        'Your 16:00 shift assignment, pre-service briefing, and station tasks.',
+        `<span class="tag ${completedSteps===4?'':'tag-orange'}">${completedSteps}/4 pre-shift ready</span>`
       )}
-      <div class="dashboard-stats">
-        <div class="card metric metric-highlight" data-goto="briefings" role="button" tabindex="0">
-          <div class="metric-label">Shift readiness</div>
-          <div class="metric-value">${completedSteps}<span class="metric-sub"> / 4</span></div>
-          <div class="task-progress"><div style="width:${completedSteps/4*100}%"></div></div>
-          <div class="metric-note">${completedSteps===4?'Ready for service':'Pre-shift items below'}</div>
+
+      <div class="shift-feature">
+        <div>
+          <small>TONIGHT’S ASSIGNMENT · THE COPPER ROOM</small>
+          <strong>${state.swapStatus==='approved'?'Friday Shift Covered by Chris Taylor':'Evening Dinner Service · Section A & Bar'}</strong>
+          <p>Shift Lead: Jamie Chen · Doors open at 16:00 · 8-top VIP on Table 14 at 19:00</p>
+          <div class="shift-badges-row">
+            <span class="shift-mini-pill">◈ Briefing v${b.version}: ${acknowledged?'Read ✓':'Unread'}</span>
+            <span class="shift-mini-pill">☑ Bar Opening: ${state.checked.length}/${openTasks.length}</span>
+            <span class="shift-mini-pill">☾ Closing List: ${closeDone}/${closeTasks.length}</span>
+          </div>
         </div>
-        <div class="card metric" data-goto="checklists" role="button" tabindex="0">
-          <div class="metric-label">Bar opening tasks</div>
-          <div class="metric-value">${state.checked.length}<span class="metric-sub"> / ${checklist.length}</span></div>
-          <div class="metric-note">${state.checklistStatus==='approved'?'Approved by manager':state.checklistStatus==='submitted'?'Pending manager review':state.checklistStatus==='rejected'?'Changes requested':remaining===0?'Ready to submit':remaining+' remaining'}</div>
-        </div>
-        <div class="card metric" data-goto="shifts" role="button" tabindex="0">
-          <div class="metric-label">Tonight’s assignment</div>
-          <div class="metric-value">16:00</div>
-          <div class="metric-note">${state.swapStatus==='approved'?'Covered by Chris Taylor':state.swapStatus==='pending'?'Swap request pending':'Section A & Bar Support'}</div>
-        </div>
+        <div class="shift-time">16:00<span style="font-size:14px;color:#B4CBA8;font-weight:500">–23:00</span></div>
       </div>
 
       <div class="dashboard-two">
         <section class="card panel">
           <div class="panel-head">
-            <h2>Pre-service checklist</h2>
+            <h2>Pre-service readiness</h2>
             <span class="tag ${completedSteps===4?'':'tag-orange'}">${completedSteps} of 4 done</span>
           </div>
           <div class="readiness-checklist">
@@ -393,7 +519,7 @@
           <section class="card panel dash-briefing">
             <div class="panel-head">
               <h2>Tonight’s briefing · v${b.version}</h2>
-              ${simpleButton('Full briefing','briefings')}
+              ${simpleButton('Full briefing →','briefings')}
             </div>
             <div class="mini-brief-preview">
               ${b.items.slice(0,3).map(item=>`
@@ -404,14 +530,14 @@
               `).join('')}
             </div>
             ${acknowledged
-              ?'<div class="callout">Acknowledged v'+b.version+'</div>'
+              ?'<div class="callout">Acknowledged v'+b.version+' ✓</div>'
               :'<button type="button" class="primary-btn" data-action="ack-briefing">Acknowledge briefing</button>'}
           </section>
 
           <section class="card panel">
             <div class="panel-head">
               <h2>Team updates</h2>
-              ${simpleButton('Open chat','chat')}
+              ${simpleButton('Open chat →','chat')}
             </div>
             ${state.messages.slice(-2).reverse().map(m=>`
               <div class="activity-row">
@@ -432,156 +558,222 @@
     const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     const now=new Date(),offset=(now.getDay()+6)%7,monday=new Date(now);
     monday.setDate(now.getDate()-offset);
-    const dayDetails=[
-      {role:'Day Prep & Lunch Service',time:'10:00 AM – 4:00 PM',area:'Dining Room',lead:'Jamie Chen',team:['Jamie · GM','Alex · Server','Riley · Chef']},
-      {role:'Evening Service',time:'4:00 PM – 11:00 PM',area:'Dining Room · Sec B',lead:'Jamie Chen',team:['Jamie · GM','Alex · Server','Sam · Bar','Jordan · Server']},
-      {role:'Scheduled Day Off',time:'Off duty',area:'Rest day',lead:'Sam Kim',team:['Sam · Bar','Jordan · Server','Riley · Chef','Taylor · Host']},
-      {role:'Evening Service',time:'4:00 PM – 11:00 PM',area:'Bar Support & Patio',lead:'Jamie Chen',team:['Jamie · GM','Alex · Server','Sam · Bar','Riley · Chef']},
-      {role:state.swapStatus==='approved'?'Swap Approved (Chris covering)':'Friday Peak Service',time:'4:00 PM – 11:00 PM',area:'Section A (Tables 1–6) & Bar',lead:'Jamie Chen',team:['Jamie · GM',state.swapStatus==='approved'?'Chris · Server (Covering Alex)':'Alex · Server','Sam · Bar','Jordan · Server','Riley · Chef','Taylor · Host']},
-      {role:'Weekend Dinner Service',time:'4:00 PM – 11:30 PM',area:'Main Floor',lead:'Jamie Chen',team:['Jamie · GM','Alex · Server','Sam · Bar','Jordan · Server','Riley · Chef',...(state.openShiftAssigned?['Morgan · Bar Support']:[])]},
-      {role:'Scheduled Day Off',time:'Off duty',area:'Rest day',lead:'Jamie Chen',team:['Jamie · GM','Jordan · Server','Chris · Server']}
-    ];
-    const currentDay=dayDetails[state.selectedDay]||dayDetails[4];
-    const isWorkingDay=[0,1,3,4,5].includes(state.selectedDay);
 
     const rosterRows=[
-      {init:'JC',name:'Jamie Chen',role:'General Manager',shifts:['10–18','14–22','Off','14–22','14–23','14–23','12–20']},
-      {init:'AL',name:'Alex Morgan',role:'Server · FOH',shifts:['10–16','16–23','Off','16–23',state.swapStatus==='approved'?'Swapped ↔':'16–23','16–23:30','Off'],highlight:true},
-      {init:'SK',name:'Sam Kim',role:'Bar Lead',shifts:['Off','15–23','15–23','15–23','15–23:30','15–23:30','Off']},
-      {init:'JL',name:'Jordan Lee',role:'Server · FOH',shifts:['Off','16–23','16–22','Off','16–23','12–20','12–20']},
-      {init:'RC',name:'Riley Chen',role:'Head Chef',shifts:['09–17','13–22','13–22','13–22','13–23','13–23','Off']},
-      {init:'CT',name:'Chris Taylor',role:'Server · Float',shifts:['11–17','Off','16–22','Off',state.swapStatus==='approved'?'16–23 (Alex)':'On call','16–23','12–20']},
-      {init:'MP',name:'Morgan Patel',role:'Bar Support',shifts:['Off','Off','17–22','17–22','17–23',state.openShiftAssigned?'17–23':'Open shift','Off']}
+      {init:'JC',name:'Jamie Chen',role:'General Manager',dept:'Kitchen',shifts:['10–18','14–22','Off','14–22','14–23','14–23','12–20']},
+      {init:'AL',name:'Alex Morgan',role:'Server · FOH',dept:'FOH',shifts:['10–16','16–23','Off','16–23',state.swapStatus==='approved'?'Swapped ↔':'16–23','16–23:30','Off'],highlight:true},
+      {init:'SK',name:'Sam Kim',role:'Bar Lead',dept:'Bar',shifts:['Off','15–23','15–23','15–23','15–23:30','15–23:30','Off']},
+      {init:'JL',name:'Jordan Lee',role:'Server · FOH',dept:'FOH',shifts:['Off','16–23','16–22','Off','16–23','12–20','12–20']},
+      {init:'RC',name:'Riley Chen',role:'Head Chef',dept:'Kitchen',shifts:['09–17','13–22','13–22','13–22','13–23','13–23','Off']},
+      {init:'CT',name:'Chris Taylor',role:'Server · Float',dept:'FOH',shifts:['11–17','Off','16–22','Off',state.swapStatus==='approved'?'16–23 (Alex)':'On call','16–23','12–20']},
+      {init:'MP',name:'Morgan Patel',role:'Bar Support',dept:'Bar',shifts:['Off','Off','17–22','17–22','17–23',state.openShiftAssigned?'17–23':'Open shift','Off']}
     ];
+
+    const custom=state.customShifts||{};
+    rosterRows.forEach((r,rIdx)=>{
+      r.shifts=r.shifts.map((s,dIdx)=>custom[`${rIdx}:${dIdx}`]!==undefined?custom[`${rIdx}:${dIdx}`]:s);
+    });
+
+    const dayDetails=[
+      {role:'Day Prep & Lunch Service',time:'10:00 AM – 4:00 PM',area:'Dining Room',lead:'Jamie Chen'},
+      {role:'Evening Service',time:'4:00 PM – 11:00 PM',area:'Dining Room · Sec B',lead:'Jamie Chen'},
+      {role:'Midweek Dinner Service',time:'4:00 PM – 10:00 PM',area:'Main Dining & Bar',lead:'Sam Kim'},
+      {role:'Evening Service',time:'4:00 PM – 11:00 PM',area:'Bar Support & Patio',lead:'Jamie Chen'},
+      {role:state.swapStatus==='approved'?'Swap Approved (Chris covering)':'Friday Peak Service',time:'4:00 PM – 11:00 PM',area:'Section A (Tables 1–6) & Bar',lead:'Jamie Chen'},
+      {role:'Weekend Dinner Service',time:'4:00 PM – 11:30 PM',area:'Main Floor & Bar',lead:'Jamie Chen'},
+      {role:'Sunday Supper Service',time:'12:00 PM – 8:00 PM',area:'Dining Room',lead:'Jamie Chen'}
+    ].map((d,dIdx)=>{
+      const activeTeam=rosterRows
+        .filter(r=>r.shifts[dIdx]!=='Off'&&!r.shifts[dIdx].includes('Open')&&r.shifts[dIdx]!=='On call')
+        .map(r=>`${r.name.split(' ')[0]} · ${r.role.split(' · ')[0]} (${r.shifts[dIdx]})`);
+      return {...d,team:activeTeam};
+    });
+
+    const currentDay=dayDetails[state.selectedDay]||dayDetails[4];
+    const alexShift=rosterRows[1].shifts[state.selectedDay];
+    const isWorkingDay=alexShift!=='Off'&&!alexShift.includes('Open');
+
+    const allShifts=rosterRows.flatMap(r=>r.shifts);
+    const activeShiftCount=allShifts.filter(s=>s!=='Off'&&!s.includes('Open')&&s!=='On call').length;
+    const openShiftCount=allShifts.filter(s=>s.includes('Open')).length;
+    const estHours=Math.round(activeShiftCount*7.2);
+    const rVer=state.rosterVersion||2;
+    const hasCustomShifts=Object.keys(custom).length>0;
+
+    const shiftPresets=[
+      ['16–23 · Sec A','16–23 Floor'],
+      ['15–23:30','15–23:30 Bar'],
+      ['17–23','17–23 Support'],
+      ['14–23','14–23 Lead'],
+      ['13–23','13–23 Kitchen'],
+      ['10–16','10–16 Prep'],
+      ['Off','Day Off']
+    ];
+
+    const filteredRoster=activeRosterDept==='ALL'
+      ?rosterRows.map((r,idx)=>({...r,idx}))
+      :rosterRows.map((r,idx)=>({...r,idx})).filter(r=>r.dept===activeRosterDept);
+
+    const selectedPerson=rosterRows[builderStaffIdx]||rosterRows[6];
+    const selectedCellValue=selectedPerson.shifts[state.selectedDay];
 
     return `<div class="app-content">
       ${formatTitle(
         'BRIGLY SHIFTS · WEEKLY ROTA & SWAPS',
-        isManager()?'Team Roster & Schedule':'My Schedule & Shift Swaps',
+        isManager()?'Schedule Studio & Team Roster':'My Schedule & Shift Swaps',
         isManager()
-          ?'Weekly coverage across Front of House, Bar, and Kitchen.'
-          :'Your personal shift calendar, shift team, and coverage requests.'
+          ?'Click any cell in the roster to assign shifts in one tap, filter by department, or approve swaps.'
+          :'Your personal shift calendar, floor team, and shift swap requests.',
+        `<span class="tag tag-dark">Roster v${rVer}</span>
+         <span class="tag">${activeShiftCount} shifts · ~${estHours}h</span>
+         ${isManager()?`<span class="tag ${openShiftCount?'tag-orange':''}">${openShiftCount===0?'All shifts filled':openShiftCount+' open shift Sat'}</span>`:''}`
       )}
 
-      <div class="content-top" style="margin:18px 0 14px">
-        <div>
-          <strong style="font-size:13px">${isManager()?'Master Venue Schedule · Oct 19–25':'Alex Morgan’s Weekly Shifts'}</strong>
+      ${!isManager()?`
+        <div class="week-grid">
+          ${days.map((d,i)=>{
+            const date=new Date(monday);date.setDate(monday.getDate()+i);
+            const aShift=rosterRows[1].shifts[i];
+            const work=aShift!=='Off'&&!aShift.includes('Open');
+            const swappedFri=i===4&&state.swapStatus==='approved';
+            return `<div role="button" tabindex="0" aria-label="Select ${d}" aria-pressed="${i===state.selectedDay}" class="day-column ${i===state.selectedDay?'today':''}" data-select-day="${i}" style="cursor:pointer">
+              <div class="day-head-row">
+                <div class="day-name">${d.toUpperCase()}</div>
+                ${i===4?'<span class="today-pill">TONIGHT</span>':''}
+              </div>
+              <div class="day-date">${date.getDate()}</div>
+              ${work
+                ?`<div class="shift-chip ${i===4?'orange':''}">
+                    <strong>${swappedFri?'Covered (Chris)':i===4?'Evening service':'Shift · '+esc(aShift)}</strong>
+                    <small>${i===0?'10 AM – 4 PM':'4 PM – 11 PM'}</small>
+                  </div>`
+                :'<p class="no-shift-label">Day off</p>'}
+              <small class="day-staff-count">${dayDetails[i].team.length} on floor</small>
+            </div>`;
+          }).join('')}
         </div>
-        <div class="inline-actions" style="margin:0">
-          <span class="tag tag-dark">Published · v2</span>
-          ${isManager()?`<span class="tag">${state.openShiftAssigned?'All shifts filled':'1 open shift Sat'}</span>`:''}
-        </div>
-      </div>
-
-      <div class="week-grid">
-        ${days.map((d,i)=>{
-          const date=new Date(monday);date.setDate(monday.getDate()+i);
-          const work=[0,1,3,4,5].includes(i);
-          const swappedFri=i===4&&state.swapStatus==='approved';
-          return `<div role="button" tabindex="0" aria-label="Select ${d}" aria-pressed="${i===state.selectedDay}" class="day-column ${i===state.selectedDay?'today':''}" data-select-day="${i}" style="cursor:pointer">
-            <div class="day-head-row">
-              <div class="day-name">${d.toUpperCase()}</div>
-              ${i===4?'<span class="today-pill">TONIGHT</span>':''}
-            </div>
-            <div class="day-date">${date.getDate()}</div>
-            ${work
-              ?`<div class="shift-chip ${i===4?'orange':''}">
-                  <strong>${swappedFri?'Covered (Chris)':i===4?'Evening service':'Shift assigned'}</strong>
-                  <small>${i===0?'10 AM – 4 PM':'4 PM – 11 PM'}</small>
-                </div>`
-              :'<p class="no-shift-label">Day off</p>'}
-            <small class="day-staff-count">${dayDetails[i].team.length} staff on floor</small>
-          </div>`;
-        }).join('')}
-      </div>
+      `:''}
 
       ${isManager()?`
-        <section class="card panel" style="margin-top:20px">
-          <div class="panel-head">
+        <section class="card panel" style="margin-top:6px">
+          <div class="panel-head" style="flex-wrap:wrap;gap:10px">
             <div>
-              <span class="panel-kicker">MANAGER ROSTER MATRIX</span>
-              <h2>Full team coverage · Week of Oct 19–25</h2>
+              <span class="panel-kicker">MANAGER ROSTER MATRIX · WEEK OF OCT 19–25</span>
+              <h2>Interactive shift schedule</h2>
             </div>
-            <button type="button" class="secondary-btn small-btn" data-action="toggle-open-shift">
-              ${state.openShiftAssigned?'Unassign Saturday shift':'Assign Saturday shift to Morgan'}
-            </button>
+            <div class="inline-actions" style="margin:0">
+              <div class="filter-pills" role="group" aria-label="Filter roster by department">
+                ${[['ALL','All (7)'],['FOH','FOH (3)'],['Bar','Bar (2)'],['Kitchen','Kitchen & GM (2)']].map(([dept,lbl])=>`
+                  <button type="button" class="filter-pill ${activeRosterDept===dept?'active':''}" data-roster-dept="${dept}">${lbl}</button>
+                `).join('')}
+              </div>
+              <button type="button" class="secondary-btn small-btn" data-action="toggle-open-shift">
+                ${state.openShiftAssigned?'Reopen Sat shift':'Fill Sat open shift'}
+              </button>
+              <button type="button" class="primary-btn small-btn" data-action="publish-roster">Publish v${rVer+1}</button>
+            </div>
           </div>
+
+          <div class="quick-assign-bar">
+            <div class="qa-target">
+              <span class="qa-badge">SELECTED CELL</span>
+              <strong>${esc(selectedPerson.name)}</strong>
+              <span>· ${days[state.selectedDay]}</span>
+              <code class="qa-current">${esc(selectedCellValue)}</code>
+            </div>
+            <div class="qa-presets" role="group" aria-label="One-tap shift presets">
+              <span class="qa-hint">1-tap assign:</span>
+              ${shiftPresets.map(([val,lbl])=>`
+                <button type="button" class="qa-pill ${selectedCellValue===val?'active':''}" data-quick-shift="${esc(val)}">${esc(lbl)}</button>
+              `).join('')}
+              ${hasCustomShifts?`<button type="button" class="text-btn small-btn" data-action="reset-custom-shifts">Reset</button>`:''}
+            </div>
+          </div>
+
           <div class="roster-table-wrap">
             <table class="roster-table">
               <thead>
                 <tr>
                   <th>Team member</th>
-                  ${days.map((d,i)=>`<th class="${i===state.selectedDay?'col-active':''}">${d}</th>`).join('')}
+                  ${days.map((d,i)=>`
+                    <th class="${i===state.selectedDay?'col-active':''}" data-select-day="${i}" style="cursor:pointer" title="View ${d} lineup">
+                      ${d} ${i===4?'<span class="today-pill">FRI</span>':''}
+                    </th>
+                  `).join('')}
+                  <th>Hrs</th>
                 </tr>
               </thead>
               <tbody>
-                ${rosterRows.map(r=>`
-                  <tr class="${r.highlight?'row-highlight':''}">
+                ${filteredRoster.map(r=>{
+                  const empShifts=r.shifts.filter(s=>s!=='Off'&&!s.includes('Open')&&s!=='On call').length;
+                  return `<tr class="${r.highlight?'row-highlight':''}">
                     <td>
                       <div class="roster-person">
                         <span class="roster-avatar">${r.init}</span>
                         <div><strong>${esc(r.name)}</strong><small>${esc(r.role)}</small></div>
                       </div>
                     </td>
-                    ${r.shifts.map((s,i)=>`
-                      <td class="${i===state.selectedDay?'col-active':''}">
-                        <span class="roster-cell ${s==='Off'?'is-off':s.includes('Open')?'is-open':s.includes('Swapped')||s.includes('Alex')?'is-swap':''}">${esc(s)}</span>
-                      </td>
-                    `).join('')}
-                  </tr>
-                `).join('')}
+                    ${r.shifts.map((s,i)=>{
+                      const isSelectedCell=r.idx===builderStaffIdx&&i===state.selectedDay;
+                      return `<td class="${i===state.selectedDay?'col-active':''}">
+                        <button type="button" data-roster-cell="${r.idx}:${i}" class="roster-cell roster-cell-btn ${s==='Off'?'is-off':s.includes('Open')?'is-open':s.includes('Swapped')||s.includes('Alex')?'is-swap':''} ${isSelectedCell?'is-editing':''}" title="Click to select ${esc(r.name)} on ${days[i]}">${esc(s)}</button>
+                      </td>`;
+                    }).join('')}
+                    <td class="roster-hours-cell">${empShifts*7}h</td>
+                  </tr>`;
+                }).join('')}
               </tbody>
             </table>
           </div>
         </section>
       `:''}
 
-      <div class="split" style="margin-top:18px">
+      <div class="split" style="margin-top:16px">
         <section class="card panel">
           <div class="panel-head">
             <h2>${days[state.selectedDay]} · ${currentDay.role}</h2>
             <span class="tag ${isWorkingDay?'':'tag-gray'}">${isWorkingDay?currentDay.time:'Day off'}</span>
           </div>
-          <p class="mini-text" style="margin-top:8px">
+          <p class="mini-text" style="margin-top:6px">
             ${isWorkingDay
-              ?`Assigned area: <strong>${esc(currentDay.area)}</strong> · Shift lead: <strong>${esc(currentDay.lead)}</strong>.`
-              :'No personal shift scheduled on this day.'}
+              ?`Area: <strong>${esc(currentDay.area)}</strong> · Duty Lead: <strong>${esc(currentDay.lead)}</strong>.`
+              :'Alex Morgan is off duty on this day.'}
           </p>
           <div class="team-on-shift">
-            <span class="field-label">TEAM ON SHIFT (${currentDay.team.length})</span>
+            <span class="field-label">FLOOR &amp; KITCHEN TEAM (${currentDay.team.length})</span>
             <div class="team-pills">
               ${currentDay.team.map(person=>`<span class="team-member-chip">${esc(person)}</span>`).join('')}
             </div>
           </div>
           <div class="inline-actions">
-            <button type="button" class="primary-btn" data-goto="briefings">Open shift briefing</button>
-            <button type="button" class="secondary-btn" data-goto="checklists">Shift checklist (${state.checked.length}/${checklist.length})</button>
+            <button type="button" class="primary-btn small-btn" data-goto="briefings">Shift briefing</button>
+            <button type="button" class="secondary-btn small-btn" data-goto="checklists">Checklists (${state.checked.length}/${checklist.length})</button>
           </div>
         </section>
 
         <section class="card panel">
           <div class="panel-head">
-            <h2>Shift swap</h2>
+            <h2>Shift swap request</h2>
             <span class="tag ${state.swapStatus==='approved'?'':state.swapStatus==='pending'?'tag-orange':'tag-gray'}">
-              ${state.swapStatus==='none'?'No active request':state.swapStatus==='pending'?'Pending review':state.swapStatus==='approved'?'Approved':'Declined'}
+              ${state.swapStatus==='none'?'Available':state.swapStatus==='pending'?'Pending review':state.swapStatus==='approved'?'Approved':'Declined'}
             </span>
           </div>
           <div class="swap-box">
-            <strong>Friday, Oct 23 · 4:00 PM – 11:00 PM</strong>
-            <small>Requester: Alex Morgan → Proposed cover: Chris Taylor (Server · Eligible)</small>
+            <strong>Friday, Oct 23 · 16:00 – 23:00 (Section A)</strong>
+            <small>Alex Morgan ↔ Chris Taylor (Server · Eligible · No overtime conflict)</small>
           </div>
           <div class="inline-actions">
-            ${state.swapStatus==='none'?`<button type="button" class="primary-btn" data-action="request-swap">Request Friday shift swap</button>`:''}
+            ${state.swapStatus==='none'?`<button type="button" class="primary-btn small-btn" data-action="request-swap">Request Friday shift swap</button>`:''}
             ${state.swapStatus==='pending'&&isManager()?`
-              <button type="button" class="primary-btn" data-action="approve-swap">Approve shift swap</button>
-              <button type="button" class="secondary-btn" data-action="reject-swap">Decline</button>
+              <button type="button" class="primary-btn small-btn" data-action="approve-swap">Approve swap</button>
+              <button type="button" class="secondary-btn small-btn" data-action="reject-swap">Decline</button>
             `:''}
             ${state.swapStatus==='pending'&&!isManager()?`
               <span class="tag tag-orange">Awaiting manager review</span>
               <button type="button" class="secondary-btn small-btn" data-action="switch-role" data-target-role="manager">Review as Manager</button>
             `:''}
             ${['approved','rejected'].includes(state.swapStatus)?`
-              <span class="tag ${state.swapStatus==='approved'?'':'tag-orange'}">${state.swapStatus==='approved'?'Swap approved · Chris assigned':'Swap declined'}</span>
+              <span class="tag ${state.swapStatus==='approved'?'':'tag-orange'}">${state.swapStatus==='approved'?'Chris Taylor confirmed on roster':'Swap declined'}</span>
               <button type="button" class="text-btn small-btn" data-action="reset-swap">Reset</button>
             `:''}
           </div>
@@ -803,100 +995,157 @@
 
   function checklists(){
     const statusText={working:'In progress',submitted:'Awaiting review',approved:'Approved',rejected:'Changes requested'};
+    const activeTab=checklistCatalog[activeChecklistTab]?activeChecklistTab:'bar-open';
+    const suite=checklistCatalog[activeTab];
+    const tasks=getStationTasks(activeTab);
+    const checkedArr=getStationChecked(activeTab);
+    const doneCount=checkedArr.filter(i=>i<tasks.length).length;
+    const cStatus=state.closingStatus||'working';
+
+    const stationStatus=tabId=>{
+      if(tabId==='bar-open')return state.checklistStatus;
+      if(tabId==='bar-close')return cStatus;
+      const tLen=getStationTasks(tabId).length;
+      const cLen=getStationChecked(tabId).filter(i=>i<tLen).length;
+      return cLen===tLen?'approved':'working';
+    };
+
+    const currentStatus=stationStatus(activeTab);
+
     return `<div class="app-content">
       ${formatTitle(
-        'BRIGLY OPS · STATION CHECKLISTS & VERIFICATION',
-        isManager()?'Station Checklists & Sign-Off':'Daily Opening Checklist',
-        'Station tasks, temperature logs, and supervisor sign-off.'
+        'BRIGLY OPS · OPENING & CLOSING CHECKLISTS',
+        isManager()?'Station Checklists & Sign-Off':'Opening & Closing Checklists',
+        'Opening prep, cooler temperature logs, end-of-night closing procedures, and supervisor sign-off.',
+        `<span class="tag ${currentStatus==='submitted'||currentStatus==='rejected'?'tag-orange':''}">${statusText[currentStatus]}</span>`
       )}
 
-      ${isManager()?`
-        <div class="dashboard-stats" style="margin-bottom:20px">
-          <div class="card metric">
-            <div class="metric-label">Bar Opening Station</div>
-            <div class="metric-value">${state.checked.length}<span class="metric-sub"> / ${checklist.length}</span></div>
-            <div class="metric-note">${statusText[state.checklistStatus]} · Alex &amp; Sam</div>
-          </div>
-          <div class="card metric">
-            <div class="metric-label">Dining Room Setup</div>
-            <div class="metric-value">6<span class="metric-sub"> / 6</span></div>
-            <div class="metric-note">Approved 3:30 PM · Jordan &amp; Taylor</div>
-          </div>
-          <div class="card metric">
-            <div class="metric-label">Kitchen Pass &amp; Temps</div>
-            <div class="metric-value">5<span class="metric-sub"> / 5</span></div>
-            <div class="metric-note">Approved 3:20 PM · Riley Chen</div>
-          </div>
-        </div>
-      `:''}
+      <div class="station-tabs-bar" role="tablist" aria-label="Station checklists">
+        ${Object.values(checklistCatalog).map(st=>{
+          const stTasks=getStationTasks(st.id);
+          const stDone=getStationChecked(st.id).filter(i=>i<stTasks.length).length;
+          const stStat=stationStatus(st.id);
+          const isSel=st.id===activeTab;
+          return `<button type="button" class="station-tab-btn ${isSel?'active':''}" role="tab" aria-selected="${isSel}" data-checklist-tab="${st.id}">
+            <span class="phase-pill ${st.id==='bar-close'?'phase-close':'phase-open'}">${st.phase}</span>
+            <strong>${esc(st.shortTitle)}</strong>
+            <span class="station-tab-count ${stStat==='approved'?'is-done':stStat==='submitted'||stStat==='rejected'?'is-alert':''}">${stDone}/${stTasks.length}${stStat==='approved'?' ✓':''}</span>
+          </button>`;
+        }).join('')}
+      </div>
 
       <div class="split">
         <section class="card panel">
           <div class="panel-head">
             <div>
-              <span class="panel-kicker">STATION 01 · BAR &amp; BEVERAGE</span>
-              <h2>Bar opening · Friday evening</h2>
+              <span class="panel-kicker">${esc(suite.kicker)} · ${esc(suite.phase)}</span>
+              <h2>${esc(suite.title)}</h2>
             </div>
-            <span class="tag ${state.checklistStatus==='submitted'||state.checklistStatus==='rejected'?'tag-orange':''}">${statusText[state.checklistStatus]}</span>
+            <span class="tag ${currentStatus==='submitted'||currentStatus==='rejected'?'tag-orange':''}">${statusText[currentStatus]}</span>
           </div>
-          <p class="mini-text">Assigned to Alex Morgan &amp; Sam Kim · ${state.checked.length} of ${checklist.length} completed</p>
+          <p class="mini-text">Assigned to ${esc(suite.assignee)} · ${doneCount} of ${tasks.length} completed</p>
 
-          ${state.checklistNotes?`
+          ${activeTab==='bar-open'&&state.checklistNotes?`
             <div class="callout danger" style="margin:14px 0">
               <strong>Manager feedback (Changes requested)</strong><br>${esc(state.checklistNotes)}
             </div>
           `:''}
 
-          <div class="task-progress"><div style="width:${100*state.checked.length/checklist.length}%"></div></div>
+          <div class="task-progress"><div style="width:${100*doneCount/Math.max(1,tasks.length)}%"></div></div>
 
           <div class="checklist-items-wrap">
-            ${checklist.map((t,i)=>`
-              <label class="checklist-task ${state.checked.includes(i)?'done':''}">
-                <input type="checkbox" data-task="${i}" ${state.checked.includes(i)?'checked':''} ${['submitted','approved'].includes(state.checklistStatus)?'disabled':''}>
+            ${tasks.map((t,i)=>{
+              const isChecked=checkedArr.includes(i);
+              const locked=activeTab==='bar-open'&&['submitted','approved'].includes(state.checklistStatus);
+              return `<label class="checklist-task ${isChecked?'done':''}">
+                <input type="checkbox" ${activeTab==='bar-open'?`data-task="${i}"`:`data-station-task="${activeTab}:${i}"`} ${isChecked?'checked':''} ${locked?'disabled':''}>
                 <span>${esc(t)}</span>
-                <small>BAR</small>
-              </label>
-            `).join('')}
+                <small>${esc(suite.badge)}</small>
+              </label>`;
+            }).join('')}
           </div>
 
-          <div class="evidence-box">
-            <label class="field-label" for="checklist-evidence">Station note &amp; cooler temp log</label>
-            <div class="brief-question-reply">
-              <input id="checklist-evidence" class="control" maxlength="200" value="${esc(state.checklistEvidence||'')}" placeholder="e.g. Low-boy cooler at 3.7°C · Fresh citrus prepped" ${['submitted','approved'].includes(state.checklistStatus)?'disabled':''}>
-              ${!['submitted','approved'].includes(state.checklistStatus)?`<button type="button" class="secondary-btn small-btn" data-action="save-evidence">Save note</button>`:''}
+          ${isManager()?`
+            <form class="add-task-bar" data-form="add-checklist-task">
+              <label class="field-label" for="new-station-task">Manager builder · Add task to ${esc(suite.shortTitle)}</label>
+              <div class="brief-question-reply">
+                <input id="new-station-task" name="taskTitle" class="control" maxlength="120" required placeholder="e.g. Verify sparkling water CO2 regulator pressure...">
+                <button type="submit" class="secondary-btn small-btn">+ Add task</button>
+              </div>
+            </form>
+          `:''}
+
+          ${activeTab==='bar-open'?`
+            <div class="evidence-box">
+              <label class="field-label" for="checklist-evidence">Station note &amp; cooler temp log</label>
+              <div class="brief-question-reply">
+                <input id="checklist-evidence" class="control" maxlength="200" value="${esc(state.checklistEvidence||'')}" placeholder="e.g. Low-boy cooler at 3.7°C · Fresh citrus prepped" ${['submitted','approved'].includes(state.checklistStatus)?'disabled':''}>
+                ${!['submitted','approved'].includes(state.checklistStatus)?`<button type="button" class="secondary-btn small-btn" data-action="save-evidence">Save note</button>`:''}
+              </div>
             </div>
-          </div>
 
-          <div class="inline-actions">
-            ${['working','rejected'].includes(state.checklistStatus)&&state.checked.length<checklist.length?`
-              <button type="button" class="secondary-btn" data-action="check-all-tasks">Complete remaining (${checklist.length-state.checked.length})</button>
-            `:''}
-            ${['working','rejected'].includes(state.checklistStatus)?`
-              <button type="button" class="primary-btn" data-action="submit-checklist" ${state.checked.length!==checklist.length?'disabled style="opacity:.5;cursor:not-allowed"':''}>Submit for review</button>
-            `:''}
-            ${state.checklistStatus==='submitted'&&isManager()?`
-              <button type="button" class="primary-btn" data-action="approve-checklist">Approve checklist</button>
-              <button type="button" class="secondary-btn" data-action="reject-checklist">Request changes</button>
-            `:''}
-            ${state.checklistStatus==='submitted'&&!isManager()?`
-              <span class="tag tag-orange">Awaiting manager review</span>
-              <button type="button" class="secondary-btn small-btn" data-action="switch-role" data-target-role="manager">Review as Manager</button>
-            `:''}
-            ${state.checklistStatus==='approved'?`
-              <div class="callout" style="width:100%">Approved by Jamie Chen and logged.</div>
-            `:''}
-          </div>
+            <div class="inline-actions">
+              ${['working','rejected'].includes(state.checklistStatus)&&doneCount<tasks.length?`
+                <button type="button" class="secondary-btn" data-action="check-all-tasks">Complete remaining (${tasks.length-doneCount})</button>
+              `:''}
+              ${['working','rejected'].includes(state.checklistStatus)?`
+                <button type="button" class="primary-btn" data-action="submit-checklist" ${doneCount!==tasks.length?'disabled style="opacity:.5;cursor:not-allowed"':''}>Submit for review</button>
+              `:''}
+              ${state.checklistStatus==='submitted'&&isManager()?`
+                <button type="button" class="primary-btn" data-action="approve-checklist">Approve checklist</button>
+                <button type="button" class="secondary-btn" data-action="reject-checklist">Request changes</button>
+              `:''}
+              ${state.checklistStatus==='submitted'&&!isManager()?`
+                <span class="tag tag-orange">Awaiting manager review</span>
+                <button type="button" class="secondary-btn small-btn" data-action="switch-role" data-target-role="manager">Review as Manager</button>
+              `:''}
+              ${state.checklistStatus==='approved'?`
+                <div class="callout" style="width:100%">Approved by Jamie Chen and logged.</div>
+              `:''}
+            </div>
+          `:activeTab==='bar-close'?`
+            <div class="evidence-box">
+              <label class="field-label" for="closing-evidence">Closing lockup &amp; safe drop note</label>
+              <div class="brief-question-reply">
+                <input id="closing-evidence" class="control" maxlength="200" value="${esc(state.closingEvidence||'Drawer #2 balanced · Safe drop #104 · Walk-in at 3.5°C')}" placeholder="Log safe drop #, cooler temp, and lockup check...">
+              </div>
+            </div>
+            <div class="inline-actions">
+              ${doneCount<tasks.length?`
+                <button type="button" class="secondary-btn" data-action="check-all-station" data-station="bar-close">Complete all closing tasks (${tasks.length-doneCount})</button>
+              `:''}
+              ${cStatus==='working'?`
+                <button type="button" class="primary-btn" data-action="submit-closing" ${doneCount!==tasks.length?'disabled style="opacity:.5;cursor:not-allowed"':''}>Submit closing checklist</button>
+              `:''}
+              ${cStatus==='submitted'&&isManager()?`
+                <button type="button" class="primary-btn" data-action="approve-closing">Approve closing sign-off</button>
+              `:''}
+              ${cStatus==='submitted'&&!isManager()?`
+                <span class="tag tag-orange">Closing submitted · Awaiting GM sign-off</span>
+                <button type="button" class="secondary-btn small-btn" data-action="switch-role" data-target-role="manager">Sign off as Manager</button>
+              `:''}
+              ${cStatus==='approved'?`
+                <div class="callout" style="width:100%">Closing checklist signed off by Jamie Chen. Venue ready for tomorrow’s opening team.</div>
+              `:''}
+            </div>
+          `:`
+            <div class="inline-actions">
+              ${doneCount<tasks.length?`
+                <button type="button" class="primary-btn" data-action="check-all-station" data-station="${activeTab}">Mark all ${tasks.length} tasks complete</button>
+              `:`<div class="callout" style="width:100%">All ${tasks.length} station tasks verified and signed off for tonight’s service.</div>`}
+            </div>
+          `}
         </section>
 
         <div class="stack">
           <section class="card panel">
             <div class="panel-head">
-              <h2>Station reference</h2>
-              <span class="tag">SOP</span>
+              <h2>Station SOP &amp; Handover</h2>
+              <span class="tag">${activeTab==='bar-close'?'CLOSING SOP':'OPENING SOP'}</span>
             </div>
-            <p class="mini-text">Bar coolers must read below 4.0°C prior to 4:00 PM service. Log any missing stock directly in Supply.</p>
+            <p class="mini-text">${esc(suite.sopNote)}</p>
             <div class="inline-actions">
-              <button type="button" class="secondary-btn small-btn" data-goto="knowledge">Bar Opening SOP</button>
+              <button type="button" class="secondary-btn small-btn" data-goto="knowledge">View SOP in Knowledge</button>
               <button type="button" class="secondary-btn small-btn" data-goto="supply">Request stock</button>
             </div>
           </section>
@@ -1242,11 +1491,24 @@
               <div class="activity-icon">☑</div>
               <div class="request-meta">
                 <strong>Bar opening checklist · Friday evening</strong>
-                <small>All ${checklist.length} tasks submitted by Alex Morgan · Note: "${esc(state.checklistEvidence||'None')}"</small>
+                <small>All ${getStationTasks('bar-open').length} tasks submitted by Alex Morgan · Note: "${esc(state.checklistEvidence||'None')}"</small>
               </div>
               ${isManager()
                 ?`<div class="inline-actions" style="margin:0"><button type="button" class="primary-btn small-btn" data-action="approve-checklist">Approve</button><button type="button" class="secondary-btn small-btn" data-action="reject-checklist">Return</button></div>`
                 :'<span class="tag tag-orange">Awaiting manager</span>'}
+            </div>
+          `:''}
+
+          ${state.closingStatus==='submitted'?`
+            <div class="request-row">
+              <div class="activity-icon">☑</div>
+              <div class="request-meta">
+                <strong>Bar &amp; floor closing checklist · 23:00 lockup</strong>
+                <small>Submitted by Sam Kim &amp; Alex Morgan · Note: "${esc(state.closingEvidence||'Safe drop & cooler temps logged')}"</small>
+              </div>
+              ${isManager()
+                ?`<div class="inline-actions" style="margin:0"><button type="button" class="primary-btn small-btn" data-action="approve-closing">Approve closing</button></div>`
+                :'<span class="tag tag-orange">Awaiting GM sign-off</span>'}
             </div>
           `:''}
 
@@ -1858,6 +2120,54 @@
       update('knowledge');
       return;
     }
+    const openSt=e.target.closest('[data-open-station]');
+    if(openSt){
+      activeChecklistTab=openSt.dataset.openStation;
+      window.location.hash='checklists';
+      update('checklists');
+      return;
+    }
+    const ctab=e.target.closest('[data-checklist-tab]');
+    if(ctab){
+      activeChecklistTab=ctab.dataset.checklistTab;
+      update('checklists');
+      return;
+    }
+    const rdept=e.target.closest('[data-roster-dept]');
+    if(rdept){
+      activeRosterDept=rdept.dataset.rosterDept;
+      update('shifts');
+      return;
+    }
+    const qshift=e.target.closest('[data-quick-shift]');
+    if(qshift&&isManager()){
+      const staffNames=['Jamie Chen','Alex Morgan','Sam Kim','Jordan Lee','Riley Chen','Chris Taylor','Morgan Patel'];
+      const dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+      const shiftVal=qshift.dataset.quickShift;
+      const sIdx=builderStaffIdx;
+      const dIdx=state.selectedDay;
+      builderShiftPreset=shiftVal;
+      state.customShifts={...(state.customShifts||{}),[`${sIdx}:${dIdx}`]:shiftVal};
+      if(sIdx===6&&dIdx===5)state.openShiftAssigned=shiftVal!=='Off'&&!shiftVal.includes('Open');
+      actLog(`Assigned ${staffNames[sIdx]} to ${shiftVal} on ${dayNames[dIdx]}`);
+      persist();
+      update('shifts');
+      toast(`${staffNames[sIdx]} → ${shiftVal} (${dayNames[dIdx]}) ✓`);
+      return;
+    }
+    const rcell=e.target.closest('[data-roster-cell]');
+    if(rcell&&isManager()){
+      const [sIdx,dIdx]=rcell.dataset.rosterCell.split(':').map(Number);
+      builderStaffIdx=sIdx;
+      state.selectedDay=dIdx;
+      const cellTxt=rcell.textContent.trim();
+      if(cellTxt&&cellTxt!=='Open shift'&&cellTxt!=='On call'&&!cellTxt.includes('Swapped')){
+        builderShiftPreset=cellTxt;
+      }
+      persist();
+      update('shifts');
+      return;
+    }
     const lessonBtn=e.target.closest('[data-lesson]');
     if(lessonBtn){
       openLessonModal(Number(lessonBtn.dataset.id));
@@ -1943,10 +2253,30 @@
       toast(`Briefing v${state.briefing.version} acknowledged ✓`);
     }
     else if(action==='check-all-tasks'){
-      state.checked=checklist.map((_,i)=>i);
+      const openTasks=getStationTasks('bar-open');
+      state.checked=openTasks.map((_,i)=>i);
       if(state.checklistStatus==='rejected')state.checklistStatus='working';
-      actLog('Completed all 6 Bar Opening checklist tasks');
-      toast('All 6 bar opening tasks checked ✓');
+      actLog(`Completed all ${openTasks.length} Bar Opening checklist tasks`);
+      toast(`All ${openTasks.length} bar opening tasks checked ✓`);
+    }
+    else if(action==='check-all-station'){
+      const stId=button.dataset.station||activeChecklistTab;
+      const stTasks=getStationTasks(stId);
+      setStationChecked(stId,stTasks.map((_,i)=>i));
+      actLog(`Completed all ${stTasks.length} tasks on ${checklistCatalog[stId]?.shortTitle||stId}`);
+      toast(`All ${stTasks.length} tasks marked complete ✓`);
+    }
+    else if(action==='submit-closing'){
+      const closeInput=document.getElementById('closing-evidence');
+      if(closeInput)state.closingEvidence=closeInput.value.trim().slice(0,200);
+      state.closingStatus='submitted';
+      actLog('Bar & Floor Closing checklist submitted for manager sign-off');
+      toast('Closing checklist submitted to Manager Review Inbox ✓');
+    }
+    else if(action==='approve-closing'&&isManager()){
+      state.closingStatus='approved';
+      actLog('Manager Jamie Chen approved Bar & Floor Closing checklist');
+      toast('Closing checklist signed off ✓');
     }
     else if(action==='save-evidence'){
       const input=document.getElementById('checklist-evidence');
@@ -1957,8 +2287,9 @@
       }
     }
     else if(action==='submit-checklist'){
-      if(state.checked.length!==checklist.length){
-        toast('Finish all 6 tasks before submitting for review');
+      const openTasks=getStationTasks('bar-open');
+      if(state.checked.filter(i=>i<openTasks.length).length!==openTasks.length){
+        toast(`Finish all ${openTasks.length} tasks before submitting for review`);
         return;
       }
       const input=document.getElementById('checklist-evidence');
@@ -1999,8 +2330,19 @@
     }
     else if(action==='toggle-open-shift'&&isManager()){
       state.openShiftAssigned=!state.openShiftAssigned;
+      if(state.customShifts)delete state.customShifts['6:5'];
       actLog(state.openShiftAssigned?'Manager assigned Saturday open bar shift to Morgan Patel':'Manager reopened Saturday bar support shift');
       toast(state.openShiftAssigned?'Saturday bar shift assigned to Morgan ✓':'Saturday shift reopened');
+    }
+    else if(action==='publish-roster'&&isManager()){
+      state.rosterVersion=(state.rosterVersion||2)+1;
+      actLog(`Manager published Weekly Roster v${state.rosterVersion} to all staff`);
+      toast(`Weekly Roster v${state.rosterVersion} published to staff phones ✓`);
+    }
+    else if(action==='reset-custom-shifts'&&isManager()){
+      state.customShifts={};
+      actLog('Reset custom schedule assignments');
+      toast('Schedule edits reset to baseline');
     }
     else if(action==='approve-supply'&&isManager()){
       const r=state.requests.find(x=>x.id===id);
@@ -2066,13 +2408,30 @@
   });
 
   el.addEventListener('change',e=>{
+    const stInput=e.target.closest('[data-station-task]');
+    if(stInput){
+      const [tabId,idxStr]=stInput.dataset.stationTask.split(':');
+      const i=Number(idxStr);
+      const current=new Set(getStationChecked(tabId));
+      if(stInput.checked)current.add(i);
+      else current.delete(i);
+      setStationChecked(tabId,[...current]);
+      if(tabId==='bar-close'&&state.closingStatus==='approved')state.closingStatus='working';
+      const taskName=getStationTasks(tabId)[i]||'Station task';
+      actLog(`${checklistCatalog[tabId]?.shortTitle||'Station'}: ${stInput.checked?'completed':'reopened'} "${taskName}"`);
+      persist();
+      update();
+      el.querySelector(`[data-station-task="${tabId}:${i}"]`)?.focus();
+      return;
+    }
     const input=e.target.closest('[data-task]');
     if(!input||['submitted','approved'].includes(state.checklistStatus))return;
     const i=Number(input.dataset.task);
     if(input.checked&&!state.checked.includes(i))state.checked.push(i);
     if(!input.checked)state.checked=state.checked.filter(x=>x!==i);
     if(state.checklistStatus==='rejected')state.checklistStatus='working';
-    actLog(`Task ${input.checked?'completed':'reopened'}: ${checklist[i]}`);
+    const openTasks=getStationTasks('bar-open');
+    actLog(`Task ${input.checked?'completed':'reopened'}: ${openTasks[i]||checklist[i]}`);
     update();
     el.querySelector('[data-task="'+i+'"]')?.focus();
   });
@@ -2082,6 +2441,32 @@
     if(!form)return;
     e.preventDefault();
     const values=new FormData(form);
+    if(form.dataset.form==='assign-shift'&&isManager()){
+      const staffNames=['Jamie Chen','Alex Morgan','Sam Kim','Jordan Lee','Riley Chen','Chris Taylor','Morgan Patel'];
+      const dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+      const sIdx=Number(values.get('staffIdx'));
+      const dIdx=Number(values.get('dayIdx'));
+      const shiftVal=String(values.get('shiftVal')||'16–23').trim().slice(0,40);
+      if(sIdx>=0&&sIdx<staffNames.length&&dIdx>=0&&dIdx<7){
+        builderStaffIdx=sIdx;
+        state.selectedDay=dIdx;
+        builderShiftPreset=shiftVal;
+        state.customShifts={...(state.customShifts||{}),[`${sIdx}:${dIdx}`]:shiftVal};
+        if(sIdx===6&&dIdx===5)state.openShiftAssigned=shiftVal!=='Off'&&!shiftVal.includes('Open');
+        actLog(`Assigned ${staffNames[sIdx]} to ${shiftVal} on ${dayNames[dIdx]}`);
+        toast(`${staffNames[sIdx]} assigned to ${shiftVal} (${dayNames[dIdx]}) ✓`);
+      }
+    }
+    if(form.dataset.form==='add-checklist-task'&&isManager()){
+      const title=String(values.get('taskTitle')||'').trim().slice(0,120);
+      const tabId=checklistCatalog[activeChecklistTab]?activeChecklistTab:'bar-open';
+      if(!title){toast('Enter a task description');return;}
+      const currentExtras=Array.isArray(state.extraTasks?.[tabId])?state.extraTasks[tabId]:[];
+      if(currentExtras.length>=6){toast('Maximum custom tasks reached for this station');return;}
+      state.extraTasks={...(state.extraTasks||{}),[tabId]:[...currentExtras,title]};
+      actLog(`Manager added task to ${checklistCatalog[tabId].shortTitle}: "${title}"`);
+      toast(`Task added to ${checklistCatalog[tabId].shortTitle} ✓`);
+    }
     if(form.dataset.form==='briefing-item'&&isManager()&&state.briefing.status==='editing'){
       const category=String(values.get('category')||'').trim().slice(0,50);
       const title=String(values.get('title')||'').trim().slice(0,90);
@@ -2181,7 +2566,7 @@
   });
 
   el.addEventListener('keydown',e=>{
-    if(e.target.matches('[data-select-day],[data-goto],.knowledge-item')&&['Enter',' '].includes(e.key)){
+    if(e.target.matches('[data-select-day],[data-goto],[data-checklist-tab],.knowledge-item')&&['Enter',' '].includes(e.key)){
       e.preventDefault();
       e.target.click();
     }
