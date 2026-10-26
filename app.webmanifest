@@ -1,0 +1,17 @@
+{
+  "name": "Brigly · Your team, every shift",
+  "short_name": "Brigly",
+  "start_url": "./demo.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101513",
+  "theme_color": "#101513",
+  "icons": [
+    {
+      "src": "assets/icons/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

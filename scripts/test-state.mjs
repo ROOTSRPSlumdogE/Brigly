@@ -1,107 +1,163 @@
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
-
-const source=readFileSync(new URL('../assets/js/demo.js',import.meta.url),'utf8');
-const setup=source.slice(source.indexOf("  'use strict';"),source.indexOf('  let state=load();'));
-let stored=null,blocked=false;
-const context=vm.createContext({localStorage:{getItem(){if(blocked)throw Error('Storage disabled');return stored;}}});
-vm.runInContext(setup+'\n globalThis.testAPI={starter,validState,load};',context);
-const api=context.testAPI;
-
-assert.equal(api.validState(api.starter()),true);
-for(const mutate of [
-  d=>d.briefing.questions=null,
-  d=>d.requests[0].quantity='<img>',
-  d=>d.view='constructor',
-  d=>d.academyDone=null,
-  d=>d.checked=[1,1],
-  d=>d.briefing.version=-1
-]){
-  const data=api.starter();
-  mutate(data);
-  assert.equal(Boolean(api.validState(data)),false);
-  stored=JSON.stringify(data);
-  assert.equal(api.load().view,'dashboard');
+const context=vm.createContext({});
+vm.runInContext(readFileSync(new URL('../assets/js/workspace-state.js',import.meta.url),'utf8'),context);
+vm.runInContext(readFileSync(new URL('../assets/js/schedule-state.js',import.meta.url),'utf8'),context);
+const B=context.Brigly;
+let state=B.starter('2026-10-25'),stored=null;
+const storage={getItem(){return stored;},setItem(key,value){stored=value;}};
+assert.equal(B.validState(state),true);
+assert.equal(B.save(storage,state),true);
+assert.equal(B.load(storage).date,'2026-10-25');
+for(const mutate of [s=>s.role='admin',s=>s.date='2026-02-30',s=>s.shifts[0].person='nobody',s=>s.briefings[0].acks=['alex','alex'],s=>s.orders[0].quantity=-1,s=>s.reservations[0].time='25:00',s=>s.checks=null]){
+  const bad=B.starter();mutate(bad);assert.equal(Boolean(B.validState(bad)),false);stored=JSON.stringify(bad);assert.equal(B.validState(B.load(storage)),true);
 }
+stored='{bad';assert.equal(B.validState(B.load(storage)),true);
+assert.equal(B.validState(B.load(undefined)),true);assert.equal(B.save(undefined,state),false);
+console.log('PASS: persistence, invalid records, malformed JSON and unavailable storage.');
+const put=(collection,item,role='manager')=>B.change(state,{type:'put',collection,item},role);
+assert.throws(()=>put('shifts',{...state.shifts[0],id:'conflict'}),/overlapping/);
+assert.throws(()=>put('shifts',{...state.shifts[0],end:state.shifts[0].start}),/required/);
+assert.throws(()=>put('shifts',{...state.shifts[0]},'crew'),/Only managers/);
+assert.throws(()=>put('tasks',{...state.tasks[0]},'crew'),/Only managers/);
+assert.throws(()=>put('specials',{...state.specials[0]},'crew'),/Only managers/);
+state=B.change(state,{type:'check',id:'task-0',done:true,at:'2026-10-25T20:00:00Z'},'crew');
+assert.equal(state.checks['2026-10-25|Dinner']['task-0'].by,'alex');
+state.service='Lunch';assert.equal(state.checks['2026-10-25|Lunch'],undefined);
+state=B.change(state,{type:'check',id:'task-0',done:true,at:'2026-10-25T20:00:00Z'},'manager');
+state=B.change(state,{type:'remove',collection:'tasks',id:'task-0'});
+assert.equal(state.checks['2026-10-25|Dinner']['task-0'],undefined);
+assert.equal(state.checks['2026-10-25|Lunch']['task-0'],undefined);
+console.log('PASS: schedule conflicts, manager restrictions and service-isolated task completion.');
+state=B.change(state,{type:'ack',id:'brief-1'},'crew');
+state=B.change(state,{type:'ack',id:'brief-1'},'crew');assert.equal(state.briefings[0].acks.length,1);
+assert.throws(()=>put('briefings',{...state.briefings[0],body:'Changed'},'crew'),/Only the author/);
+state=put('briefings',{...state.briefings[0],body:'New revision'});
+assert.equal(state.briefings[0].revision,2);assert.equal(state.briefings[0].acks.length,0);
+state=put('briefings',{id:'crew-brief',date:state.date,service:state.service,title:'Handover',body:'Bar is restocked'},'crew');
+assert.equal(state.briefings.at(-1).author,'alex');
+console.log('PASS: crew-authored briefings, author controls and revision acknowledgments.');
+assert.throws(()=>B.change(state,{type:'order-status',id:'order-1',status:'Approved'},'crew'),/Only managers/);
+assert.throws(()=>B.change(state,{type:'order-status',id:'order-1',status:'Received'}),/not available/);
+for(const status of ['Approved','Ordered','Received'])state=B.change(state,{type:'order-status',id:'order-1',status});
+assert.equal(state.orders[0].status,'Received');assert.throws(()=>put('orders',{...state.orders[0]}),/pending/);
+state=put('orders',{id:'new-order',name:'Napkins',quantity:2,unit:'packs',area:'Bar',note:''},'crew');
+assert.equal(state.orders.at(-1).author,'alex');
+assert.throws(()=>B.change(state,{type:'order-status',id:'new-order',status:'Declined'}),/reason/);
+state=B.change(state,{type:'order-status',id:'new-order',status:'Declined',feedback:'Already stocked'});
+assert.equal(state.orders.at(-1).feedback,'Already stocked');
+console.log('PASS: supply request ownership and complete manager order lifecycle.');
+assert.throws(()=>put('reservations',{...state.reservations[0],id:'duplicate',time:'19:00'}),/two hours/);
+assert.throws(()=>put('reservations',{...state.reservations[0],id:'other-service',service:'Lunch',time:'19:00'}),/two hours/);
+state=put('reservations',{...state.reservations[0],id:'later',time:'20:30'},'crew');
+state=B.change(state,{type:'reservation-status',id:'res-1',status:'Cancelled'},'crew');
+state=put('reservations',{...state.reservations[0],id:'replacement',status:'Confirmed'},'crew');
+assert.equal(state.reservations.at(-1).status,'Confirmed');
+state=B.change(state,{type:'reservation-status',id:'replacement',status:'Seated'});
+state=B.change(state,{type:'reservation-status',id:'replacement',status:'Completed'});
+assert.throws(()=>B.change(state,{type:'reservation-status',id:'replacement',status:'Seated'}),/not available/);
+assert.equal(B.validState(state),true);
+B.save(storage,state);assert.equal(B.load(storage).reservations.at(-1).status,'Completed');
+console.log('PASS: table conflicts, cancellation release, reservation lifecycle and reload.');
 
-stored='{broken';
-assert.equal(api.load().role,'employee');
-blocked=true;
-assert.equal(api.load().role,'employee');
-blocked=false;
+// Connected Team Schedules: calculation and request lifecycle tests.
+state=B.starter('2026-10-25');
+const S=B.schedule;
+const alex=state.shifts.find(x=>x.person==='alex'&&x.date==='2026-10-25');
+const act=(a,role='crew')=>{state=B.change(state,a,role);return state;};
+const alexTotal=()=>S.totals(state,'alex','2026-10-25','day');
+assert.equal(alexTotal().workMinutes,420);
+assert.equal(alexTotal().total,126);
+act({type:'schedule:timeoff',id:'leave',from:'2026-10-25',to:'2026-10-25',note:'Personal day'});
+assert.equal(alexTotal().workMinutes,420,'Pending leave does not change hours');
+assert.throws(()=>act({type:'schedule:review',id:'leave',decision:'approve',paid:true}),/Only managers/);
+act({type:'schedule:review',id:'leave',decision:'approve',paid:true},'manager');
+assert.equal(alexTotal().workMinutes,0);assert.equal(alexTotal().paidAbsenceMinutes,420);assert.equal(alexTotal().total,126);
+assert.throws(()=>act({type:'put',collection:'shifts',item:{...alex,id:'leave-conflict',start:'09:00',end:'12:00'}},'manager'),/approved time off/);
+act({type:'schedule:withdraw',id:'leave'},'manager');
+assert.equal(alexTotal().workMinutes,420);
+act({type:'schedule:report',kind:'late',id:'late',shiftId:alex.id,minutes:30,note:''});
+assert.equal(alexTotal().workMinutes,390);assert.equal(alexTotal().total,117);
+act({type:'schedule:review',id:'late',decision:'approve',minutes:15},'manager');
+assert.equal(alexTotal().workMinutes,405);assert.equal(alexTotal().total,121.5);
+act({type:'schedule:defaults',person:'alex',rate:22,sickPaid:true,timeoffPaid:false},'manager');
+assert.equal(state.shifts.find(x=>x.id===alex.id).payRate,18,'Defaults must not rewrite historic shift rates');
+act({type:'schedule:report',kind:'sick',id:'sick',shiftId:alex.id,note:''});
+assert.equal(alexTotal().workMinutes,0);assert.equal(alexTotal().total,126,'Sickness overrides lateness without double deduction');
+act({type:'schedule:review',id:'sick',decision:'approve',paid:false},'manager');
+assert.equal(alexTotal().total,0);
+act({type:'schedule:tips',id:'tip',date:'2026-10-25',amount:45});
+assert.equal(alexTotal().total,45);
+act({type:'schedule:tips',id:'tip2',date:'2026-10-25',amount:50});
+assert.equal(alexTotal().total,50);assert.equal(state.scheduling.tips.length,1,'Tip edits replace, not duplicate');
+assert.equal(S.totals(state,'alex','2026-10-24','day').tips,0);
+assert.equal(S.totals(state,'alex','2026-10-25','week').tips,50);
+assert.equal(S.totals(state,'alex','2026-10-25','month').tips,50);
+assert.equal(S.totals(state,'alex','2026-10-25','all').tips,50);
+assert.throws(()=>act({type:'schedule:report',kind:'late',id:'bad',shiftId:state.shifts.find(x=>x.person==='sam').id,minutes:10,note:''}),/own shift/);
+assert.throws(()=>act({type:'schedule:tips',id:'bad-tip',date:'2026-10-25',amount:-1}),/valid date and tip/);
+assert.throws(()=>act({type:'schedule:defaults',person:'alex',rate:100,sickPaid:true,timeoffPaid:true}),/Only managers/);
+console.log('PASS: paid/unpaid defaults and overrides, live sickness/lateness estimates, ownership, tips and all earnings periods.');
 
-const edited=api.starter();
-edited.briefing.version=2;
-edited.role='manager';
-stored=JSON.stringify(edited);
-assert.equal(api.load().briefing.version,2);
-assert.equal(api.load().role,'manager');
-console.log('PASS: persisted state validation, malformed JSON recovery, unavailable storage, and valid revision restoration.');
+// Two different days make a real exchange; each person keeps their own rate.
+state=B.starter('2026-10-25');
+state.shifts=[{...alex,id:'a',date:'2026-10-26',payRate:18,breakMinutes:30},{...alex,id:'b',date:'2026-10-27',person:'mia',start:'17:00',payRate:17,breakMinutes:0}];
+act({type:'schedule:swap',id:'swap',shiftId:'a',targetId:'b',note:'Can we exchange?'});
+assert.equal(state.scheduling.requests[0].status,'Awaiting teammate');
+assert.throws(()=>act({type:'schedule:review',id:'swap',decision:'approve'},'manager'),/not ready/);
+assert.throws(()=>act({type:'schedule:respond',id:'swap',decision:'accept'}),/invited teammate/);
+state.crewId='mia';act({type:'schedule:respond',id:'swap',decision:'accept'});
+assert.equal(state.shifts[0].person,'alex','Consent alone does not alter roster');
+act({type:'schedule:review',id:'swap',decision:'approve'},'manager');
+assert.equal(state.shifts[0].person,'mia');assert.equal(state.shifts[0].payRate,17);
+assert.equal(state.shifts[1].person,'alex');assert.equal(state.shifts[1].payRate,18);
+assert.equal(S.totals(state,'alex','2026-10-27','day').total,108);
+assert.equal(S.totals(state,'mia','2026-10-26','day').total,110.5);
+assert.throws(()=>act({type:'schedule:review',id:'swap',decision:'approve'},'manager'),/not ready/);
+// A pending swap becomes obsolete when the manager edits a referenced shift.
+state.crewId='alex';act({type:'schedule:swap',id:'swap2',shiftId:'b',targetId:'a',note:''});
+act({type:'put',collection:'shifts',item:{...state.shifts[0],end:'22:00'}},'manager');
+assert.equal(state.scheduling.requests.find(r=>r.id==='swap2').status,'Obsolete');
+assert.equal(B.validState(state),true);
+B.save(storage,state);assert.equal(B.load(storage).shifts[0].person,'mia');
+console.log('PASS: teammate consent, manager approval, atomic exchange, per-person pay, unpaid breaks and stale swap invalidation.');
 
-const declined=api.starter();
-declined.requests[0].status='declined';
-stored=JSON.stringify(declined);
-assert.equal(api.load().requests[0].status,'declined');
+// Existing v2 data migrates without losing other modules or edits.
+const legacy=B.starter('2026-10-25');delete legacy.scheduling;delete legacy.crewId;
+legacy.shifts.forEach(x=>{delete x.payRate;delete x.breakMinutes;});legacy.specials[0].name='Preserve this special';
+stored=JSON.stringify(legacy);const migrated=B.load(storage);
+assert.equal(B.validState(migrated),true);assert.equal(migrated.specials[0].name,'Preserve this special');
+assert.equal(migrated.shifts[0].payRate,migrated.scheduling.defaults[migrated.shifts[0].person].rate);
+const invalid=B.starter();invalid.scheduling.tips=[{id:'broken',person:'alex',date:'2026-10-25',amount:NaN}];
+assert.equal(B.validState(invalid),false);
+console.log('PASS: existing workspace migration and scheduling data validation.');
 
-// Behavioral rendering checks for revision visibility, distinct Team vs Manager views, and interconnected modules.
-const renderContext=vm.createContext({
-  document:{getElementById(){return {};}},
-  localStorage:{getItem(){return null;}}
-});
-const renderSetup=source.slice(source.indexOf("  'use strict';"),source.indexOf('  function setView('));
-vm.runInContext(
-  renderSetup+'\n globalThis.renderAPI={starter,overview,briefings,chat,checklists,schedule,supply,knowledgePage,academy,inbox,pendingCount,setState(d){state=d},setChannel(c){activeChannel=c}};',
-  renderContext
-);
-const render=renderContext.renderAPI;
+state=B.starter('2026-10-25');
+act({type:'schedule:timeoff',id:'decline-leave',from:'2026-10-26',to:'2026-10-27',note:''});
+assert.throws(()=>act({type:'schedule:review',id:'decline-leave',decision:'decline',feedback:''},'manager'),/reason/);
+act({type:'schedule:review',id:'decline-leave',decision:'decline',feedback:'Please choose different dates.'},'manager');
+assert.equal(state.scheduling.requests[0].status,'Declined');
+act({type:'schedule:defaults',person:'alex',rate:22,sickPaid:true,timeoffPaid:true},'manager');
+act({type:'put',collection:'shifts',item:{id:'new-rate',person:'alex',date:'2026-10-26',service:'Dinner',start:'16:00',end:'23:00',area:'Floor',breakMinutes:30}},'manager');
+assert.equal(state.shifts.at(-1).payRate,22);
+assert.equal(S.totals(state,'alex','2026-10-26','day').total,143);
+act({type:'schedule:report',kind:'late',id:'all-late',shiftId:'new-rate',minutes:420,note:''});
+assert.equal(S.totals(state,'alex','2026-10-26','day').workMinutes,0,'Late reports cannot create negative hours');
+act({type:'schedule:withdraw',id:'all-late'});
+assert.equal(S.totals(state,'alex','2026-10-26','day').total,143);
+act({type:'schedule:report',kind:'sick',id:'sick-new',shiftId:'new-rate',note:''});
+act({type:'schedule:timeoff',id:'overlap-leave',from:'2026-10-26',to:'2026-10-26',note:''});
+assert.throws(()=>act({type:'schedule:review',id:'overlap-leave',decision:'approve',paid:true},'manager'),/sickness report/);
+state.crewId='mia';act({type:'schedule:tips',id:'private-tip',person:'alex',date:'2026-10-25',amount:20});
+assert.equal(state.scheduling.tips.at(-1).person,'mia','Crew cannot attribute tips to another member');
+console.log('PASS: decline feedback, future rate defaults, bounded lateness, withdrawal and conflicting absences.');
 
-let sample=render.starter();
-render.setState(sample);
-assert.match(render.briefings(),/5 of 8 read/);
-sample.briefing.version=2;
-assert.match(render.briefings(),/0 of 8 read/);
-sample.briefing.ackVersion=2;
-assert.match(render.briefings(),/1 of 8 read/);
-
-sample.briefing.status='editing';
-sample.briefing.draft=[{id:10,category:'Service notes',title:'PRIVATE DRAFT ONLY',body:'Not yet published'}];
-sample.role='employee';
-assert.doesNotMatch(render.briefings(),/PRIVATE DRAFT ONLY/);
-sample.role='manager';
-assert.match(render.briefings(),/PRIVATE DRAFT ONLY/);
-
-sample.messages.push({channel:'bar-team',sender:'Sample',initials:'ST',text:'<img src=x onerror=alert(1)>',time:'Demo'});
-render.setChannel('general');
-assert.doesNotMatch(render.chat(),/onerror/);
-render.setChannel('bar-team');
-assert.match(render.chat(),/&lt;img/);
-assert.doesNotMatch(render.chat(),/<img src=x/);
-console.log('PASS: revision counts, draft visibility, channel isolation and escaped message rendering.');
-
-// Distinct Team Member vs Manager view verification across modules
-const roleSample=render.starter();
-render.setState(roleSample);
-roleSample.role='employee';
-assert.match(render.overview(),/MY SHIFT WORKSPACE/);
-assert.match(render.schedule(),/My Schedule & Shift Swaps/);
-assert.match(render.inbox(),/MY SUBMISSIONS & APPROVAL STATUS/);
-
-roleSample.role='manager';
-assert.match(render.overview(),/OPERATIONS COMMAND/);
-assert.match(render.schedule(),/MANAGER ROSTER MATRIX/);
-assert.match(render.inbox(),/MANAGER INBOX · UNIFIED DECISION QUEUE/);
-assert.match(render.knowledgePage(),/Verify &amp; approve Squash Risotto/);
-console.log('PASS: distinct Team Member vs Manager dashboards, schedules, knowledge controls, and approval queues.');
-
-// Feedback survives a reload and renders as text, not executable markup.
-const feedbackState=api.starter();
-feedbackState.checklistStatus='rejected';
-feedbackState.checklistNotes='<img src=x onerror=alert(1)> Recheck station';
-stored=JSON.stringify(feedbackState);
-assert.equal(api.load().checklistNotes,feedbackState.checklistNotes);
-render.setState(api.load());
-assert.match(render.checklists(),/Changes requested/);
-assert.match(render.checklists(),/&lt;img/);
-assert.doesNotMatch(render.checklists(),/<img src=x/);
-console.log('PASS: correction feedback persistence and safe rendering.');
+state=B.starter('2026-10-25');
+act({type:'schedule:timeoff',id:'revised-leave',from:'2026-10-25',to:'2026-10-25',note:''});
+act({type:'schedule:review',id:'revised-leave',decision:'approve',paid:true},'manager');
+assert.equal(S.totals(state,'alex','2026-10-25','day').total,126);
+act({type:'schedule:review',id:'revised-leave',decision:'approve',paid:false},'manager');
+assert.equal(S.totals(state,'alex','2026-10-25','day').total,0);
+assert.equal(S.totals(state,'alex','2026-10-25','day').workMinutes,0);
+console.log('PASS: manager can correct pay treatment of approved time off.');

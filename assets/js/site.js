@@ -356,9 +356,9 @@
     ],
     manager:[
       'Less chasing. More leading on the floor.',
-      'Publish pre-shift briefings with versioned read receipts, review submitted station checklists, approve shift swaps, and consolidate supply requests from one command inbox.',
-      'Open Manager Command in the workspace',
-      'demo.html#inbox'
+      'Plan team schedules, share shift briefings, follow opening and closing progress, and review supply requests from the crew.',
+      'Open team schedules in the workspace',
+      'demo.html#schedules'
     ],
     owner:[
       'Consistent house standards across every service.',

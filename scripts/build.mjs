@@ -8,7 +8,7 @@ await rm(out,{recursive:true,force:true});
 await mkdir(out,{recursive:true});
 
 const pages=['index.html','demo.html','privacy.html','terms.html','thanks.html','404.html'];
-for(const name of [...pages,'site.webmanifest'])await cp(path.join(root,name),path.join(out,name));
+for(const name of [...pages,'site.webmanifest','app.webmanifest'])await cp(path.join(root,name),path.join(out,name));
 for(const name of ['css','js','logos','icons','fonts'])await cp(path.join(root,'assets',name),path.join(out,'assets',name),{recursive:true});
 
 await mkdir(path.join(out,'assets/images'),{recursive:true});

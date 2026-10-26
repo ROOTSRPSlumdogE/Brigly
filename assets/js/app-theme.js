@@ -1,0 +1,1 @@
+(function(){let theme='light';try{theme=localStorage.getItem('brigly-theme')==='dark'?'dark':'light';}catch{}document.documentElement.dataset.theme=theme;})();

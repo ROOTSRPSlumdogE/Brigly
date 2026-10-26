@@ -38,7 +38,7 @@ for(const cssFile of ['site.css','demo.css']){
   if(/Georgia/i.test(css))throw Error('BrandKit typography violation (Georgia found) in '+cssFile);
 }
 
-for(const file of ['site.js','demo.js']){
+for(const file of ['checklist-history.js','duties-state.js','duties-ui.js','app-navigation.js','shift-home.js','planner-state.js','planner-ui.js','restaurant-history.js','app-theme.js','demo-history.js','site.js','workspace-state.js','schedule-state.js','schedule-ui.js','shift-operations-state.js','shift-operations-ui.js','demo.js']){
   execFileSync(process.execPath,['--check',path.join(root,'assets/js',file)]);
 }
 
