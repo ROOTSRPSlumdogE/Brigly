@@ -87,13 +87,13 @@
    const before=B.work.tasks(s).map(t=>({...t})),wasScoped=s.checklistScopes.includes(key);
    const ensureLegacyEvent=t=>{const c=oldChecks[t.id];if(c&&!s.taskEvents.some(x=>scope(x,s.date,s.service)&&x.task===t.id&&x.kind==='completed'))s.taskEvents.push({id:'legacy-'+s.date+'-'+s.service+'-'+t.id,date:s.date,service:s.service,task:t.id,title:t.title,area:t.area,list:t.list,kind:'completed',by:c.by,at:c.at,legacy:true});};
    if(a.type==='check'){const t=before.find(x=>x.id===a.id);if(t)ensureLegacyEvent(t);}
-   if((['put','remove'].includes(a.type)&&a.collection==='tasks')||['checklist:add','checklist:empty'].includes(a.type))before.forEach(ensureLegacyEvent);
+   if((['put','remove'].includes(a.type)&&a.collection==='tasks')||['checklist:add','checklist:empty','checklist:add-default','checklist:empty-default'].includes(a.type))before.forEach(ensureLegacyEvent);
    s=prev.change(s,a,role);
    const after=B.work.tasks(s),becameScoped=!wasScoped&&s.checklistScopes.includes(key);
    const resolve=t=>after.find(x=>x.id===t.id)||(becameScoped?after.find(x=>x.sourceTask===t.id):null);
    const event=(t,kind)=>s.taskEvents.push({id:'event-'+now+'-'+s.taskEvents.length,date:s.date,service:s.service,task:t.id,title:t.title,area:t.area,list:t.list,kind,by:actor,at:now,legacy:false});
    if(a.type==='check'){const t=after.find(t=>t.id===a.id);const old=oldChecks[a.id];if(t&&!!old!==!!a.done)event(t,a.done?'completed':'reopened');}
-   if((['put','remove'].includes(a.type)&&a.collection==='tasks')||['checklist:add','checklist:empty'].includes(a.type)){
+   if((['put','remove'].includes(a.type)&&a.collection==='tasks')||['checklist:add','checklist:empty','checklist:add-default','checklist:empty-default'].includes(a.type)){
     for(const t of before){const current=resolve(t);if(!current){const alias=[...s.taskNotes,...s.taskEvents].find(x=>scope(x,s.date,s.service)&&x.sourceTask===t.id);event(alias?{...t,id:alias.task}:t,'removed');}else if(t.title!==current.title||t.area!==current.area||t.list!==current.list)event(current,'edited');}
     for(const t of after)if(!before.some(x=>resolve(x)?.id===t.id))event(t,'added');
    }
@@ -110,7 +110,8 @@
    const shifts=s.shifts.filter(x=>scope(x,date,svc));
    const team=[...new Set(shifts.map(x=>x.person))].map(id=>{const p=B.person(id);return {id,name:p?.name||'Team member',role:p?.role||'',area:shifts.find(x=>x.person===id)?.area||p?.area||''};});
    const removed=events.filter(x=>x.kind==='removed'&&!current.some(t=>t.id===x.task)).filter((x,i,arr)=>arr.findIndex(y=>y.task===x.task)===i).map(x=>({id:x.task,title:x.title,area:x.area,list:x.list,removed:true}));
-   const allRows=[...current,...removed].sort((a,b)=>(a.list===b.list?0:a.list==='Opening'?-1:1)||a.area.localeCompare(b.area)||a.title.localeCompare(b.title)).filter(t=>!area||t.area===area).map(t=>{
+   const listOrder=l=>l==='Opening'?1:l==='Closing'?2:3;
+   const allRows=[...current,...removed].sort((a,b)=>(listOrder(a.list)-listOrder(b.list))||a.list.localeCompare(b.list)||a.area.localeCompare(b.area)||a.title.localeCompare(b.title)).filter(t=>!area||t.area===area).map(t=>{
     const check=checks[t.id],rowNotes=notes(s,t.id,date,svc),rowEvents=events.filter(x=>x.task===t.id).slice();
     if(check&&!rowEvents.some(x=>x.kind==='completed'))rowEvents.unshift({id:'legacy-'+date+'-'+svc+'-'+t.id,date,service:svc,task:t.id,title:t.title,area:t.area,list:t.list,kind:'completed',by:check.by,at:check.at,legacy:true});
     const assigned=[...new Set(shifts.filter(x=>x.area===t.area).map(x=>B.person(x.person)?.name).filter(Boolean))];
@@ -136,6 +137,10 @@
     openingDone:activeRows.filter(t=>t.list==='Opening'&&t.check).length,
     closingTotal:activeRows.filter(t=>t.list==='Closing').length,
     closingDone:activeRows.filter(t=>t.list==='Closing'&&t.check).length,
+    customTotal:activeRows.filter(t=>!['Opening','Closing'].includes(t.list)).length,
+    customDone:activeRows.filter(t=>!['Opening','Closing'].includes(t.list)&&t.check).length,
+    specificTotal:activeRows.filter(t=>t.specific).length,
+    specificDone:activeRows.filter(t=>t.specific&&t.check).length,
     noteCount:rows.reduce((sum,t)=>sum+t.notes.length,0),
     importantCount:rows.reduce((sum,t)=>sum+t.notes.filter(n=>n.important).length,0)
    };

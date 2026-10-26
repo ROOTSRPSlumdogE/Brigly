@@ -74,7 +74,7 @@ assert(barHtml.includes('86 Draught pale ale'));
 ui.listHandle('view','history');
 ui.listHandle('range','7');
 const reportHtml=ui.lists();
-assert(reportHtml.includes('MANAGER CHECKLIST REPORTING'));
+assert(reportHtml.includes('CHECKLIST HISTORY'));
 assert(reportHtml.includes('Completed by:'));
 assert(reportHtml.includes('Download CSV'));
 console.log('PASS: inline multi-note checklist display and multi-day manager report UI.');

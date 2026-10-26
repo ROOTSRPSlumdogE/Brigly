@@ -23,7 +23,7 @@ for(const tab of tabs){
  console.log(`  ${tab.padEnd(13)} ${ms.toFixed(0).padStart(4)}ms  ${(html.length/1024).toFixed(0)}KB`);
 }
 assert.equal(screens,tabs.length);
-ops.handle('report-tab','orders',{});assert(ops.section('reports').includes('Summarized supply order list'));
+ops.handle('report-tab','orders',{});assert(ops.section('reports').includes('Spend by vendor'));
 ops.handle('report-tab','specials',{});assert(ops.section('reports').includes('I HAVE READ THIS'));
 ops.handle('report-tab','eighty-six',{});assert(ops.section('reports').includes('Most frequently 86'));
 for(const r of ['today','7','month','30','six']){ops.handle('report-range',r,{});assert(ops.section('reports').includes('manager-reports-hub'));}
@@ -40,18 +40,17 @@ assert(/class="button onboarding-ack-cta"[^>]*data-action="ack"/.test(html),'sin
 assert(html.includes('Team read confirmations (1 of'));assert(html.includes('Pressed “I’ve read this”'));
 const home=c.createShiftHome({state:()=>s,e,dateLabel:x=>x,render(){},focus(){},close(){},open(){}});
 html=home.render();
-assert(html.indexOf('onboarding-spotlight')<html.indexOf('service-digest'),'onboarding sits above the digest');
-assert(html.includes('Who pressed “I have read this”'));
-assert(html.includes('Specials on the menu'));assert(html.includes('special-price-pill'));
+assert(html.includes('td-brief')&&html.includes('td-receipts'),'managers see the briefing with who has read it');
+assert(html.includes('td-specials'));assert(html.includes('td-price'));
 assert(!/Before taking orders[\s\S]*?Special · \$/.test(html),'specials no longer mixed into the 86 card');
 s.role='crew';s.crewId=crew.find(id=>B.person(id)?.access==='crew'&&id!==crew[0]);html=home.render();
-assert(html.includes('I have read this briefing'));assert(html.includes('needs-ack'));
-brief.acks.push(s.crewId);html=home.render();assert(html.includes('You confirmed reading this shift briefing'));
+assert(html.includes('I’ve read it'));assert(html.includes('needs-ack'));assert(html.indexOf('td-brief')<html.indexOf('td-queue'),'an unread briefing sits above everything else for crew');
+brief.acks.push(s.crewId);html=home.render();assert(html.includes('You confirmed reading this briefing'));
 console.log('PASS: prominent onboarding confirmation, manager read-receipt tracker and dedicated specials card.');
 
-// Arrivals rows: status badge lives inside the info column, never beside the name as its own column.
+// Arrivals rows: time · details · one action, with any status inside the details.
 s.role='manager';html=home.render();
-const rows=html.match(/<div class="digest-row arrival-row">[\s\S]*?<\/button><\/div><\/div>/g)||[];
+const rows=html.match(/<div class="td-arrival">[\s\S]*?<\/button><\/div>/g)||[];
 assert(rows.length>0);
-for(const row of rows){assert(row.includes('arrival-time-box'));assert(row.includes('arrival-action'));assert(/arrival-info[\s\S]*badge tone-/.test(row));}
+for(const row of rows){assert(row.includes('td-arrival-time'));assert(row.includes('td-arrival-info'));assert(row.includes('data-action="reservation-status"'));}
 console.log('PASS: arrivals rows use a three-column time · details · action layout with inline status.');

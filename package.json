@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build.mjs",
-    "check": "node scripts/check.mjs && node scripts/test-state.mjs && node scripts/test-operations.mjs && node scripts/test-history.mjs && node scripts/test-planner.mjs && node scripts/test-home.mjs && node scripts/test-duties.mjs && node scripts/test-checklist-history.mjs",
+    "check": "node scripts/check.mjs && node scripts/test-state.mjs && node scripts/test-operations.mjs && node scripts/test-history.mjs && node scripts/test-planner.mjs && node scripts/test-home.mjs && node scripts/test-duties.mjs && node scripts/test-checklist-history.mjs && node scripts/test-checklist-demo.mjs && node scripts/test-chat.mjs && node scripts/test-stock.mjs && node scripts/test-reports.mjs",
     "preview": "node scripts/serve.mjs"
   },
   "engines": {

@@ -4,39 +4,34 @@ globalThis.BriglyNavigation={
   {label:'Live service',items:[
    ['app-screen','home','Today','home','orange'],
    ['navigate','lists','Checklists','lists','sage'],
-   ['navigate','onboarding','Shift briefing','onboarding','amber'],
-   ['navigate','eighty-six','86 board','eighty-six','danger'],
+   ['navigate','stock','Stock','stock','danger'],
    ['navigate','reservations','Reservations','reservations','slate'],
-   ['navigate','specials','Specials','specials','amber'],
-   ['navigate','orders','Supplies','orders','slate']
+   ['navigate','specials','Specials','specials','amber']
   ]},
   {label:manager?'Team & operations':'My schedule & pay',items:[
    ['app-screen','shifts',manager?'Roster':'My schedule','schedules','slate'],
    ['app-screen','requests',manager?'Inbox & approvals':'Requests','onboarding','orange'],
-   ['navigate','private','Private notes','private','sage'],
    ['app-screen','earnings',manager?'Labor & pay':'Earnings','earnings','sage'],
    ...(manager?[['app-screen','reports','Reports','reports','slate'],['app-screen','setup','Team & setup','team','slate']]:[])
   ]}
  ];},
  serviceItems(){return [
-  ['navigate','onboarding','Shift briefing','onboarding','amber'],
   ['navigate','lists','Checklists','lists','sage'],
-  ['navigate','eighty-six','86 board','eighty-six','danger'],
+  ['navigate','stock','Stock','stock','danger'],
   ['navigate','specials','Specials','specials','amber'],
-  ['navigate','reservations','Reservations','reservations','slate'],
-  ['navigate','orders','Supplies','orders','slate']
+  ['navigate','reservations','Reservations','reservations','slate']
  ];},
- active(screen,id){return screen===id||(screen==='briefing'&&id==='onboarding');},
- service(screen){return ['briefing','onboarding','lists','eighty-six','specials','reservations','orders'].includes(screen);},
+ active(screen,id){return screen===id||(screen==='briefing'&&id==='home');},
+ service(screen){return ['lists','stock','specials','reservations'].includes(screen);},
  primary(manager){return manager?[
   ['app-screen','home','Today','home','orange'],
   ['navigate','lists','Checklists','lists','sage'],
-  ['navigate','eighty-six','86 board','eighty-six','danger'],
+  ['navigate','stock','Stock','stock','danger'],
   ['app-screen','shifts','Roster','schedules','slate']
  ]:[
   ['app-screen','home','Today','home','orange'],
   ['navigate','lists','Checklists','lists','sage'],
-  ['navigate','onboarding','Briefing','onboarding','amber'],
+  ['navigate','stock','Stock','stock','danger'],
   ['app-screen','shifts','Schedule','schedules','slate']
  ];},
  badges(state){
@@ -47,21 +42,20 @@ globalThis.BriglyNavigation={
   const checks=state.checks[`${state.date}|${state.service}`]||{};
   const openTasks=tasks.filter(x=>!checks[x.id]).length;
   const alerts=state.unavailable.filter(scoped),reported86=alerts.filter(x=>x.status==='Reported').length,approved86=alerts.filter(x=>x.status==='Approved').length;
-  const unreadBriefings=state.briefings.filter(x=>scoped(x)&&!x.acks.includes(me)).length;
+  const unreadBriefings=state.briefings.filter(x=>scoped(x)&&!x.acks.includes(me)&&x.author!==me).length;
   const openRequests=state.scheduling.requests.filter(r=>manager?['Reported','Pending'].includes(r.status):(r.person===me||r.targetPerson===me)&&['Reported','Pending','Awaiting teammate'].includes(r.status)).length;
-  const unreadPrivate=(state.privateNotes||[]).filter(n=>n.recipient===me&&!n.readAt).length+(state.personalTasks||[]).filter(t=>t.assignee===me&&!t.done).length;
   const openOrders=state.orders.filter(o=>o.status==='Requested').length;
   const activeRes=state.reservations.filter(r=>scoped(r)&&['Confirmed','Seated'].includes(r.status)).length;
   const activeSpecials=state.specials.filter(s=>scoped(s)&&s.active).length;
   return {
    lists:tasks.length?(openTasks?{text:String(openTasks),tone:'sage'}:{text:'✓',tone:'sage'}):null,
-   onboarding:unreadBriefings?{text:String(unreadBriefings),tone:'amber'}:null,
-   'eighty-six':reported86?{text:String(reported86)+' new',tone:'danger'}:approved86?{text:String(approved86),tone:'danger'}:null,
+   // The briefing lives on Today, so its unread count rides on the Today tab.
+   home:unreadBriefings?{text:String(unreadBriefings),tone:'amber'}:null,
+   // Stock carries what needs a decision first: new 86 reports, then crew supply requests, then live 86s.
+   stock:reported86?{text:String(reported86)+' new',tone:'danger'}:manager&&openOrders?{text:String(openOrders),tone:'amber'}:approved86?{text:String(approved86),tone:'danger'}:null,
    reservations:activeRes?{text:String(activeRes),tone:'slate'}:null,
    specials:activeSpecials?{text:String(activeSpecials),tone:'amber'}:null,
-   orders:openOrders?{text:String(openOrders),tone:manager?'amber':'slate'}:null,
-   requests:openRequests?{text:String(openRequests),tone:'orange'}:null,
-   private:unreadPrivate?{text:String(unreadPrivate),tone:'sage'}:null
+   requests:openRequests?{text:String(openRequests),tone:'orange'}:null
   };
  }
 };
@@ -168,7 +162,7 @@ globalThis.BriglyNotifications={
   // 4. Unread shift briefings
   const briefings=state.briefings.filter(scoped);
   for(const b of briefings){
-   const acked=b.acks.includes(me);
+   const acked=b.acks.includes(me)||b.author===me;
    if(!manager&&!acked){
     push({
      id:`brief-${b.id}`,
@@ -180,7 +174,7 @@ globalThis.BriglyNotifications={
      body:b.body,
      actions:[
       {label:'I’ve read this',action:'ack',id:b.id,style:'primary'},
-      {label:'Open briefing',action:'notif-go',view:'onboarding',style:'secondary'}
+      {label:'Open briefing',action:'notif-go',screen:'home',style:'secondary'}
      ]
     });
    }else if(manager){
@@ -194,7 +188,7 @@ globalThis.BriglyNotifications={
       time:`${state.service} briefing`,
       title:`Briefing acknowledgements: ${b.title}`,
       body:`${b.acks.length} of ${expected} team members have confirmed reading today’s shift briefing.`,
-      actions:[{label:'View briefing',action:'notif-go',view:'onboarding',style:'secondary'}]
+      actions:[{label:'View briefing',action:'notif-go',screen:'home',style:'secondary'}]
      });
     }
    }
@@ -217,31 +211,21 @@ globalThis.BriglyNotifications={
    });
   }
 
-  // 6. Unread private notes & open personal tasks
-  const unreadNotes=(state.privateNotes||[]).filter(n=>n.recipient===me&&!n.readAt);
-  for(const n of unreadNotes){
+  // 6. Chat to-dos assigned to this person (messages themselves are counted on the chat button)
+  for(const m of B.chat?B.chat.todos(state).filter(x=>x.todo.for===me):[]){
+   const overdue=m.todo.due&&m.todo.due<B.dateString(new Date());
    push({
-    id:`priv-note-${n.id}`,
-    category:'team',
-    tone:'sage',
-    badge:'Private note',
-    time:`From ${personName(n.author)}`,
-    title:n.title||'New private note from your manager',
-    body:n.body,
-    actions:[{label:'Read note',action:'notif-go',view:'private',style:'primary'}]
-   });
-  }
-  const openTodos=(state.personalTasks||[]).filter(t=>t.assignee===me&&!t.done);
-  if(openTodos.length){
-   push({
-    id:`priv-todo-${me}-${openTodos.length}`,
-    category:'team',
-    tone:'sage',
-    badge:`${openTodos.length} personal task${openTodos.length===1?'':'s'}`,
-    time:`Assigned to you`,
-    title:`${openTodos.length} open personal to-do${openTodos.length===1?'':'s'}: ${openTodos.map(x=>x.title).slice(0,2).join(', ')}`,
-    body:`Assigned for your role. Check off when completed.`,
-    actions:[{label:'Open private tasks',action:'notif-go',view:'private',style:'secondary'}]
+    id:`chat-todo-${m.id}`,
+    category:overdue?'urgent':'team',
+    tone:overdue?'danger':'sage',
+    badge:overdue?'Overdue to-do':'To-do for you',
+    time:`From ${personName(m.author)}${m.todo.due?' · due '+m.todo.due:''}`,
+    title:m.body,
+    body:'Sent in team chat. Check it off when it’s done.',
+    actions:[
+     {label:'Mark done',action:'chat-todo',id:m.id,style:'primary'},
+     {label:'Open conversation',action:'chat-open',id:m.thread,style:'secondary'}
+    ]
    });
   }
 
@@ -252,12 +236,46 @@ globalThis.BriglyNotifications={
     id:`orders-req-${reqOrders.map(x=>x.id).join(',')}`,
     category:'service',
     tone:'amber',
-    badge:`${reqOrders.length} supply request${reqOrders.length===1?'':'s'}`,
-    time:`Station supplies`,
-    title:`Supplies requested: ${reqOrders.map(x=>x.name).join(', ')}`,
+    badge:`${reqOrders.length} stock request${reqOrders.length===1?'':'s'}`,
+    time:`Stock · order sheet`,
+    title:`Stock requests to review: ${reqOrders.map(x=>x.name).join(', ')}`,
     body:reqOrders.map(x=>`${x.quantity} ${x.unit} ${x.name} (${x.area})`).join(' · '),
-    actions:[{label:'Review supplies',action:'notif-go',view:'orders',style:'secondary'}]
+    actions:[{label:'Review requests',action:'notif-go',view:'orders',style:'secondary'}]
    });
+  }
+  // 7b. Vendor cut-offs coming up with approved lines still on the order sheet.
+  if(manager&&B.stock){
+   for(const v of state.stock.vendors){
+    const lines=state.orders.filter(o=>o.vendor===v.id&&o.status==='Approved'),next=lines.length&&B.stock.nextDelivery(v);if(!next)continue;
+    const hrs=(next.orderBy.getTime()-Date.now())/3600000;if(hrs>8)continue;
+    push({id:`cutoff-${v.id}-${next.date}`,category:'urgent',tone:hrs<3?'danger':'amber',badge:'Order cut-off',time:`${v.name} · ${next.orderBy.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`,title:`Place the ${v.name} order in ${hrs<1?Math.max(1,Math.round(hrs*60))+' min':Math.round(hrs)+' h'}`,body:`${lines.length} approved line${lines.length===1?'':'s'} for delivery on ${next.date}: ${lines.map(o=>o.quantity+' '+o.unit+' '+o.name).join(', ')}.`,actions:[{label:'Open order sheet',action:'notif-go',view:'orders',style:'primary'}]});
+   }
+  }
+  // 7b2. Inventory: a team's weekly count is due, or one is in progress.
+  if(B.stock&&state.stock?.counts){
+   const scheduled=new Set(team.map(x=>x.area));
+   for(const area of manager?state.setup.areas:B.stock.teams(state,me)){
+    const open=state.stock.counts.find(c=>c.team===area&&c.status==='Open'),last=B.stock.lastCount(state,area);
+    if(open){const n=Object.keys(open.entries).length;push({id:`count-open-${open.id}`,category:'service',tone:'sage',badge:'Count in progress',time:`${area} · started by ${personName(open.startedBy)}`,title:`${area} stock count: ${n} item${n===1?'':'s'} counted so far`,body:'Finish the count to update on-hand levels and order suggestions.',actions:[{label:'Open count',action:'notif-go',view:'inventory',style:'primary'}]});}
+    else if(B.stock.countDue(state,area)&&(manager||scheduled.has(area))&&!state.stock.assignments?.some(x=>x.status==='Open'&&x.team===area)){const days=last?Math.floor((Date.now()-new Date(last.submittedAt).getTime())/864e5):null;push({id:`count-due-${area}-${state.date}`,category:'team',tone:'amber',badge:'Count due',time:`${area} · weekly stock count`,title:`${area} stock count is due`,body:last?`Last counted ${days} days ago by ${personName(last.submittedBy)}. Counts keep par suggestions accurate.`:'This team has never been counted.',actions:[{label:'Start count',action:'notif-go',view:'inventory',style:'primary'}]});}
+   }
+  }
+  // 7b3. Assigned counts: the counter hears the day before, on the day and when overdue; managers hear about overdue ones.
+  if(B.stock?.assignedTo&&state.stock?.assignments){
+   const today=B.dateString(new Date());
+   for(const x of B.stock.assignedTo(state,me,state.role).filter(x=>x.date<=B.addDays(today,1))){
+    const overdue=x.date<today,mine=!manager||x.assignee===me;if(!mine&&!overdue)continue;
+    const who=x.assignee?(x.assignee===me?'you':personName(x.assignee)):'the whole '+x.team+' team';
+    push({id:`count-assign-${x.id}-${overdue?'late':x.date}`,category:overdue||x.date===today?'urgent':'team',tone:overdue?'danger':'amber',badge:overdue?'Count overdue':x.date===today?'Count due today':'Count due tomorrow',time:`${x.team} · assigned to ${who}`,title:mine?`${x.team} stock count ${overdue?'is overdue':x.date===today?'is due today':'is due tomorrow'}`:`${x.team} count overdue · ${who}`,body:x.note||'Count shelf to sheet in Stock → Count. Finishing it completes this assignment.',actions:[{label:'Open count',action:'notif-go',view:'inventory',style:'primary'}]});
+   }
+  }
+  // 7c. Crew: what happened to my supply requests in the last two days.
+  if(!manager){
+   const since=new Date(Date.now()-2*864e5).toISOString();
+   for(const o of state.orders.filter(o=>o.author===me&&['Approved','Declined','Ordered','Received'].includes(o.status)&&(o.receivedAt||o.orderedAt||o.reviewedAt||'')>=since)){
+    const declined=o.status==='Declined';
+    push({id:`order-${o.id}-${o.status}`,category:'team',tone:declined?'danger':'sage',badge:declined?'Request declined':'Request '+o.status.toLowerCase(),time:'Stock · '+(o.area||''),title:`${o.quantity} ${o.unit} ${o.name}`,body:declined?(o.feedback||'Declined by your manager.'):o.status==='Ordered'?`Ordered${o.expected?' · arrives '+o.expected:''}.`:o.status==='Received'?'Delivered and checked in.':'Approved and on the order sheet.',actions:[{label:'My requests',action:'notif-go',view:'orders',style:'secondary'}]});
+   }
   }
 
   // 8. Checklist progress pulse

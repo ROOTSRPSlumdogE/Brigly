@@ -17,7 +17,7 @@
     areas=state?.setup?.areas||['Floor','Bar','Kitchen'];
     if(root.Brigly)root.Brigly.crew=crew;
   }
-  const views=['schedules','lists','specials','eighty-six','onboarding','orders','reservations','private'];
+  const views=['schedules','lists','specials','eighty-six','onboarding','orders','reservations','private','stock','inventory'];
   const dateString=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const addDays=(date,n)=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+n);return dateString(d);};
   const monday=date=>{const day=new Date(date+'T12:00:00').getDay();return addDays(date,-((day+6)%7));};
@@ -40,7 +40,48 @@
       shifts.push({id:`seed-${++n}`,date:day,service:'Dinner',person:crew[c].id,start:c>3?'14:00':'16:00',end:'23:00',area:crew[c].area});
     }
     return {version:2,role:'manager',date,service:'Dinner',view:'schedules',shifts,
-      tasks:[['Opening','Polish glassware & set the floor','Floor'],['Opening','Check reservations and table setup','Floor'],['Opening','Restock the bar & prepare garnishes','Bar'],['Opening','Confirm specials and unavailable items','Kitchen'],['Closing','Clean and reset each station','Floor'],['Closing','Label, date and store ingredients','Kitchen'],['Closing','Count stock and request supplies','Bar'],['Closing','Complete the final walkthrough','Floor']].map(([list,title,area],i)=>({id:`task-${i}`,list,title,area})),
+      tasks:[
+        ['Opening','Polish glassware & set the floor','Floor'],
+        ['Opening','Check reservations and table setup','Floor'],
+        ['Opening','Restock the bar & prepare garnishes','Bar'],
+        ['Opening','Confirm specials and unavailable items','Kitchen'],
+        ['Closing','Clean and reset each station','Floor'],
+        ['Closing','Label, date and store ingredients','Kitchen'],
+        ['Closing','Count stock and request supplies','Bar'],
+        ['Closing','Complete the final walkthrough','Floor'],
+        ['Opening','Inspect guest restrooms & restock essentials','Floor'],
+        ['Opening','Adjust dining room lighting & audio playlist','Floor'],
+        ['Opening','Sanitize host stand & power on mobile POS terminals','Floor'],
+        ['Opening','Cut fresh citrus & prepare cocktail garnishes','Bar'],
+        ['Opening','Check draught beer line pressure & tap faucets','Bar'],
+        ['Opening','Fill bar ice wells & calibrate espresso grinder','Bar'],
+        ['Opening','Chill reserve white wine, prosecco & champagne stock','Bar'],
+        ['Opening','Log walk-in cooler & reach-in refrigeration temps','Kitchen'],
+        ['Opening','Set sanitizer buckets & test with 200 PPM strips','Kitchen'],
+        ['Opening','Review prep sheet & pull proteins for first seating','Kitchen'],
+        ['Opening','Turn on exhaust hoods & check gas pilot lights','Kitchen'],
+        ['Closing','Wipe down & sanitize all dining tables & leather booths','Floor'],
+        ['Closing','Sweep and mop main dining room & entryway floors','Floor'],
+        ['Closing','Empty all bus station tubs & take trash to dumpster','Floor'],
+        ['Closing','Lock patio gates, wine display & arm security alarm','Floor'],
+        ['Closing','Cap beer faucets & soak nozzles in sanitizing solution','Bar'],
+        ['Closing','Burn well ice with hot water & flush floor drains','Bar'],
+        ['Closing','Wash, sanitize, polish & rack all bar glassware','Bar'],
+        ['Closing','Count cash till drawer, print Z-report & drop into safe','Bar'],
+        ['Closing','Brick, scrape & polish flat top griddle & grill','Kitchen'],
+        ['Closing','Shut off cooking gas pilot valves & exhaust ventilation','Kitchen'],
+        ['Closing','Empty fryer grease traps & filter cooking oil','Kitchen'],
+        ['Closing','Deck-brush, squeegee & mop kitchen tile floor','Kitchen'],
+        ['Event Setup','Arrange private banquet tables per seating chart','Floor'],
+        ['Event Setup','Stage custom printed event menus & name place cards','Floor'],
+        ['Event Setup','Set up satellite welcome cocktail bar & glassware','Bar'],
+        ['Event Setup','Chill event prosecco & pre-batch signature cocktails','Bar'],
+        ['Event Setup','Plate passed canapés & stage chafing dish warmers','Kitchen'],
+        ['Event Setup','Verify VIP guest allergy matrix with head chef','Kitchen'],
+        ['Mid-shift Prep','Reset tables and replenish server napkin rollups','Floor'],
+        ['Mid-shift Prep','Replenish bar ice wells & empty dump sink strainer','Bar'],
+        ['Mid-shift Prep','Restock line pans with fresh prep sauces & garnish','Kitchen']
+      ].map(([list,title,area],i)=>({id:`task-${i}`,list,title,area})),
       checks:{},
       specials:[{id:'special-1',date,service:'Dinner',name:'Roasted squash risotto',description:'Roasted delicata squash, brown butter and crispy sage. A little comfort for a cooler evening.',price:26,allergens:'Milk · confirm ingredients and cross-contact with the kitchen.',active:true},{id:'special-2',date,service:'Dinner',name:'Orchard old fashioned',description:'Bourbon, spiced apple and aromatic bitters. Finished with an orange twist.',price:15,allergens:'Confirm ingredients and garnishes with the bar.',active:true}],
       unavailable:[{id:'86-1',name:'Burrata',reason:'Sold out. Offer the roasted beet salad.',area:'Kitchen',active:true,author:'sam'},{id:'86-2',name:'Draught pale ale',reason:'Keg delivery expected tomorrow. Bottled lager available.',area:'Bar',active:true,author:'noah'}],
@@ -54,11 +95,11 @@
   const scope=x=>isDate(x.date)&&services.includes(x.service);
   const validators={
     shifts:x=>base(x)&&scope(x)&&person(x.person)&&isTime(x.start)&&isTime(x.end)&&x.start!==x.end&&areas.includes(x.area),
-    tasks:x=>base(x)&&['Opening','Closing'].includes(x.list)&&nonempty(x.title,200)&&areas.includes(x.area),
+    tasks:x=>base(x)&&nonempty(x.list,80)&&nonempty(x.title,200)&&areas.includes(x.area),
     specials:x=>base(x)&&scope(x)&&nonempty(x.name,100)&&text(x.description)&&Number.isFinite(x.price)&&x.price>=0&&x.price<=10000&&text(x.allergens,500)&&typeof x.active==='boolean',
     unavailable:x=>base(x)&&nonempty(x.name,100)&&nonempty(x.reason,500)&&areas.includes(x.area)&&typeof x.active==='boolean'&&person(x.author),
     briefings:x=>base(x)&&scope(x)&&nonempty(x.title,150)&&nonempty(x.body)&&person(x.author)&&Number.isInteger(x.revision)&&x.revision>0&&Array.isArray(x.acks)&&x.acks.every(id=>person(id))&&new Set(x.acks).size===x.acks.length,
-    orders:x=>base(x)&&nonempty(x.name,100)&&Number.isInteger(x.quantity)&&x.quantity>0&&x.quantity<=10000&&nonempty(x.unit,40)&&areas.includes(x.area)&&text(x.note)&&person(x.author)&&['Requested','Approved','Declined','Ordered','Received'].includes(x.status)&&text(x.feedback,500),
+    orders:x=>base(x)&&nonempty(x.name,100)&&Number.isInteger(x.quantity)&&x.quantity>0&&x.quantity<=10000&&nonempty(x.unit,40)&&areas.includes(x.area)&&text(x.note)&&person(x.author)&&['Requested','Approved','Declined','Ordered','Received','Cancelled'].includes(x.status)&&text(x.feedback,500),
     reservations:x=>base(x)&&scope(x)&&nonempty(x.name,100)&&Number.isInteger(x.guests)&&x.guests>0&&x.guests<=20&&isTime(x.time)&&text(x.table,20)&&text(x.note)&&text(x.contact,100)&&['Confirmed','Seated','Completed','Cancelled','No-show'].includes(x.status)
   };
   function validState(s){
