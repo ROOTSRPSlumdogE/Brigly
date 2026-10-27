@@ -3229,3 +3229,37 @@ body[data-section="home"] #summary,#summary:empty{display:none}
  .sk-tab-icon svg{width:21px;height:21px}
  .sk-tab-icon em{position:absolute;top:-6px;left:calc(100% - 4px);min-width:17px;height:17px;padding:0 5px;font-size:10px;line-height:17px;box-shadow:0 0 0 2px var(--paper)}
 }
+
+/* Checklists on phones and tablets: the Stock pattern. One bar sticks under the command bar with stations as icon tabs and the lists beneath; a slim progress line with icon tools sits under it. */
+@media(max-width:1099px){
+ .cl-switch{order:-1;position:sticky;top:var(--tb-h);z-index:8;display:grid;gap:0;margin:0;padding:0;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:0 10px 14px -12px rgba(0,0,0,.3)}
+ .cl-seg{display:flex;gap:0;padding:0;background:none;border:0;border-radius:0;overflow:visible}
+ .cl-seg button{flex:1;flex-direction:column;justify-content:center;gap:3px;min-height:58px;padding:6px 2px 5px;border:0;border-bottom:2px solid transparent;border-radius:0;background:none!important;box-shadow:none!important;color:var(--muted)}
+ .cl-seg button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--orange)}
+ .cl-seg-icon{position:relative;width:auto;height:auto;background:none!important;color:inherit!important}
+ .cl-seg-icon svg{width:21px;height:21px}
+ .cl-seg button[aria-pressed="true"] .cl-seg-icon{color:var(--orange)!important}
+ .cl-seg-icon em{position:absolute;top:-6px;left:calc(100% - 4px);min-width:17px;height:17px;padding:0 5px;border-radius:99px;background:var(--amber);color:#0F1412;font-size:10px;font-weight:800;font-style:normal;line-height:17px;text-align:center;box-shadow:0 0 0 2px var(--paper)}
+ .cl-seg-icon em.is-done{display:grid;place-items:center;padding:0;width:17px;background:var(--tone-sage-bg);color:var(--tone-sage-fg)}
+ .cl-seg-icon em.is-done svg{width:11px;height:11px;stroke-width:3}
+ .cl-seg-text strong{font-size:11.5px;font-weight:700;color:inherit!important}
+ .cl-seg-text i{width:5px;height:5px}
+ .cl-tabs{display:flex;gap:6px;margin:0;padding:8px 12px 10px;border:0;border-top:1px solid var(--line);overflow-x:auto}
+ .cl-tab{min-height:32px;margin:0;padding:0 12px;border:1px solid var(--line);border-radius:99px;background:var(--surface);font-size:12.5px}
+ .cl-tab[aria-current="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+ .cl-tab[aria-current="true"] b{background:color-mix(in srgb,var(--paper) 18%,transparent);color:var(--paper)}
+ .cl-tab[aria-current="true"] svg{color:var(--paper)}
+ .cl-tab.is-late:not([aria-current="true"]){border-color:var(--tone-danger-bd)}
+ .cl-top:not(.is-template){flex-wrap:nowrap;align-items:center}
+ .cl-top:not(.is-template) .cl-eyebrow{display:none}
+ .cl-top:not(.is-template) .cl-top-sum h2{font-size:16px}
+ .cl-top:not(.is-template) .cl-top-sum h2 span{font-size:13px}
+ .cl-top-tools{width:auto!important;display:flex!important;flex-wrap:nowrap;gap:6px}
+ .cl-mode{flex:none!important;padding:0;border:0;background:none}
+ .cl-mode button[aria-pressed="true"]{display:none}
+ .cl-top-tools .cl-mode button,.cl-top-tools .button{width:38px;height:38px;min-height:38px!important;padding:0!important;justify-content:center;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:0!important;gap:0!important;box-shadow:none}
+ .cl-top-tools svg{width:17px!important;height:17px!important}
+ .cl-top.is-template .cl-top-tools .cl-mode button{width:auto;padding:0 12px!important;font-size:12.5px!important;gap:6px!important}
+}
+@media(max-width:760px){.cl-switch{margin:-14px -14px 0}}
+@media(max-width:1099px){.cl-top:not(.is-template) .cl-top-sum .cl-bar{display:none}.cl-top:not(.is-template) .cl-top-sum{flex:1 1 auto}}
