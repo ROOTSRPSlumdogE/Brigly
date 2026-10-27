@@ -35,7 +35,7 @@ assert(store.v.length<4000000,'storage '+store.v.length);
 s.service='Dinner';
 const ui=c.createDutiesUI({state:()=>s,e:x=>String(x??''),button:(label,a,id='',attrs='')=>`<button data-action="${a}" data-id="${id}" ${attrs}>${label}</button>`,input:()=>'',textarea:()=>'',select:()=>'',render(){},openTasks(){}});
 ui.listHandle('area','Bar');const html=ui.lists();
-assert(html.includes('cl-top'));assert(html.includes('cl-progress'));assert.equal((html.match(/class="cl-station"/g)||[]).length,3);
+assert(html.includes('cl-modes'));assert(html.includes('cl-progress'));assert.equal((html.match(/class="cl-station"/g)||[]).length,3);
 assert(html.includes('Martinez table'));assert(html.includes('Tonight only'));
 console.log('PASS: per-service checklist templates, staffed shifts, tonight-only tasks, realistic history, one-time seeding, storage size and checklist hero UI.');
 

@@ -20,7 +20,7 @@ for(const page of pages){
   for(const match of html.matchAll(/(?:href|src)="([^"]+)"/g)){
     const link=match[1];
     if(/^(https?:|mailto:|data:)/.test(link))continue;
-    const [file,hash]=link.split('#');
+    const [withQuery,hash]=link.split('#'),file=withQuery.split('?')[0];
     const target=path.join(root,file||page);
     await access(target);
     if(hash&&(file||page)!=='demo.html'){

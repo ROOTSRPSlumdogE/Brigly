@@ -3263,3 +3263,19 @@ body[data-section="home"] #summary,#summary:empty{display:none}
 }
 @media(max-width:760px){.cl-switch{margin:-14px -14px 0}}
 @media(max-width:1099px){.cl-top:not(.is-template) .cl-top-sum .cl-bar{display:none}.cl-top:not(.is-template) .cl-top-sum{flex:1 1 auto}}
+
+/* Crew on phones and tablets: the station bar and tab badges already say what's left, so the list starts right under it. */
+@media(max-width:1099px){.cl-top.is-crew{display:none}}
+
+/* Checklists, managers: Shift lists · Templates · History tabs (the Stock tab bar) with New list at the end. */
+.cl>.cl-modes,.cl-history>.cl-modes{grid-column:1/-1}
+.cl-modes{margin-bottom:-6px}
+.cl-modes .cl-modes-new{margin-left:auto;color:var(--tone-orange-fg)}
+.cl-modes .cl-modes-new .sk-tab-icon{color:var(--tone-orange-fg)}
+@media(max-width:1099px){.cl>.cl-modes{order:-2}}
+@media(max-width:760px){
+ .cl-modes{position:relative;top:auto;z-index:1;margin:-14px -14px 0;box-shadow:none}
+ .cl-modes .cl-modes-new{margin-left:0}
+ .cl-modes~.cl-switch{margin-top:0}
+ .cl-history>.cl-modes{margin-bottom:4px}
+}
