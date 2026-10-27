@@ -74,3 +74,19 @@ const again=B.load({getItem:()=>JSON.stringify(s)});assert(B.validState(again));
 const broken=JSON.parse(JSON.stringify(s));broken.chat.messages.push({id:'bad',thread:'team',author:'alex',at:'2026-10-25T10:00:00.000Z',kind:'image',body:'',media:{src:'https://example.com/x.png'}});
 assert(!B.validState(broken));
 console.log('PASS: action chain, storage round-trip and media validation.');
+
+// Role channels: strictly role-specific, separating Servers from Head Servers, Bartenders, and other roles.
+let rState=as(B.starter('2026-10-25'),'alex');
+assert(C.members(rState,'role:Server').includes('alex')&&!C.members(rState,'role:Server').includes('noah')&&!C.members(rState,'role:Server').includes('jamie'));
+assert.equal(C.threads(as(rState,'alex'),'crew',true).map(t=>t.id).join(),'team,station:Floor,role:Server');
+assert.equal(C.threads(as(rState,'noah'),'crew',true).map(t=>t.id).join(),'team,station:Bar,role:Bartender');
+rState=B.change(as(rState,'alex'),{type:'chat:send',id:'rm1',thread:'role:Server',kind:'text',body:'Server sidework done'});
+assert.equal(rState.chat.messages.find(m=>m.id==='rm1').body,'Server sidework done');
+assert.throws(()=>B.change(as(rState,'noah'),{type:'chat:send',id:'rm2',thread:'role:Server',kind:'text',body:'Sneak in'}),/not part/);
+rState=B.change(as(rState,'jamie'),{type:'ops:catalog',catalog:'roles',name:'Head Server'});
+rState=B.change(rState,{type:'ops:member',id:'kelly',name:'Kelly Head',role:'Head Server',area:'Floor',access:'crew',rate:22,active:true});
+assert(!C.members(rState,'role:Server').includes('kelly')&&C.members(rState,'role:Head Server').includes('kelly'));
+assert.throws(()=>B.change(as(rState,'kelly'),{type:'chat:send',id:'rm3',thread:'role:Server',kind:'text',body:'Head server note'}),/not part/);
+rState=B.change(as(rState,'kelly'),{type:'chat:send',id:'rm4',thread:'role:Head Server',kind:'text',body:'Head server update'});
+assert.equal(rState.chat.messages.find(m=>m.id==='rm4').body,'Head server update');
+console.log('PASS: role-specific channels strictly isolate roles (e.g. Server vs Head Server).');

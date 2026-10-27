@@ -13,6 +13,7 @@ globalThis.createScheduleUI=function(api){
   const title={timeoff:'Time off',sick:'Sickness',late:'Running late',swap:'Shift swap'};
   const needsReview=r=>['Reported','Pending'].includes(r.status);
   const active=r=>S.active(r);
+  const may=key=>!B.permissions||B.permissions.can(s(),key);
   const actionButton=(label,action,id='',style='secondary',extra='')=>button(label,'schedule-'+action,id,extra,style);
   function open(title,fields,context){form=context;api.open(title,fields);}
   function totals(){return S.totals(s(),scopePerson(),s().date,period);}
@@ -39,7 +40,7 @@ globalThis.createScheduleUI=function(api){
       const attendance=m.absence?title[m.absence.kind]+(m.absence.paid?' · Paid':' · Unpaid'):m.late?`${m.late.minutes} min late`:'Scheduled';
       return `<article class="agenda-shift"><div class="agenda-date"><strong>${dateLabel(x.date,{day:'numeric'})}</strong><small>${dateLabel(x.date,{weekday:'short'})}</small></div><div><h3>${x.start}–${x.end}${x.end<x.start?' +1 day':''}</h3><p>${e(x.service)} · ${e(x.area)}</p><small>${hours(m.workMinutes)} expected hours · ${money(m.wages)} est.</small>${badge(attendance,m.absence?'red':m.late?'orange':'gray')}</div><button class="agenda-open" data-action="home-choose" data-id="${e(x.id)}" aria-label="Open ${e(x.service)} shift on ${x.date}">›</button></article>`;
 
-    }).join('')||'<div class="empty"><strong>No shifts in this view</strong>Choose a day or see all shifts this week.</div>'}</div><div class="crew-range">${!shifts.length?actionButton('Request time off','timeoff','',''):''}${actionButton(showWeek?'Show selected day':'See all shifts this week','range','','quiet')}</div></section>`;
+    }).join('')||'<div class="empty"><strong>No shifts in this view</strong>Choose a day or see all shifts this week.</div>'}</div><div class="crew-range">${!shifts.length&&may('timeoff')?actionButton('Request time off','timeoff','',''):''}${actionButton(showWeek?'Show selected day':'See all shifts this week','range','','quiet')}</div></section>`;
   }
   function requestCard(r){
     const shift=s().shifts.find(x=>x.id===r.shiftId),target=s().shifts.find(x=>x.id===r.targetId);
@@ -59,37 +60,66 @@ globalThis.createScheduleUI=function(api){
     const relevant=s().scheduling.requests.filter(r=>manager()||r.person===me()||r.targetPerson===me());
     const pending=relevant.filter(r=>['Reported','Pending','Awaiting teammate'].includes(r.status));
     const history=relevant.filter(r=>!pending.includes(r)).slice().reverse();
-    return `<section class="panel requests-panel"><div class="panel-head"><div><h2>${manager()?'Requests & attendance alerts':'My requests & swap invitations'}</h2><p>All dates · ${pending.length} open${manager()?' · sickness and lateness highlighted first':''}</p></div>${!manager()?actionButton('Request time off','timeoff','',''):''}${badge(pending.filter(r=>r.status==='Reported').length+' attendance alerts',pending.some(r=>r.status==='Reported')?'red':'gray')}</div>${pending.sort((a,b)=>(a.status==='Reported'?-1:1)-(b.status==='Reported'?-1:1)).map(requestCard).join('')||'<div class="empty"><strong>All caught up</strong>No open requests or attendance reports.</div>'}<details class="request-history"><summary>Request history · ${history.length}</summary>${history.map(requestCard).join('')||'<p class="estimate-note">Reviewed requests will appear here.</p>'}</details></section>`;
+    return `<section class="panel requests-panel"><div class="panel-head"><div><h2>${manager()?'Requests & attendance':'My requests & swap invitations'}</h2><p>All dates · ${pending.length} open${manager()?' · sickness and lateness highlighted first':''}</p></div>${!manager()&&may('timeoff')?actionButton('Request time off','timeoff','',''):''}${badge(pending.filter(r=>r.status==='Reported').length+' attendance alerts',pending.some(r=>r.status==='Reported')?'red':'gray')}</div>${pending.sort((a,b)=>(a.status==='Reported'?-1:1)-(b.status==='Reported'?-1:1)).map(requestCard).join('')||'<div class="empty"><strong>All caught up</strong>No open requests or attendance reports.</div>'}<details class="request-history"><summary>Request history · ${history.length}</summary>${history.map(requestCard).join('')||'<p class="estimate-note">Reviewed requests will appear here.</p>'}</details></section>`;
   }
-  function managerPeople(){return `<section class="panel"><div class="panel-head"><div><h2>Pay & absence defaults</h2><p>Set defaults per person. Override paid / unpaid on every absence review.</p></div></div><div class="table-scroll"><table><thead><tr><th>TEAM MEMBER</th><th>NEW SHIFT RATE</th><th>SICKNESS DEFAULT</th><th>TIME-OFF DEFAULT</th><th></th></tr></thead><tbody>${B.crew.map(p=>{const d=s().scheduling.defaults[p.id];return `<tr><td><strong>${e(p.name)}</strong></td><td>${money(d.rate)}/hr</td><td>${badge(d.sickPaid?'Paid':'Unpaid',d.sickPaid?'':'gray')}</td><td>${badge(d.timeoffPaid?'Paid':'Unpaid',d.timeoffPaid?'':'gray')}</td><td>${actionButton('Edit defaults','defaults',p.id)}</td></tr>`;}).join('')}</tbody></table></div></section>`;}
   let screen='shifts';
+  // Inbox moved to the Roster, Labor & pay to Reports and Team & setup to Manage.
+  function route(key){
+    if(!manager()||!['requests','earnings','setup'].includes(key))return key;
+    if(key==='requests')return 'shifts';
+    if(key==='earnings'){api.reportBoard('labor');return 'reports';}
+    api.manageTab('setup','');return 'manage';
+  }
+  // Schedule requests are reviewed beside the roster: open ones first, otherwise the history sits underneath.
+  function managerRoster(){
+    const open=s().scheduling.requests.some(r=>['Reported','Pending','Awaiting teammate'].includes(r.status));
+    return open?requests()+api.roster():api.roster()+requests();
+  }
   function render(){
     if(screen==='home')return api.home();
+    if(screen==='training'&&manager()&&api.training)return api.training();
     if(screen==='briefing'&&!manager())return api.context(s().date,s().service);
-    const tabs=manager()?[['shifts','Roster'],['requests','Inbox'+(s().scheduling.requests.filter(needsReview).length+s().unavailable.filter(x=>x.status==='Reported').length?' · '+(s().scheduling.requests.filter(needsReview).length+s().unavailable.filter(x=>x.status==='Reported').length):'')],['earnings','Costs'],['reports','Reports'],['setup','Manage'],['briefing','Briefing']]:[['shifts','My shifts'],['earnings','Earnings'],['requests','Requests']];
-    if(!tabs.some(x=>x[0]===screen))screen='shifts';
+    // Crew: My space is one hub for the schedule, requests, earnings, training and their file.
+    if(!manager()&&api.me&&['me','shifts','earnings','requests','myfile'].includes(screen))return api.me(screen);
+    if(screen==='training'&&api.training)return api.training();
+    const tabs=manager()?[['shifts','Roster'],['manage','Manage'],['reports','Reports'],['briefing','Briefing']]:[['shifts','My shifts'],['earnings','Earnings'],['requests','Requests'],['myfile','My file']];
+    screen=route(screen);if(!tabs.some(x=>x[0]===screen))screen='shifts';
     const nav='<div class="schedule-tabs" aria-label="Schedule sections">'+tabs.map(([id,label])=>actionButton(label,'screen',id,screen===id?'selected':'secondary', 'aria-pressed="'+(screen===id)+'"')).join('')+'</div>';
-    const content=screen==='shifts'?(manager()?api.roster():personal()):screen==='earnings'?earnings():screen==='requests'?requests()+(manager()&&api.section?api.section('approvals'):''):(api.section?api.section(screen):api.extras());
-    return nav+(screen==='earnings'?periodControls():'')+content+(screen==='setup'?managerPeople():'');
+    const content=screen==='shifts'?(manager()?managerRoster():personal()):screen==='earnings'?earnings():screen==='requests'?requests():screen==='manage'?api.manage():screen==='reports'?api.reportsPage():screen==='myfile'?api.myfile():(api.section?api.section(screen):api.extras());
+    // The crew's real pay comes first; the period controls below only shape the estimates.
+    return nav+(screen==='earnings'&&!manager()&&api.pay?api.pay():'')+(screen==='earnings'?periodControls():'')+content;
   }
   function handle(action,id){
     if(action==='shift-tips'){const shift=s().shifts.find(x=>x.id===id);open('Add tips',input('date','Date',shift.date,'date','required')+input('amount','Tips ($)',s().scheduling.tips.find(t=>t.person===me()&&t.date===shift.date)?.amount||0,'number','required min="0" step="0.01"'),{kind:'tips'});return;}
     if(action==='range'){showWeek=!showWeek;api.render();return;}
-    if(action==='screen'){screen=id;if(id==='shifts'){period='week';selectedPerson='';}api.render();return;}
+    if(action==='screen'){screen=route(id);if(id==='shifts'){period='week';selectedPerson='';}api.render();return;}
     if(action==='period'){period=id;api.render();return;}
     if(action==='accept'||action==='reject'){api.commit({type:'schedule:respond',id,decision:action==='accept'?'accept':'decline'},'Swap response saved.');return;}
-    if(action==='timeoff')open('Request time off',input('from','First day',s().shifts.find(x=>x.id===id)?.date||s().date,'date','required')+input('to','Last day',s().shifts.find(x=>x.id===id)?.date||s().date,'date','required')+textarea('note','Note to your manager (optional)','','maxlength="500"')+'<p>Your hours and pay stay unchanged until your manager approves. Your manager chooses paid or unpaid.</p>',{kind:'timeoff'});
+    const bal=pid=>{if(!B.biz)return '';const k=B.biz.balance(s(),pid,'sick'),p=B.biz.balance(s(),pid,'pto');return `<p class="fin-note">Balances: ${k.eligible?k.balance+' h sick leave':''}${p.eligible?' · '+p.balance+' h paid time off':' · no paid time off on this contract'}</p>`;};
+    if(action==='timeoff')open('Request time off',bal(me())+input('from','First day',s().shifts.find(x=>x.id===id)?.date||s().date,'date','required')+input('to','Last day',s().shifts.find(x=>x.id===id)?.date||s().date,'date','required')+textarea('note','Note to your manager (optional)','','maxlength="500"')+'<p>Your hours and pay stay unchanged until your manager approves. Your manager chooses paid or unpaid.</p>',{kind:'timeoff'});
     if(action==='report-sick'||action==='report-late'){
       const x=s().shifts.find(x=>x.id===id),kind=action==='report-sick'?'sick':'late';
       open(kind==='sick'?'Report sickness':'Let your manager know you’re running late',`<p><strong>${e(shiftLabel(x))}</strong></p>`+(kind==='late'?input('minutes','Expected minutes late',15,'number',`required min="1" max="${B.duration(x)}" step="1"`):`<p>Your shift will be flagged for coverage immediately. Your current absence default is <strong>${s().scheduling.defaults[me()].sickPaid?'paid':'unpaid'}</strong>; your manager can override this. No medical details are needed.</p>`)+textarea('note','Handover note (optional)','','maxlength="500"')+(kind==='late'?'<p>This updates your expected hours now. Your manager can confirm or correct the minutes once you arrive.</p>':''),{kind:'report',shiftId:id,reportKind:kind});
     }
     if(action==='swap'){
       const source=s().shifts.find(x=>x.id===id),choices=s().shifts.filter(x=>x.person!==me()&&x.area===source.area&&!S.absence(s(),x));
-      open('Request a shift swap',`<p>You offer: <strong>${e(shiftLabel(source))}</strong></p>`+(choices.length?select('targetId','Shift you would like to take',choices.map(x=>[x.id,shiftLabel(x)]),choices[0].id):'<p>No other teammate has a shift in this station to swap.</p>')+textarea('note','Message to teammate and manager (optional)','','maxlength="500"')+'<p>Your teammate must accept, then a manager approves the exchange. Overlapping shifts and approved leave are checked before approval. Each person keeps their hourly rate for the exchange.</p>',{kind:'swap',shiftId:id});
+      let html=`<div class="swap-dialog-shell"><div class="swap-offered-card"><span class="swap-label-eyebrow">YOUR SHIFT TO TRADE</span><div class="swap-offered-main"><strong>${dateLabel(source.date,{weekday:'short',month:'short',day:'numeric'})} · ${source.start}–${source.end}</strong><span>${e(source.service)} · Station: <b>${e(source.area)}</b></span></div></div>`;
+      if(!choices.length){
+        html+=`<div class="empty"><strong>No shifts to swap</strong><p>No other teammates currently have scheduled shifts on ${e(source.area)} to swap with.</p></div>`;
+      }else{
+        const byPerson=new Map();
+        for(const c of choices){if(!byPerson.has(c.person))byPerson.set(c.person,[]);byPerson.get(c.person).push(c);}
+        const persons=[...byPerson.keys()];
+        html+=`<div class="swap-step-block"><label class="swap-step-title">1. Select teammate to switch with</label><div class="swap-teammate-row" role="radiogroup" aria-label="Teammate">${persons.map((pid,idx)=>{const p=B.person(pid),cnt=byPerson.get(pid).length,sel=idx===0;return `<button type="button" class="swap-teammate-btn ${sel?'selected':''}" data-action="swap-select-person" data-person="${e(pid)}" aria-pressed="${sel}"><span class="avatar">${e(p?.initials||'TM')}</span><span class="swap-tm-info"><strong>${e(p?.name||'Teammate')}</strong><small>${cnt} ${cnt===1?'shift':'shifts'}</small></span></button>`;}).join('')}</div></div>`;
+        html+=`<div class="swap-step-block"><label class="swap-step-title">2. Select the shift you want</label><div class="swap-shifts-container">${persons.map((pid,idx)=>{const pShifts=byPerson.get(pid);return `<div class="swap-person-group ${idx===0?'':'is-hidden'}" data-swap-person-shifts="${e(pid)}">${pShifts.map((sh,sIdx)=>{const chk=idx===0&&sIdx===0;return `<label class="swap-shift-option ${chk?'is-checked':''}"><input type="radio" name="targetId" value="${e(sh.id)}" ${chk?'checked':''}><div class="swap-shift-details"><div class="swap-shift-head"><strong>${dateLabel(sh.date,{weekday:'short',month:'short',day:'numeric'})}</strong><span class="swap-time-pill">${sh.start}–${sh.end}</span></div><div class="swap-shift-foot"><span class="arrival-pill">${e(sh.service)}</span><span class="td-tag" data-tone="${sh.area==='Bar'?'orange':sh.area==='Kitchen'?'slate':'sage'}">${e(sh.area)}</span></div></div></label>`;}).join('')}</div>`;}).join('')}</div></div>`;
+        html+=textarea('note','3. Message to teammate & manager (optional)','','maxlength="500" placeholder="e.g. Can you cover my Friday? I can take your Wednesday!"')+'<p class="swap-note-terms">Your teammate must accept first, then your manager approves. Shift rates stay as scheduled.</p>';
+      }
+      html+=`</div>`;
+      open('Request a shift swap',html,{kind:'swap',shiftId:id});
     }
     if(action==='review'){
       const r=s().scheduling.requests.find(r=>r.id===id);
-      open('Review '+title[r.kind].toLowerCase(),`<p><strong>${e(name(r.person))}</strong> · ${e(S.requestSummary(r))}</p>`+(['timeoff','swap'].includes(r.kind)?select('decision','Decision',[['approve','Approve'],['decline','Decline']],'approve'):'')+(['sick','timeoff'].includes(r.kind)?select('paid','Pay for this absence',[['true','Paid'],['false','Unpaid']],String(r.paid)):'')+(r.kind==='late'?input('minutes','Confirmed minutes late',r.minutes,'number','required min="0" max="1440" step="1"'):'')+textarea('feedback','Response to crew (required when declining)',r.feedback,'maxlength="500"')+'<p>Saving updates the schedule, expected hours and gross earnings immediately.</p>',{kind:'review',id});
+      open('Review '+title[r.kind].toLowerCase(),`<p><strong>${e(name(r.person))}</strong> · ${e(S.requestSummary(r))}</p>`+(['sick','timeoff'].includes(r.kind)?bal(r.person):'')+(['timeoff','swap'].includes(r.kind)?select('decision','Decision',[['approve','Approve'],['decline','Decline']],'approve'):'')+(['sick','timeoff'].includes(r.kind)?select('paid','Pay for this absence',[['true','Paid'],['false','Unpaid']],String(r.paid)):'')+(r.kind==='late'?input('minutes','Confirmed minutes late',r.minutes,'number','required min="0" max="1440" step="1"'):'')+textarea('feedback','Response to crew (required when declining)',r.feedback,'maxlength="500"')+'<p>Saving updates the schedule, expected hours and gross earnings immediately.</p>',{kind:'review',id});
     }
     if(action==='withdraw')open('Withdraw this request or report?','<p>This restores the affected schedule and estimate. The request stays in history.</p>',{kind:'withdraw',id});
     if(action==='tips'){
@@ -119,5 +149,5 @@ globalThis.createScheduleUI=function(api){
       f.elements.namedItem('amount').value=s().scheduling.tips.find(x=>x.person===person&&x.date===date)?.amount??0;
     }
   }
-  return {render,summary,handle,submit,onChange,screen:()=>screen,show:key=>{screen=key;if(key==='shifts'){period='week';selectedPerson='';}}};
+  return {render,summary,handle,submit,onChange,personal,requests,earnings,periodControls,screen:()=>screen,show:key=>{screen=route(key);if(screen==='shifts'){period='week';selectedPerson='';}}};
 };

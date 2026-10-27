@@ -35,9 +35,8 @@ globalThis.createShiftHome=function(api){
   const team=st.shifts.filter(x=>x.date===st.date&&x.service===service).sort((a,b)=>a.start.localeCompare(b.start));
   const shift=team.find(x=>x.person===me()),ctx=B.ops.context(st,st.date,service);
   const briefs=st.briefings.filter(b=>b.date===st.date&&b.service===service);
-  const unread=!manager()&&shift&&briefs.some(b=>!hasRead(b,me()));
   const brief=briefing(st,team,briefs,service,!!shift);
-  return `<div class="td" data-role="${e(st.role)}"><div class="td-main">${hero(st,team,shift,ctx,svc)}${actions(st,shift)}${unread?brief:''}${queue(st,team,ctx,briefs,svc)}${checklist(st,svc)}${unread?'':brief}${arrivals(st,ctx,service)}</div><aside class="td-rail" aria-label="Service board">${eightySix(st,ctx,!!shift)}${specials(st,service)}${crew(st,team,briefs)}${notes(st,ctx,team,service)}${api.chatPreview?.()||''}</aside></div>`;
+  return `<div class="td" data-role="${e(st.role)}"><div class="td-main">${hero(st,team,shift,ctx,svc)}${api.clock?api.clock():''}${actions(st,shift)}${brief}${queue(st,team,ctx,briefs,svc)}${checklist(st,svc)}${arrivals(st,ctx,service)}</div><aside class="td-rail" aria-label="Service board">${eightySix(st,ctx,!!shift)}${specials(st,service)}${api.training?.()||''}${crew(st,team,briefs)}${notes(st,ctx,team,service)}${api.chatPreview?.()||''}</aside></div>`;
  }
 
  // The shift: when, where, who with, and how far into it we are.
@@ -67,18 +66,18 @@ globalThis.createShiftHome=function(api){
  // The things people do most during a shift, one tap each.
  function actions(st,shift){
   const act=(label,key,toneKey,action,id='',attrs='')=>`<button type="button" class="td-action" data-tone="${toneKey}" data-action="${action}" data-id="${e(id)}" ${attrs}><span class="td-action-icon">${icon(key)}</span><span class="td-action-label">${e(label)}</span></button>`;
-  const c=ctxAttrs();let html;
+  const c=ctxAttrs(),may=key=>!B.permissions||B.permissions.can(st,key);let html;
   if(manager()){
-   const brief=st.briefings.find(b=>b.date===st.date&&b.service===st.service),pending=st.scheduling.requests.filter(r=>['Pending','Reported'].includes(r.status)).length;
+   const brief=st.briefings.find(b=>b.date===st.date&&b.service===st.service);
    html=(brief?act('Briefing','brief','amber','edit',brief.id,'data-collection="briefings"'):act('Post briefing','brief','amber','ops-context-create','briefings',c))
     +act('Add note','note','sage','ops-note','',c)+act('86 an item','alert','danger','ops-alert','',c)+act('Order stock','cart','amber','stock-go','orders','data-stage="order"')
-    +act('Assign count','count','sage','stock-assign','')+act('Add shift','add','orange','plan-add','')+act('Roster','roster','slate','app-screen','shifts')+act(pending?'Inbox · '+pending:'Inbox','inbox','orange','app-screen','requests');
+    +act('Assign count','count','sage','stock-assign','')+act('Add shift','add','orange','plan-add','')+act('Roster','roster','slate','app-screen','shifts')+act('Manage','team','slate','app-screen','manage');
   }else if(shift){
    const m=B.schedule.metrics(st,shift);
-   html=act('Report 86','alert','danger','ops-alert','',c)+act('Request stock','cart','amber','stock-go','items')+act('Add note','note','sage','ops-note','',c)+act('Add tips','tips','sage','schedule-shift-tips',shift.id)
+   html=(may('report86')?act('Report 86','alert','danger','ops-alert','',c):'')+(may('stockRequests')?act('Request stock','cart','amber','stock-go','items'):'')+(may('notes')?act('Add note','note','sage','ops-note','',c):'')+act('Add tips','tips','sage','schedule-shift-tips',shift.id)
     +act(m.late?'Late reported':'Running late','late','amber','schedule-report-late',shift.id,m.absence||m.late?'disabled':'')+act(m.absence?'Absence reported':'I’m sick','sick','danger','schedule-report-sick',shift.id,m.absence?'disabled':'')
-    +act('Swap shift','swap','slate','schedule-swap',shift.id,m.absence||m.late?'disabled':'')+act('Time off','off','slate','schedule-timeoff',shift.id);
-  }else html=act('My schedule','roster','slate','app-screen','shifts')+act('Time off','off','slate','schedule-timeoff','')+act('Request stock','cart','amber','stock-go','items')+act('Earnings','earn','sage','app-screen','earnings');
+    +(may('swaps')?act('Swap shift','swap','slate','schedule-swap',shift.id,m.absence||m.late?'disabled':''):'')+(may('timeoff')?act('Time off','off','slate','schedule-timeoff',shift.id):'');
+  }else html=act('My schedule','roster','slate','app-screen','shifts')+(may('timeoff')?act('Time off','off','slate','schedule-timeoff',''):'')+(may('stockRequests')?act('Request stock','cart','amber','stock-go','items'):'')+act('Earnings','earn','sage','app-screen','earnings');
   return `<nav class="td-actions" aria-label="${manager()?'Manager quick actions':'Shift actions'}">${html}</nav>`;
  }
 
@@ -91,7 +90,7 @@ globalThis.createShiftHome=function(api){
   if(manager()){
    for(const x of team){const m=B.schedule.metrics(st,x);
     if(m.absence)push(0,'danger','sick',first(x.person)+' is out · '+x.area+' needs cover',x.start+'–'+x.end+' · '+(m.absence.kind==='sick'?'reported sick':'approved time off'),btn('Find cover','edit',x.id,'','data-collection="shifts"'));
-    else if(m.late)push(1,'amber','late',first(x.person)+' is running '+m.late.minutes+' min late',x.area+' · due at '+x.start,btn('Review','app-screen','requests','secondary'));}
+    else if(m.late)push(1,'amber','late',first(x.person)+' is running '+m.late.minutes+' min late',x.area+' · due at '+x.start,btn('Review','app-screen','shifts','secondary'));}
    if(!briefs.length&&st.date>=day)push(1,'amber','brief','No pre-shift briefing yet','Post one so the '+st.service+' team can read and confirm it',btn('Post briefing','ops-context-create','briefings','',ctxAttrs()));
    for(const a of ctx.alerts.filter(x=>x.status==='Reported'))push(0,'danger','alert','86 report · '+a.name,first(a.author)+' · '+a.area+' · '+a.reason,btn('Approve','ops-approve-alert',a.id)+btn('Decline','ops-decline-alert',a.id,'secondary'));
    if(B.stock&&st.stock){
@@ -113,9 +112,15 @@ globalThis.createShiftHome=function(api){
     const busy=new Set(st.orders.filter(o=>['Requested','Approved','Ordered'].includes(o.status)).map(o=>o.item)),low=st.stock.items.filter(x=>x.active&&x.vendor&&x.onHand!==null&&x.onHand<x.par&&!busy.has(x.id));
     if(low.length)push(4,'slate','cart',plural(low.length,'item')+' below par, not on order',listing(low.slice(0,3).map(x=>x.name))+(low.length>3?' and more':''),btn('Add to order','stock-go','orders','secondary','data-stage="order"'));
    }
+   // Payroll and time clock problems ride in the same list.
+   for(const x of api.payroll?api.payroll():[])push(x.rank,x.tone,'clock',x.title,x.sub,x.acts);
    const reqs=st.scheduling.requests.filter(r=>r.status==='Pending').length;
-   if(reqs)push(3,'orange','inbox',plural(reqs,'schedule request')+' waiting','Time off and shift swaps to approve',btn('Open inbox','app-screen','requests','secondary'));
+   if(reqs)push(3,'orange','inbox',plural(reqs,'schedule request')+' waiting','Time off and shift swaps to approve on the roster',btn('Review','app-screen','shifts','secondary'));
   }else{
+   if(B.permissions?.can(st,'stock'))for(const a of ctx.alerts.filter(x=>x.status==='Reported'&&x.author!==me()))push(0,'danger','alert','86 report · '+a.name,first(a.author)+' · '+a.area+' · '+a.reason,btn('Approve','ops-approve-alert',a.id)+btn('Decline','ops-decline-alert',a.id,'secondary'));
+   for(const r of (st.business?.reviews||[]).filter(r=>r.person===me()&&r.status==='Shared'))push(0,'sage','note','Your '+r.kind.toLowerCase()+' is ready','Read it and add your thoughts',btn('Read','hr-review-view',r.id));
+   for(const k of (st.business?.kudos||[]).filter(k=>k.person===me()&&k.at>=new Date(now-3*864e5).toISOString()))push(2,'sage','note','Kudos from '+first(k.by)+(k.value?' · '+k.value:''),'“'+k.text+'”',btn('View','hr-kudos-view',k.id,'secondary'));
+   for(const w of (st.writeups||[]).filter(w=>w.person===me()&&w.status==='Issued'))push(0,'orange','note','A '+B.writeups.label(w).toLowerCase()+' was added to your file',w.title+' · read it and confirm you received it',btn('Read','wu-view',w.id));
    for(const r of st.scheduling.requests.filter(r=>r.kind==='swap'&&r.targetPerson===me()&&r.status==='Awaiting teammate'))push(1,'orange','swap',first(r.person)+' asked to swap a shift with you',B.schedule.requestSummary?.(r)||'Accept or decline in Requests',btn('Review','app-screen','requests'));
    if(B.stock?.assignedTo&&st.stock){
     for(const x of B.stock.assignedTo(st,me(),'crew').filter(x=>x.date<=B.addDays(day,1))){const open=st.stock.counts.find(c=>c.team===x.team&&c.status==='Open'),n=open?Object.keys(open.entries).length:0;
@@ -189,13 +194,17 @@ globalThis.createShiftHome=function(api){
   return briefs.map(b=>{
    const tracked=[...new Set([...people,...b.acks])],read=tracked.filter(id=>hasRead(b,id)),waiting=tracked.filter(id=>!hasRead(b,id));
    const mineRead=hasRead(b,me()),needs=(assigned||manager())&&!mineRead,author=b.author===me();
-   const status=manager()||author?tag(read.length+'/'+tracked.length+' read',waiting.length?'amber':'sage'):mineRead?tag('✓ Read','sage'):tag('Please confirm','amber');
+   const authorIsMgr=st.team.find(p=>p.id===b.author)?.access==='manager';
+   const appStatus=b.approvalStatus||(authorIsMgr?'Approved':'Pending');
+   const appTone=appStatus==='Approved'?'sage':appStatus==='Late approved'?'amber':'orange';
+   const appBadge=appStatus==='Approved'?'✓ Approved':appStatus==='Late approved'?'⚠️ Late Approved':'⏳ Awaiting Approval';
+   const status=tag(appBadge,appTone)+(manager()||author?tag(read.length+'/'+tracked.length+' read',waiting.length?'amber':'sage'):mineRead?tag('✓ Read','sage'):tag('Please confirm','amber'));
    const long=b.body.length>320;
-   const confirm=needs?`<div class="td-brief-confirm"><div><strong>Read it before service</strong><small>Confirm you’ve read this, the specials and the 86 list. Your manager sees who confirms.</small></div><button type="button" class="button td-ack" data-action="ack" data-id="${e(b.id)}">${icon('check')}I’ve read it</button></div>`
-    :mineRead&&!author?`<p class="td-brief-done">${icon('check')}You confirmed reading this briefing · revision ${b.revision}</p>`:'';
+   const confirm=needs?`<div class="td-brief-confirm"><div><strong>Shift Onboarding · Action Required</strong><small>Confirm you’ve read this briefing, today’s happenings and the 86 list. Your manager sees who confirms.</small></div><div class="td-onboard-cta-group"><button type="button" class="button td-onboard-open-btn" data-action="onboarding-open" data-id="${e(b.id)}">📋 Open Shift Onboarding ›</button><button type="button" class="button td-ack" data-action="ack" data-id="${e(b.id)}">${icon('check')}I’ve read it</button></div></div>`
+    :mineRead&&!author?`<div class="td-brief-done-wrap"><p class="td-brief-done">${icon('check')}You confirmed reading this briefing · revision ${b.revision}</p><button type="button" class="button secondary small td-onboard-open-btn" data-action="onboarding-open" data-id="${e(b.id)}">Review shift overview ›</button></div>`:'';
    const receipts=(manager()||author)&&tracked.length?`<details class="td-receipts" data-key="home-acks-${e(b.id)}"><summary><span class="td-stack">${tracked.slice(0,8).map(id=>`<span class="${hasRead(b,id)?'is-read':'is-waiting'}">${e(B.person(id)?.initials||'TM')}</span>`).join('')}</span><span>${waiting.length?e(listing(waiting.map(first)))+(waiting.length===1?' hasn’t':' haven’t')+' read it yet':'Everyone on shift has read it'}</span></summary><ul>${tracked.map(id=>`<li class="${hasRead(b,id)?'is-read':''}"><span class="td-avatar" data-tone="${tone(team.find(x=>x.person===id)?.area||B.person(id)?.area)}">${e(B.person(id)?.initials||'TM')}</span><strong>${e(name(id))}</strong><small>${hasRead(b,id)?(id===b.author?'Posted it':'✓ Read'):'Not yet'}</small></li>`).join('')}</ul></details>`:'';
-   const tools=[waiting.length&&(manager()||author)?`<button type="button" class="td-link" data-action="home-nudge" data-id="${e(b.id)}">Remind ${waiting.length===1?e(first(waiting[0])):waiting.length+' people'}<span aria-hidden="true">›</span></button>`:'',manager()||author?`<button type="button" class="td-link" data-action="edit" data-collection="briefings" data-id="${e(b.id)}">Edit briefing<span aria-hidden="true">›</span></button>`:''].join('');
-   return `<section class="td-card td-brief${needs?' is-unread needs-ack':' is-read'}" aria-label="Pre-shift briefing"><header class="td-card-head"><div><p class="td-eyebrow">Pre-shift briefing · ${e(service)}</p><h2>${e(b.title)}</h2></div><div class="td-card-meta">${status}</div></header><div class="td-brief-body${long?' is-clamped':''}" id="brief-body-${e(b.id)}">${e(b.body)}</div>${long?`<button type="button" class="td-readmore" data-action="home-expand" data-id="brief-body-${e(b.id)}">Read more</button>`:''}<p class="td-byline">Posted by ${e(name(b.author))} · revision ${b.revision}</p>${confirm}${receipts}${tools?`<footer class="td-card-foot">${tools}</footer>`:''}</section>`;
+   const tools=[`<button type="button" class="td-link" data-action="onboarding-open" data-id="${e(b.id)}">Shift Onboarding & Handover<span aria-hidden="true">›</span></button>`,waiting.length&&(manager()||author)?`<button type="button" class="td-link" data-action="home-nudge" data-id="${e(b.id)}">Remind ${waiting.length===1?e(first(waiting[0])):waiting.length+' people'}<span aria-hidden="true">›</span></button>`:'',manager()&&appStatus!=='Approved'?`<button type="button" class="td-link" data-action="ops-approve-briefing" data-id="${e(b.id)}" data-status="Approved">Approve onboarding<span aria-hidden="true">›</span></button>`:'',manager()||author?`<button type="button" class="td-link" data-action="edit" data-collection="briefings" data-id="${e(b.id)}">Edit briefing<span aria-hidden="true">›</span></button>`:''].filter(Boolean).join('');
+   return `<section class="td-card td-brief${needs?' is-unread needs-ack':' is-read'}" data-tone="${needs?'amber':'sage'}" aria-label="Pre-shift briefing"><header class="td-card-head"><div><p class="td-eyebrow">${needs?'Shift Onboarding Required · ':'Shift Onboarded · '}${e(service)}</p><h2>${e(b.title)}</h2></div><div class="td-card-meta">${status}</div></header><div class="td-brief-body${long?' is-clamped':''}" id="brief-body-${e(b.id)}">${e(b.body)}</div>${long?`<button type="button" class="td-readmore" data-action="home-expand" data-id="brief-body-${e(b.id)}">Read more</button>`:''}<p class="td-byline">Posted by ${e(name(b.author))} · revision ${b.revision}</p>${confirm}${receipts}${tools?`<footer class="td-card-foot">${tools}</footer>`:''}</section>`;
   }).join('');
  }
 
@@ -211,8 +220,14 @@ globalThis.createShiftHome=function(api){
 
  function specials(st,service){
   const list=st.specials.filter(x=>x.date===st.date&&x.service===service&&x.active);
-  const body=list.length?list.map(x=>`<article class="td-special"><div><strong>${e(x.name)}</strong><span class="td-price">$${Number(x.price).toFixed(2)}</span></div>${x.description?`<p>${e(x.description)}</p>`:''}<small><b>Allergens</b> ${e(x.allergens||'Confirm with the kitchen')}</small></article>`).join(''):`<p class="td-empty">No specials posted for ${e(service)}.</p>`;
-  return card('td-specials','Specials',body,{meta:list.length?tag(list.length+' live','amber'):'',foot:link(manager()?'Manage specials':'All specials','navigate','specials')+(manager()?link('Add special','edit','','data-collection="specials"'):'')});
+  const body=list.length?list.map(x=>{
+   const kindLabel=x.kind==='happy_hour'?'Happy Hour':x.kind==='event'?'Event':'Special';
+   const kindTone=x.kind==='happy_hour'?'orange':x.kind==='event'?'sage':'amber';
+   const priceStr=x.price>0?'$'+Number(x.price).toFixed(2):(x.kind==='event'?'Free / Included':'$0.00');
+   const qCount=(x.questions||[]).length;
+   return `<article class="td-special" data-kind="${e(x.kind||'special')}"><div class="td-special-header"><div class="td-special-tags"><span class="td-tag" data-tone="${kindTone}">${kindLabel}</span>${x.time?`<small class="td-special-time">${e(x.time)}</small>`:''}<strong>${e(x.name)}</strong></div><span class="td-price">${priceStr}</span></div>${x.description?`<p>${e(x.description)}</p>`:''}<div class="td-special-sub"><small><b>${x.kind==='happy_hour'?'Rules':x.kind==='event'?'Staging':'Allergens'}</b> ${e(x.allergens||'Confirm with kitchen/bar')}</small>${qCount?`<span class="td-special-q-badge">💬 ${qCount} Q&A</span>`:''}</div></article>`;
+  }).join(''):`<p class="td-empty">No happenings posted for ${e(service)}.</p>`;
+  return card('td-specials','Happenings',body,{meta:list.length?tag(list.length+' live','amber'):'',foot:link(manager()?'Manage happenings':'All happenings & Q&A','navigate','specials')+(manager()?link('Add happening','edit','','data-collection="specials"'):'')});
  }
 
  function arrivals(st,ctx,service){

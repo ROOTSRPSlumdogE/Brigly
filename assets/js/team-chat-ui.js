@@ -32,6 +32,7 @@ globalThis.createTeamChatUI=function(api){
   const n=B.chat.members(s(),thread).length;
   if(thread==='team')return {title:'Whole team',to:'the whole team',sub:n+' people · everyone on the team',avatar:icon('team'),tone:'orange'};
   if(thread.startsWith('station:')){const area=thread.slice(8);return {title:area+' crew',to:'the '+area.toLowerCase()+' crew',sub:n+' people · '+area+' station and managers',avatar:icon(area),tone:stationTone(area)};}
+  if(thread.startsWith('role:')){const role=thread.slice(5);const tone=role==='Server'?'amber':role==='Bartender'?'orange':(role.toLowerCase().includes('chef')||role.toLowerCase().includes('cook'))?'slate':'purple';return {title:role+' Chat',to:role.toLowerCase()+'s only',sub:n+' '+(n===1?'person':'people')+' · strictly '+role+' role',avatar:icon('chat'),tone};}
   const p=B.person(other(thread));return {title:p?.name||'Team member',to:p?.name.split(' ')[0]||'them',sub:(p?.role||'Team member')+(p?.active===false?' · no longer on the team':''),avatar:e(p?.initials||'TM'),tone:'slate'};
  }
  function snippet(m,thread){
@@ -47,11 +48,13 @@ globalThis.createTeamChatUI=function(api){
    const people=st.team.filter(p=>p.active&&p.id!==me()).sort((a,b)=>a.name.localeCompare(b.name));
    return `<div class="chat-list-label"><button type="button" class="chat-list-back" data-action="chat-pick-cancel" aria-label="Back to conversations">‹</button><span>New message</span></div>`+people.map(p=>`<button type="button" class="chat-thread" data-action="chat-dm" data-id="${e(p.id)}"><span class="chat-avatar" data-tone="${stationTone(p.area)}">${e(p.initials)}</span><span class="chat-thread-text"><strong>${e(p.name)}</strong><small>${e(p.role||'')}${p.area?' · '+e(p.area):''}${p.access==='manager'?' · Manager':''}</small></span></button>`).join('');
   }
-  const list=B.chat.threads(st);
+  const list=B.chat.threads(st,undefined,true);
   if(active.startsWith('dm:')&&!list.some(t=>t.id===active))list.push({id:active,channel:false,last:null,unread:0});
   const row=t=>{const x=meta(t.id);return `<button type="button" class="chat-thread ${t.id===active?'active':''} ${t.unread?'unread':''}" data-action="chat-thread" data-id="${e(t.id)}" ${t.id===active?'aria-current="true"':''}>${avatar(t.id)}<span class="chat-thread-text"><span class="chat-thread-top"><strong>${e(x.title)}</strong><small>${e(when(t.last?.at))}</small></span><span class="chat-thread-bottom"><small>${e(snippet(t.last,t.id))}</small>${t.unread?`<em aria-label="${t.unread} unread">${t.unread}</em>`:''}</span></span></button>`;};
-  const channels=list.filter(t=>t.channel),dms=list.filter(t=>!t.channel);
-  return `<p class="chat-list-label">Channels</p>${channels.map(row).join('')}<p class="chat-list-label">Direct messages</p>${dms.map(row).join('')||'<p class="chat-list-empty">Message anyone on the team privately.</p>'}<button type="button" class="chat-new-link" data-action="chat-new">+ New message</button>`;
+  const teamChannels=list.filter(t=>t.id==='team'||t.id.startsWith('station:'));
+  const roleChannels=list.filter(t=>t.id.startsWith('role:'));
+  const dms=list.filter(t=>t.id.startsWith('dm:'));
+  return `<p class="chat-list-label">Station &amp; Team Channels</p>${teamChannels.map(row).join('')}${roleChannels.length?`<p class="chat-list-label">Role Channels (Strictly Specific)</p>${roleChannels.map(row).join('')}`:''}<p class="chat-list-label">Direct messages</p>${dms.map(row).join('')||'<p class="chat-list-empty">Message anyone on the team privately.</p>'}<button type="button" class="chat-new-link" data-action="chat-new">+ New message</button>`;
  }
  function head(){
   const x=meta(active),people=B.chat.members(s(),active);
@@ -70,7 +73,7 @@ globalThis.createTeamChatUI=function(api){
  }
  function messageList(){
   const st=s(),list=B.chat.messages(st,active),channel=!active.startsWith('dm:'),x=meta(active);
-  const intro=`<div class="chat-intro">${avatar(active,'large')}<strong>${e(x.title)}</strong><p>${channel?'Everyone in this channel sees these messages. Share updates, photos and voice notes with '+e(x.to)+'.':'Only you and '+e(x.to)+' can see this conversation.'}</p></div>`;
+  const intro=`<div class="chat-intro">${avatar(active,'large')}<strong>${e(x.title)}</strong><p>${channel?(active.startsWith('role:')?'Role-specific peer channel: Only active teammates with the exact <strong>'+e(active.slice(5))+'</strong> role can see or send messages here.':'Everyone in this channel sees these messages. Share updates, photos and voice notes with '+e(x.to)+'.'):'Only you and '+e(x.to)+' can see this conversation.'}</p></div>`;
   const seenAt=channel?'':B.chat.seen(st,other(active),active),lastMine=[...list].reverse().find(m=>m.author===me()&&!m.deleted);
   let html=intro,prev=null;
   for(const m of list){
@@ -106,7 +109,7 @@ globalThis.createTeamChatUI=function(api){
   reading=true;setTimeout(()=>{reading=false;api.commit({type:'chat:read',thread:active},null);},0);
  }
  function paint(){
-  const st=s(),total=B.chat.threads(st).reduce((n,t)=>n+t.unread,0),badge=$('chat-badge');
+  const st=s(),total=B.chat.threads(st,undefined,true).reduce((n,t)=>n+t.unread,0),badge=$('chat-badge');
   badge.textContent=String(total);badge.hidden=!total;$('chat-btn').setAttribute('aria-label',total?`Open team chat, ${total} unread`:'Open team chat');
   hydrate($('view'));
   const dialog=$('chat-dialog');if(!dialog.open)return;

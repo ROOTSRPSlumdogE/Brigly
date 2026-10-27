@@ -6,22 +6,28 @@ globalThis.BriglyNavigation={
    ['navigate','lists','Checklists','lists','sage'],
    ['navigate','stock','Stock','stock','danger'],
    ['navigate','reservations','Reservations','reservations','slate'],
-   ['navigate','specials','Specials','specials','amber']
+   ['navigate','specials','Happenings','specials','amber']
   ]},
-  {label:manager?'Team & operations':'My schedule & pay',items:[
-   ['app-screen','shifts',manager?'Roster':'My schedule','schedules','slate'],
-   ['app-screen','requests',manager?'Inbox & approvals':'Requests','onboarding','orange'],
-   ['app-screen','earnings',manager?'Labor & pay':'Earnings','earnings','sage'],
-   ...(manager?[['app-screen','reports','Reports','reports','slate'],['app-screen','setup','Team & setup','team','slate']]:[])
+  // Managers plan on the Roster, get things done in Manage and see how the business is doing in Reports.
+  manager?{label:'Team & operations',items:[
+   ['app-screen','shifts','Roster','schedules','slate'],
+   ['app-screen','manage','Manage','team','slate'],
+   ['app-screen','training','Training','training','amber'],
+   ['app-screen','reports','Reports','reports','slate']
+  ]}:{label:'Me',items:[
+   // Crew get one hub: schedule, requests, earnings, training and their file live inside My space.
+   ['app-screen','me','My space','me','orange'],
+   ['app-screen','training','Training','training','amber']
   ]}
  ];},
  serviceItems(){return [
   ['navigate','lists','Checklists','lists','sage'],
   ['navigate','stock','Stock','stock','danger'],
-  ['navigate','specials','Specials','specials','amber'],
+  ['navigate','specials','Happenings','specials','amber'],
   ['navigate','reservations','Reservations','reservations','slate']
  ];},
- active(screen,id){return screen===id||(screen==='briefing'&&id==='home');},
+ hub:['me','shifts','earnings','requests','myfile'],
+ active(screen,id){return screen===id||(screen==='briefing'&&id==='home')||(id==='me'&&this.hub.includes(screen));},
  service(screen){return ['lists','stock','specials','reservations'].includes(screen);},
  primary(manager){return manager?[
   ['app-screen','home','Today','home','orange'],
@@ -32,7 +38,7 @@ globalThis.BriglyNavigation={
   ['app-screen','home','Today','home','orange'],
   ['navigate','lists','Checklists','lists','sage'],
   ['navigate','stock','Stock','stock','danger'],
-  ['app-screen','shifts','Schedule','schedules','slate']
+  ['app-screen','me','My space','me','orange']
  ];},
  badges(state){
   const B=globalThis.Brigly;if(!B||!state)return {};
@@ -55,7 +61,12 @@ globalThis.BriglyNavigation={
    stock:reported86?{text:String(reported86)+' new',tone:'danger'}:manager&&openOrders?{text:String(openOrders),tone:'amber'}:approved86?{text:String(approved86),tone:'danger'}:null,
    reservations:activeRes?{text:String(activeRes),tone:'slate'}:null,
    specials:activeSpecials?{text:String(activeSpecials),tone:'amber'}:null,
-   requests:openRequests?{text:String(openRequests),tone:'orange'}:null
+   myfile:(state.writeups||[]).some(w=>w.person===me&&w.status==='Issued')||(state.business?.reviews||[]).some(r=>r.person===me&&r.status==='Shared')?{text:'New',tone:'orange'}:null,
+   // Training: sign-offs waiting for an approver first, then overdue courses, then required courses still to do.
+   training:(()=>{const T=B.training;if(!T||!state.training)return null;const pend=T.pending(state,me).length;if(pend)return {text:String(pend),tone:'orange'};const rows=T.pathFor(state,me).map(c=>[c,T.progress(state,me,c.id)]);const over=rows.filter(([,p])=>p.overdue).length;if(over)return {text:String(over),tone:'danger'};const req=rows.filter(([c,p])=>c.required&&p.status!=='Completed').length;return req?{text:String(req),tone:'amber'}:null;})(),
+   [manager?'shifts':'requests']:openRequests?{text:String(openRequests),tone:'orange'}:null,
+   // The crew hub carries whatever needs them first: requests, then records to read, then training.
+   me:(()=>{if(manager)return null;if(openRequests)return {text:String(openRequests),tone:'orange'};const file=(state.writeups||[]).some(w=>w.person===me&&w.status==='Issued')||(state.business?.reviews||[]).some(r=>r.person===me&&r.status==='Shared');if(file)return {text:'New',tone:'orange'};const T=B.training;if(!T||!state.training)return null;const rows=T.pathFor(state,me).map(c=>T.progress(state,me,c.id)),over=rows.filter(p=>p.overdue).length;return over?{text:String(over),tone:'danger'}:null;})()
   };
  }
 };
@@ -81,10 +92,7 @@ globalThis.BriglyNotifications={
       time:`${state.service} · ${s.start}–${s.end}`,
       title:`${personName(s.person)} · ${m.absence?'Reported absent':'Reported '+m.late.minutes+' min late'}`,
       body:`${s.area} station for ${state.service} on ${state.date}. ${m.absence?'Reassign or cover this shift on the roster.':'Confirm arrival time when they check in.'}`,
-      actions:[
-       {label:'Review in Inbox',action:'notif-go',screen:'requests',style:'primary'},
-       {label:'Open roster',action:'notif-go',screen:'shifts',style:'secondary'}
-      ]
+      actions:[{label:'Review on roster',action:'notif-go',screen:'shifts',style:'primary'}]
      });
     }
    }
@@ -207,7 +215,7 @@ globalThis.BriglyNotifications={
     time:`Schedule · ${r.date||r.from||state.date}`,
     title:isSwapInvite?`${personName(r.person)} asked to swap a shift with you`:`${personName(r.person)} · ${r.kind==='timeoff'?'Time-off request':r.kind==='swap'?'Shift swap request':'Attendance report'}`,
     body:r.note||B.schedule.requestSummary(r),
-    actions:[{label:manager?'Review request':'Open requests',action:'notif-go',screen:'requests',style:'primary'}]
+    actions:[{label:manager?'Review on roster':'Open requests',action:'notif-go',screen:manager?'shifts':'requests',style:'primary'}]
    });
   }
 
@@ -227,6 +235,29 @@ globalThis.BriglyNotifications={
      {label:'Open conversation',action:'chat-open',id:m.thread,style:'secondary'}
     ]
    });
+  }
+
+  // 6b. Write-ups waiting for the team member to read and acknowledge.
+  for(const w of (state.writeups||[]).filter(w=>w.person===me&&w.status==='Issued')){
+   push({id:'wu-'+w.id,category:'urgent',tone:'orange',badge:(B.writeups?B.writeups.label(w):'Record')+' to read',time:new Date(w.issuedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})+' · from '+personName(w.issuedBy),title:w.title,body:'Your manager added this to your file. Read it and confirm you received it. You can add your side.',actions:[{label:'Read write-up',action:'wu-view',id:w.id,style:'primary'}]});
+  }
+  // 6b2. Reviews to read and recent kudos.
+  for(const r of (state.business?.reviews||[]).filter(r=>r.person===me&&r.status==='Shared'))push({id:'rev-'+r.id,category:'team',tone:'sage',badge:'Review ready',time:'Performance · from '+personName(r.author),title:'Your '+r.kind.toLowerCase(),body:'Your manager shared your review. Read it and add your thoughts.',actions:[{label:'Read review',action:'hr-review-view',id:r.id,style:'primary'}]});
+  for(const k of (state.business?.kudos||[]).filter(k=>k.person===me&&k.at>=new Date(Date.now()-7*864e5).toISOString()))push({id:'kudos-'+k.id,category:'team',tone:'sage',badge:'Kudos'+(k.value?' · '+k.value:''),time:'From '+personName(k.by),title:k.text,body:'Recognition from your team. It counts toward your next review.',actions:[{label:'View',action:'hr-kudos-view',id:k.id,style:'secondary'}]});
+  // 6b3. Training: practicals waiting for an approver, courses due or overdue, returned practicals and new courses on the path.
+  if(B.training&&state.training){
+   const T=B.training,t=B.dateString(new Date());
+   for(const x of T.pending(state,me)){const c=T.course(state,x.course);push({id:'tr-signoff-'+x.person+'-'+x.course+'-'+x.requestedAt,category:'team',tone:'orange',badge:'Sign-off requested',time:'Training · '+(c?.practical?.title||'practical'),title:personName(x.person)+' is ready for '+(c?.title||'a course'),body:x.note||'Check the practical with them on shift, then sign it off in Training.',actions:[{label:'Open sign-offs',action:'tr-go-tab',id:'signoffs',style:'primary'}]});}
+   for(const c of T.pathFor(state,me)){
+    const p=T.progress(state,me,c.id);if(p.status==='Completed')continue;
+    if(p.due&&(p.overdue||p.due<=B.addDays(t,3)))push({id:'tr-due-'+c.id+'-'+p.due,category:p.overdue?'urgent':'team',tone:p.overdue?'danger':'amber',badge:p.overdue?'Training overdue':'Training due soon',time:'Due '+p.due+' · '+c.minutes+' min',title:c.emoji+' '+c.title,body:p.pct?p.pct+'% done. Finish it to earn '+c.xp+' XP.':'Not started yet. '+c.description,actions:[{label:p.pct?'Continue':'Start',action:'tr-go',id:c.id,style:'primary'}]});
+    else if(p.status==='Returned')push({id:'tr-returned-'+c.id+'-'+(p.practical?.at||''),category:'team',tone:'amber',badge:'Practical returned',time:'From '+personName(p.practical?.by),title:c.emoji+' '+c.title,body:p.practical?.feedback||'Practise and request a sign-off again.',actions:[{label:'Open course',action:'tr-go',id:c.id,style:'primary'}]});
+    else if(c.updatedAt&&c.updatedAt.slice(0,10)>=B.addDays(t,-7)&&p.status==='Not started')push({id:'tr-new-'+c.id+'-'+c.updatedAt.slice(0,10),category:'team',tone:'sage',badge:'New course',time:c.minutes+' min · '+c.xp+' XP',title:c.emoji+' '+c.title,body:c.description,actions:[{label:'Start',action:'tr-go',id:c.id,style:'secondary'}]});
+   }
+  }
+  // 6c. Time entries nobody clocked out of.
+  if(manager&&B.payroll)for(const x of (state.timeclock?.entries||[]).filter(x=>!x.out&&B.payroll.flags(state,x).some(f=>f.kind==='noout'))){
+   push({id:'noout-'+x.id,category:'urgent',tone:'danger',badge:'Missing clock-out',time:'Time clock · '+x.date,title:personName(x.person)+' never clocked out',body:'Fix the clock-out so their hours and pay are right.',actions:[{label:'Fix time',action:'fin-edit',id:x.id,style:'primary'}]});
   }
 
   // 7. Supply requests awaiting manager review

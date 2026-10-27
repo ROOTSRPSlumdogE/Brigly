@@ -4,7 +4,7 @@
  const clone=x=>JSON.parse(JSON.stringify(x));
  const kinds=['text','image','voice','todo'];
  const dm=(a,b)=>'dm:'+[a,b].sort().join(':');
- const threadShape=t=>typeof t==='string'&&(t==='team'||/^station:.{1,80}$/.test(t)||/^dm:[^:]{1,100}:[^:]{1,100}$/.test(t));
+ const threadShape=t=>typeof t==='string'&&(t==='team'||/^station:.{1,80}$/.test(t)||/^role:.{1,80}$/.test(t)||/^dm:[^:]{1,100}:[^:]{1,100}$/.test(t));
  function upgrade(s){
   s=clone(s);s.chat??={};s.chat.messages??=[];s.chat.reads??={};
   // Private notes and to-dos from earlier versions become direct messages between sender and recipient.
@@ -23,6 +23,7 @@
   const active=s.team.filter(p=>p.active);
   if(thread==='team')return active.map(p=>p.id);
   if(thread.startsWith('station:')){const area=thread.slice(8);return s.setup.areas.includes(area)?active.filter(p=>p.access==='manager'||p.area===area).map(p=>p.id):[];}
+  if(thread.startsWith('role:')){const role=thread.slice(5);return active.filter(p=>p.role===role).map(p=>p.id);}
   if(thread.startsWith('dm:')){const ids=thread.slice(3).split(':');return ids.length===2&&ids[0]!==ids[1]&&ids.every(id=>s.team.some(p=>p.id===id))?ids:[];}
   return [];
  }
@@ -30,9 +31,16 @@
  const seen=(s,person,thread)=>s.chat?.reads?.[person]?.[thread]||'';
  const unread=(s,person,thread)=>messages(s,thread).filter(m=>m.author!==person&&!m.deleted&&m.at>seen(s,person,thread)).length;
  // Channels first (team, then stations), then direct conversations by most recent message.
- function threads(s,role=s.role){
+ function threads(s,role=s.role,includeRoles=false){
   const me=B.actor(role,s.crewId,s.managerId),ids=['team',...s.setup.areas.map(a=>'station:'+a)].filter(t=>members(s,t).includes(me));
-  for(const m of s.chat?.messages||[])if(m.thread.startsWith('dm:')&&!ids.includes(m.thread)&&m.thread.slice(3).split(':').includes(me)&&members(s,m.thread).length)ids.push(m.thread);
+  if(includeRoles){
+   const roles=[...new Set(s.team.map(p=>p.role))];
+   for(const r of roles){const t='role:'+r;if(members(s,t).includes(me)&&!ids.includes(t))ids.push(t);}
+  }
+  for(const m of s.chat?.messages||[]){
+   if(m.thread.startsWith('dm:')&&!ids.includes(m.thread)&&m.thread.slice(3).split(':').includes(me)&&members(s,m.thread).length)ids.push(m.thread);
+   if(includeRoles&&m.thread.startsWith('role:')&&!ids.includes(m.thread)&&members(s,m.thread).includes(me))ids.push(m.thread);
+  }
   return ids.map(id=>{const list=messages(s,id);return {id,channel:!id.startsWith('dm:'),last:list.at(-1)||null,unread:unread(s,me,id)};})
    .sort((a,b)=>Number(b.channel)-Number(a.channel)||(a.channel?0:(b.last?.at||'').localeCompare(a.last?.at||'')));
  }

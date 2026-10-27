@@ -1,0 +1,268 @@
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+// No setInterval in the context, so timed games never start a real timer in tests.
+const c=vm.createContext({crypto:globalThis.crypto,window:{scrollTo(){}},setTimeout:(fn)=>fn(),clearTimeout(){},clearInterval(){},performance});
+for(const file of ['workspace-state','schedule-state','shift-operations-state','demo-history','restaurant-history','planner-state','duties-state','checklist-history','team-chat-state','stock-state','manage-state','payroll-state','writeups-state','business-state','training-state','app-navigation','shift-operations-ui','schedule-ui','finance-ui','writeups-ui','hr-ui','training-ui','reports-ui','manage-ui','shift-home'])vm.runInContext(readFileSync(new URL('../assets/js/'+file+'.js',import.meta.url),'utf8'),c);
+const B=c.Brigly,T=B.training,P=B.permissions,N=c.BriglyNavigation;
+const today=B.payroll.stamp().slice(0,10);
+let s=B.starter(today);s.role='manager';B.configure(s);
+const as=(st,id)=>{const p=st.team.find(x=>x.id===id);return {...st,role:p.access,crewId:p.access==='crew'?id:st.crewId,managerId:p.access==='manager'?id:st.managerId};};
+const mgr=st=>({...st,role:'manager'});
+const e=x=>String(x??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const button=(label,action,id='',extra='',style='secondary')=>`<button type="button" class="button ${style}" data-action="${action}" data-id="${e(id)}" ${extra}>${e(label)}</button>`;
+const badge=(label,tone='')=>`<span class="badge ${tone}">${e(label)}</span>`;
+const input=(name,label,value='',type='text',attrs='')=>`<label>${label}<input name="${name}" type="${type}" value="${e(value)}" ${attrs}></label>`;
+const textarea=(name,label,value='')=>`<label>${label}<textarea name="${name}">${e(value)}</textarea></label>`;
+const select=(name,label,values,value)=>`<label>${label}<select name="${name}">${values.map(v=>{const [k,t]=Array.isArray(v)?v:[v,v];return `<option value="${e(k)}" ${k===value?'selected':''}>${e(t)}</option>`;}).join('')}</select></label>`;
+const dateLabel=(d,o={month:'short',day:'numeric'})=>new Date(d+'T12:00:00').toLocaleDateString('en-US',o);
+
+// Seed: a journey for every role, stages, prerequisites, progress across the team, a sign-off waiting, a return, deadlines, ratings, questions and duels.
+assert(T.published(s).length>=12,'the demo ships a library');
+for(const p of s.team.filter(p=>p.active))assert(T.pathFor(s,p.id).length>=2,p.name+' has a journey');
+assert(T.course(s,'c-allergen').prereq==='c-welcome'&&T.course(s,'c-service').objectives.length>=3&&T.course(s,'c-service').sequence.length>=4,'courses carry prerequisites, objectives and routines');
+assert.equal(T.progress(s,'priya','c-welcome').due,B.addDays(s.team.find(p=>p.id==='priya').joinedOn,14),'required courses are due 14 days after a new hire joins');
+assert(T.progress(s,'priya','c-allergen').locked,'the allergen course unlocks after Welcome');
+assert.equal(T.progress(s,'alex','c-welcome').due,'','people who joined before a course existed get no automatic deadline');
+assert.equal(T.pending(s).length,1,'one practical waits for a manager');
+const cook=s.team.find(p=>p.role==='Line cook'&&p.active);
+assert.equal(T.progress(s,cook.id,'c-mise').status,'Returned');assert(T.progress(s,cook.id,'c-temps').overdue,'the cook is overdue on temperature logs');
+assert(s.training.ratings.length>=3&&T.rating(s,s.training.ratings[0].course).count>=1,'courses have ratings');
+assert(T.course(s,'c-allergen').qa.some(q=>q.answer)&&T.course(s,'c-mise').qa.some(q=>!q.answer),'questions, some answered');
+assert.equal(T.course(s,'c-welcome').qa.length,0,'each course keeps its own question list');
+assert(s.training.duels.some(d=>d.status==='Done')&&s.training.duels.some(d=>d.status==='Open'),'a finished and an open duel');
+const board=T.leaderboard(s,'week');assert(board.every((r,i)=>!i||board[i-1].xp>=r.xp),'leaderboard sorted by weekly XP');
+assert.deepEqual([T.level(0).title,T.level(300).title,T.level(799).title,T.level(3000).title],['Trainee','Apprentice','Apprentice','Legend']);
+const boss=s.team.find(p=>p.active&&p.access==='manager');
+assert(T.earned(s,boss.id).find(b=>b.id==='mentor').earned,'the manager has signed off enough people to be a mentor');
+assert(T.earned(s,'priya').find(b=>b.id==='scholar').need===5&&T.earned(s,'priya').find(b=>b.id==='scholar').have===0,'badges carry progress');
+assert(T.certificates(s,boss.id).length>=4&&/^BR-[0-9A-Z]{7}$/.test(T.certificates(s,boss.id)[0].id),'certificates with stable ids');
+const ch=T.challenge(s,'alex');assert(ch.goal===300&&ch.teamGoal===2500&&ch.team>0);
+assert(B.biz.steps.some(x=>x[0]==='courses'),'onboarding gets a training step');
+assert.equal(B.biz.onboarding(s,'priya').steps.find(x=>x.key==='courses').done,false);
+console.log('PASS: seed library, journeys, deadlines, prerequisites, ratings, questions, duels, certificates and badges.');
+
+// A learner's path: lessons, a scenario, quiz attempts with misses recorded, a self-finishing course and the prerequisite unlocking.
+let me='priya';let st=as(s,me);
+const welcome=T.course(st,'c-welcome');
+assert.throws(()=>B.change(st,{type:'training:lesson-done',course:'c-allergen',lesson:T.course(st,'c-allergen').lessons[0].id}),/Finish Welcome/);
+const xp0=T.xp(st,me),unread=welcome.lessons.filter(l=>!st.training.progress[me]?.['c-welcome']?.lessons?.[l.id]);
+for(const l of welcome.lessons){const a={type:'training:lesson-done',course:'c-welcome',lesson:l.id};if(l.kind==='scenario'){assert.throws(()=>B.change(st,a),/Pick what you would do/);a.choice=l.choices.findIndex(x=>x.grade==='best');}st=B.change(st,a);}
+const expectXp=unread.reduce((n,l)=>n+T.XP.lesson+(l.kind==='scenario'?T.XP.scenarioBest:0),0);
+assert.equal(T.xp(st,me)-xp0,expectXp,'lesson XP plus the best scenario choice');
+st=B.change(st,{type:'training:lesson-done',course:'c-welcome',lesson:welcome.lessons[0].id});assert.equal(T.xp(st,me)-xp0,expectXp,'re-reading a lesson earns nothing twice');
+assert.throws(()=>B.change(st,{type:'training:quiz',course:'c-welcome',answers:[0]}),/Answer every question/);
+const wrong=welcome.quiz.questions.map(q=>(q.answer+1)%q.options.length);
+st=B.change(st,{type:'training:quiz',course:'c-welcome',answers:wrong});
+let pr=T.progress(st,me,'c-welcome');assert(!pr.quizPassed&&pr.quiz.attempts===1&&pr.quiz.best===0&&pr.quiz.history[0].wrong.length===welcome.quiz.questions.length,'a failed quiz records the attempt and the misses');
+st=B.change(st,{type:'training:quiz',course:'c-welcome',answers:welcome.quiz.questions.map(q=>q.answer)});
+pr=T.progress(st,me,'c-welcome');assert(pr.quizPassed&&pr.quiz.best===100&&pr.status==='Completed','a perfect quiz finishes a course without a practical');
+assert(st.training.xp[me].some(x=>x.reason.startsWith('Finished'))&&st.training.xp[me].some(x=>/perfect/.test(x.reason)),'course bonus and perfect bonus paid');
+assert(T.certificates(st,me).some(x=>x.course==='c-welcome'),'finishing issues a certificate');
+assert(!T.progress(st,me,'c-allergen').locked,'the next course unlocked');
+assert(T.earned(st,me).find(b=>b.id==='first').earned&&T.earned(st,me).find(b=>b.id==='ace').earned,'first course and quiz ace badges');
+// Rating and asking a question.
+assert.throws(()=>B.change(st,{type:'training:rate',course:'c-allergen',stars:5}),/Finish the course/);
+const rx=T.xp(st,me);st=B.change(st,{type:'training:rate',course:'c-welcome',stars:5,comment:'Great start.'});assert.equal(T.xp(st,me)-rx,T.XP.rating);assert.equal(T.rating(st,'c-welcome').list.find(r=>r.person===me).stars,5);
+st=B.change(st,{type:'training:rate',course:'c-welcome',stars:4});assert.equal(T.xp(st,me)-rx,T.XP.rating,'re-rating earns nothing twice');
+st=B.change(st,{type:'training:ask',course:'c-welcome',text:'Where is the briefing on Today?'});assert(T.course(st,'c-welcome').qa.at(-1).author===me);
+assert.throws(()=>B.change(st,{type:'training:answer',course:'c-welcome',id:T.course(st,'c-welcome').qa.at(-1).id,text:'Top of the page.'}),/Managers, training leads and trainers/);
+let ans=B.change(mgr(st),{type:'training:answer',course:'c-welcome',id:T.course(st,'c-welcome').qa.at(-1).id,text:'Top of the page.'});assert.equal(T.course(ans,'c-welcome').qa.at(-1).answer.text,'Top of the page.');
+console.log('PASS: lessons, scenarios, quiz attempts with misses, prerequisites, certificates, ratings and questions.');
+
+// Practical sign-offs: only after the lessons and quiz, only by an approver, never by yourself; returned practicals can be retried.
+const allergen=T.course(st,'c-allergen');
+assert.throws(()=>B.change(st,{type:'training:request-signoff',course:'c-allergen'}),/Finish every lesson/);
+for(const l of allergen.lessons)st=B.change(st,{type:'training:lesson-done',course:'c-allergen',lesson:l.id,choice:0});
+st=B.change(st,{type:'training:quiz',course:'c-allergen',answers:allergen.quiz.questions.map(q=>q.answer)});
+assert(T.progress(st,me,'c-allergen').readyForSignoff);
+st=B.change(st,{type:'training:request-signoff',course:'c-allergen',note:'Did it with Sam',checked:[0,1,2]});
+assert.equal(T.progress(st,me,'c-allergen').status,'Awaiting sign-off');
+assert.throws(()=>B.change(st,{type:'training:request-signoff',course:'c-allergen'}),/already waiting/);
+assert.throws(()=>B.change(st,{type:'training:signoff',course:'c-allergen',person:me,decision:'Approved'}),/Someone else/);
+assert(!T.canApprove(st,allergen,'alex'),'a server is not an approver for allergens');
+assert.throws(()=>B.change(as(st,'alex'),{type:'training:signoff',course:'c-allergen',person:me,decision:'Approved'}),/not an approver/);
+const chef=s.team.find(p=>p.role==='Head chef'&&p.active);assert(T.canApprove(st,allergen,chef.id),'the head chef role can sign off allergens');
+assert.throws(()=>B.change(as(st,chef.id),{type:'training:signoff',course:'c-allergen',person:me,decision:'Returned',feedback:''}),/what to practise/);
+let returned=B.change(as(st,chef.id),{type:'training:signoff',course:'c-allergen',person:me,decision:'Returned',feedback:'Forgot the red flag.'});
+assert.equal(T.progress(returned,me,'c-allergen').status,'Returned');
+returned=B.change(as(returned,me),{type:'training:request-signoff',course:'c-allergen'});assert.equal(T.progress(returned,me,'c-allergen').practical.tries,2,'a returned practical can be requested again');
+const before=T.xp(st,me);
+st=B.change(as(st,chef.id),{type:'training:signoff',course:'c-allergen',person:me,decision:'Approved',feedback:'Nice.'});st=as(st,me);
+pr=T.progress(st,me,'c-allergen');assert.equal(pr.status,'Completed');assert.equal(pr.practical.by,chef.id);
+assert.equal(T.xp(st,me)-before,T.XP.practical+allergen.xp,'practical XP and the course bonus');
+assert.equal(st.business.skills.levels[me]['Allergen trained'],2,'finishing the course marks the skill as Trained');
+assert.equal(T.certificates(st,me).find(x=>x.course==='c-allergen').by,chef.id,'the certificate names who signed it off');
+assert(T.earned(st,me).find(b=>b.id==='allergen').earned);
+assert(T.streak(st,me).count>=1&&T.streak(st,me).today&&T.streak(st,me).week.length===7,'learning today starts a streak');
+assert.equal(B.biz.onboarding(mgr(st),'priya').steps.find(x=>x.key==='courses').done,false,'the onboarding step waits for every required course (Steps of service and alcohol service are still open)');
+assert(T.pathFor(st,'priya').filter(c=>c.required).map(c=>c.id).includes('c-service'));
+const service=T.course(st,'c-service');assert(service.practical.approvers.trainers);
+let tr=mgr(B.change(mgr(st),{type:'skill:set',person:'alex',skill:'Server',level:3}));assert(T.canApprove(tr,service,'alex'),'a Server trainer can sign off Steps of service');assert(T.canAnswer(tr,service,'alex'));
+console.log('PASS: sign-off requests, approver rules, returns, approvals, XP, certificates, onboarding and the skills matrix.');
+
+// Permissions, settings and the course builder.
+s=mgr(st);
+assert.throws(()=>B.change(as(s,'alex'),{type:'training:course-save',course:{id:'c-x',title:'X',audience:['Everyone']}}),/Only managers or training leads/);
+assert(P.keys.includes('training')&&!P.base('training'),'Run training is a lead permission');
+let led=B.change(s,{type:'manage:permissions',person:'alex',perms:{training:true}});
+assert.doesNotThrow(()=>B.change(as(led,'alex'),{type:'training:course-save',course:{id:'c-lead',title:'Lead course',emoji:'📚',audience:['Everyone'],required:false,minutes:5,xp:50,status:'Draft',lessons:[],stage:'core'}}),'a training lead can build courses');
+assert.throws(()=>B.change(s,{type:'training:settings',requiredWithinDays:0}),/training settings/);
+s=B.change(s,{type:'training:settings',requiredWithinDays:21,weeklyGoal:400,teamGoal:3000,leaderboard:'managers'});
+assert.equal(T.settings(s).requiredWithinDays,21);assert.equal(T.progress(s,'priya','c-service').due,B.addDays(s.team.find(p=>p.id==='priya').joinedOn,21),'the policy moves the new hire’s deadline');
+assert.equal(T.challenge(s,'alex').goal,400);
+s=B.change(s,{type:'training:settings',requiredWithinDays:14,weeklyGoal:300,teamGoal:2500,leaderboard:'everyone'});
+assert.throws(()=>B.change(s,{type:'training:course-save',course:{id:'c-bad',title:'',emoji:'📚',audience:['Everyone'],required:false,minutes:5,xp:50,status:'Draft',stage:'core'}}),/title/);
+assert.throws(()=>B.change(s,{type:'training:course-save',course:{id:'c-bad',title:'Bad',emoji:'📚',audience:['Nobody'],required:false,minutes:5,xp:50,status:'Draft',stage:'core'}}),/who the course is for/);
+assert.throws(()=>B.change(s,{type:'training:course-save',course:{id:'c-bad',title:'Bad',emoji:'📚',audience:['Everyone'],required:false,minutes:5,xp:50,status:'Draft',stage:'core',prereq:'c-bad'}}),/prerequisite/);
+s=B.change(s,{type:'training:course-save',course:{id:'c-new',title:'Coffee program',emoji:'☕',description:'Espresso, milk and the morning rush.',audience:['Bar'],required:true,minutes:10,xp:100,status:'Draft',skill:'',stage:'advanced',cover:'brigly-bar-preparation',prereq:'c-cocktails',objectives:['Dial in a shot','Steam silky milk']}});
+assert.throws(()=>B.change(s,{type:'training:course-status',id:'c-new',status:'Published'}),/at least one lesson/);
+s=B.change(s,{type:'training:lesson-save',course:'c-new',lesson:{id:'l-n1',kind:'text',title:'Dial in',body:'18 g in, 36 g out, 27 seconds.',takeaways:['18 in, 36 out']}});
+assert.throws(()=>B.change(s,{type:'training:lesson-save',course:'c-new',lesson:{id:'l-n2',kind:'video',title:'Watch',body:'',url:'http://nope'}}),/https/);
+s=B.change(s,{type:'training:lesson-save',course:'c-new',lesson:{id:'l-n2',kind:'image',title:'The bar',body:'',image:'brigly-bar-preparation',caption:'Morning setup'}});
+s=B.change(s,{type:'training:lesson-save',course:'c-new',lesson:{id:'l-n3',kind:'scenario',title:'Queue',body:'',situation:'Six people waiting.',choices:[{text:'Call for help',outcome:'Good',grade:'best'},{text:'Panic',outcome:'Bad',grade:'bad'}]}});
+s=B.change(s,{type:'training:lesson-move',course:'c-new',id:'l-n3',dir:-1});assert.equal(T.course(s,'c-new').lessons.map(l=>l.id).join(),'l-n1,l-n3,l-n2');
+s=B.change(s,{type:'training:lesson-remove',course:'c-new',id:'l-n2'});assert.equal(T.course(s,'c-new').lessons.length,2);
+assert.throws(()=>B.change(s,{type:'training:question-save',course:'c-new',question:{id:'q-n1',text:'Dose?',options:['18 g'],answer:0}}),/2 to 6 answers/);
+s=B.change(s,{type:'training:question-save',course:'c-new',question:{id:'q-n1',text:'Dose?',options:['18 g','30 g'],answer:0,explain:''},passMark:50});
+assert.equal(T.course(s,'c-new').quiz.passMark,50);
+s=B.change(s,{type:'training:practical-save',course:'c-new',practical:{title:'Pull a shot',steps:['Dial in','Steam milk'],note:'',approvers:{trainers:false,roles:['Bartender'],people:[]}}});
+assert(T.canApprove(s,T.course(s,'c-new'),s.team.find(p=>p.role==='Bartender').id)&&!T.canApprove(s,T.course(s,'c-new'),'alex'));
+s=B.change(s,{type:'training:cards-save',course:'c-new',cards:[['Dose','Coffee in the basket'],['Yield','Espresso in the cup']]});
+assert.throws(()=>B.change(s,{type:'training:sequence-save',course:'c-new',steps:['One','Two']}),/at least four/);
+s=B.change(s,{type:'training:sequence-save',course:'c-new',steps:['Grind','Dose','Tamp','Pull']});
+s=B.change(s,{type:'training:course-status',id:'c-new',status:'Published'});
+const noah=s.team.find(p=>p.role==='Bartender');assert(T.pathFor(s,noah.id).some(c=>c.id==='c-new')&&!T.pathFor(s,'alex').some(c=>c.id==='c-new'),'published courses land on the right journey');
+assert.throws(()=>B.change(s,{type:'training:assign',course:'c-new',people:[],due:''}),/at least one/);
+s=B.change(s,{type:'training:assign',course:'c-new',people:['alex'],due:B.addDays(today,5),note:'Before Friday'});
+assert(T.pathFor(s,'alex').some(c=>c.id==='c-new')&&T.progress(s,'alex','c-new').due===B.addDays(today,5),'assigning adds a course to someone outside the audience');
+s=B.change(s,{type:'training:unassign',course:'c-new',person:'alex'});assert(!T.pathFor(s,'alex').some(c=>c.id==='c-new'));
+s=B.change(s,{type:'training:course-duplicate',id:'c-new',newId:'c-copy'});assert(T.course(s,'c-copy').status==='Draft'&&T.course(s,'c-copy').lessons.length===2&&T.course(s,'c-copy').lessons[0].id!=='l-n1','duplicates get fresh ids');
+s=B.change(s,{type:'training:course-remove',id:'c-copy'});assert(!T.course(s,'c-copy'));
+const chatBefore=s.chat.messages.length;
+s=B.change(s,{type:'training:nudge',person:cook.id,course:'c-temps'});assert.equal(s.chat.messages.length,chatBefore+1);assert(s.chat.messages.at(-1).thread.startsWith('dm:')&&/Temperature logs/.test(s.chat.messages.at(-1).body),'a nudge is a direct message');
+assert.throws(()=>B.change(as(s,'mia'),{type:'training:nudge',person:cook.id,course:'c-temps'}),/Only managers/);
+s=B.change(s,{type:'training:reset',course:'c-welcome',person:'priya'});assert.equal(T.progress(s,'priya','c-welcome').status,'Not started');
+console.log('PASS: Run training permission, settings, course builder with objectives, prerequisites, routine, duplicate, assign, nudge and reorder.');
+
+// Games, duels, the question of the day and streaks.
+st=as(s,noah.id);const g0=T.xp(st,noah.id);
+st=B.change(st,{type:'training:game',game:'speed',correct:10,total:12,bestCombo:4});assert.equal(T.xp(st,noah.id)-g0,10*T.XP.gameCorrect+4*T.XP.gameCombo);
+st=B.change(st,{type:'training:game',game:'pairs',correct:6,total:6,misses:1});assert.equal(st.training.games[noah.id].at(-1).score,55);
+st=B.change(st,{type:'training:game',game:'order',correct:6,total:6});assert.equal(st.training.games[noah.id].at(-1).score,68,'a perfect routine pays a bonus');
+st=B.change(st,{type:'training:game',game:'lightning',correct:8,total:10,bestCombo:3});assert.equal(st.training.games[noah.id].at(-1).score,46);
+assert.throws(()=>B.change(st,{type:'training:game',game:'speed',correct:99,total:99}),/does not look right/);
+assert.throws(()=>B.change(st,{type:'training:game',game:'daily'}),/Unknown game/);
+const q=T.dailyQuestion(st,noah.id);assert(q&&!q.answered,'the bartender has a question today');
+const d0=T.xp(st,noah.id);st=B.change(st,{type:'training:daily',answer:q.answer});assert.equal(T.xp(st,noah.id)-d0,T.XP.daily);
+assert.throws(()=>B.change(st,{type:'training:daily',answer:q.answer}),/already answered/);
+// Duels: five shared questions, both play, the winner earns more.
+const mia=s.team.find(p=>p.id==='mia');assert(mia);
+st=B.change(st,{type:'training:duel-send',to:'mia',id:'duel-t'});const dd=st.training.duels.find(x=>x.id==='duel-t');assert(dd&&dd.questions.length===5&&dd.status==='Open');
+assert.throws(()=>B.change(st,{type:'training:duel-send',to:'mia'}),/already have an open duel/);
+assert.throws(()=>B.change(st,{type:'training:duel-play',id:'duel-t',answers:[0]}),/Answer every question/);
+const right=dd.questions.map(x=>T.course(st,x.course).quiz.questions.find(y=>y.id===x.id).answer);
+st=B.change(st,{type:'training:duel-play',id:'duel-t',answers:right,seconds:30});assert.equal(st.training.duels.find(x=>x.id==='duel-t').scores[noah.id].correct,5);
+assert.throws(()=>B.change(st,{type:'training:duel-play',id:'duel-t',answers:right}),/already played/);
+const mx=T.xp(st,'mia');st=B.change(as(st,'mia'),{type:'training:duel-play',id:'duel-t',answers:right.map(x=>x+1),seconds:40});
+const done=st.training.duels.find(x=>x.id==='duel-t');assert.equal(done.status,'Done');assert.equal(done.winner,noah.id);assert.equal(T.xp(st,'mia')-mx,T.XP.duelLose);
+assert(T.ledger(st,noah.id).at(-1).amount===T.XP.duelWin,'the winner gets the win XP');
+st=as(st,noah.id);
+st=B.change(st,{type:'training:duel-send',to:'mia',id:'duel-u'});st=B.change(as(st,'mia'),{type:'training:duel-decline',id:'duel-u'});assert.equal(st.training.duels.find(x=>x.id==='duel-u').status,'Declined');
+console.log('PASS: four games, duels, question of the day and streaks.');
+
+// Report numbers, navigation, badges and notifications.
+s=mgr(st);
+const R=T.report(s,B.addDays(today,-27),today);assert(R.completions>=1&&R.xp>0&&R.attempts>=2&&R.perCourse.length>=8&&R.people.length===s.team.filter(p=>p.active).length&&R.missed.length>=1,'the report has completions, attempts, courses, people and missed questions');
+assert(R.compliance>=0&&R.compliance<=100&&R.approved>=1);
+const ws=T.weekSeries(s,[{from:B.addDays(today,-13),to:B.addDays(today,-7)},{from:B.addDays(today,-6),to:today}]);assert(ws.length===2&&ws[1].xp>0);
+assert(N.groups(true).some(g=>g.items.some(x=>x[1]==='training'))&&N.groups(false).some(g=>g.items.some(x=>x[1]==='training')),'Training is its own tab for both roles');
+assert.equal(N.badges(s).training?.text,'1','managers see sign-offs waiting on the Training pill');
+const cookState=as(s,cook.id);assert.equal(N.badges(cookState).training?.tone,'danger','overdue courses show on the crew pill');
+const notes=c.BriglyNotifications.build(s);assert(notes.some(n=>n.id.startsWith('tr-signoff-')&&n.actions[0].action==='tr-go-tab'),'managers are told about sign-off requests');
+const cookNotes=c.BriglyNotifications.build(cookState);assert(cookNotes.some(n=>n.id.startsWith('tr-due-')&&n.category==='urgent')&&cookNotes.some(n=>n.id.startsWith('tr-returned-')),'the cook hears about the overdue course and the returned practical');
+console.log('PASS: report numbers, week series, navigation entries, pills and notifications.');
+
+// The UI: every tab for managers and crew, the course page, the player, the quiz flow, games, duels, the builder and the forms. Names are escaped everywhere.
+let opened=[],formed=[];
+const api={state:()=>s,e,button,badge,dateLabel,render(){},notify(){},open:(t,h)=>opened.push([t,h]),form:(t,h,l)=>formed.push([t,h,l]),close(){},go(){},commit:a=>{s=B.change(s,a);return true;}};
+const ui=c.createTrainingUI(api);
+s.team.find(x=>x.id==='alex').name='<b>Alex</b>';
+for(const tab of ['overview','home','courses','team','arena','signoffs','settings']){ui.show(tab);const html=ui.render();assert(html.includes(`data-id="${tab}" aria-pressed="true"`),'manager tab '+tab);assert(!html.includes('<b>Alex</b>'),tab+' escapes names');}
+ui.show('overview');let html=ui.render();assert(html.includes('REQUIRED TRAINING')&&html.includes('QUIZ SCORE')&&html.includes('Needs attention')&&html.includes('Team challenge')&&html.includes('data-id="training"'),'overview with six KPIs, attention, challenge and the report link');
+ui.show('team');html=ui.render();assert(html.includes('tr-chip')&&html.includes('data-action="tr-team-filter"')&&html.includes('data-tr-sort')&&html.includes('data-action="tr-export"'));
+ui.handle('team-filter','behind',{});assert(ui.render().includes(e(s.team.find(p=>p.id===cook.id).name)));ui.handle('team-filter','all',{});
+ui.handle('person',cook.id,{});assert(opened.at(-1)[0]==='Training transcript'&&opened.at(-1)[1].includes('Quiz average')&&opened.at(-1)[1].includes('Returned'),'the transcript shows every course');
+ui.handle('person-course','priya',{course:'c-allergen'});assert(opened.at(-1)[1].includes('Completed')&&opened.at(-1)[1].includes('data-action="tr-cert"'));
+ui.handle('cert','c-allergen',{person:'priya'});assert(opened.at(-1)[1].includes('tr-cert')&&opened.at(-1)[1].includes('BR-')&&opened.at(-1)[1].includes('Priya'),'a certificate renders');
+ui.show('settings');html=ui.render();assert(html.includes('Deadlines')&&html.includes('XP rules'));ui.handle('settings-edit','',{});assert(formed.at(-1)[1].includes('name="teamGoal"'));let action=ui.submit({requiredWithinDays:'10',weeklyGoal:'350',teamGoal:'2000',leaderboard:'everyone'},{getAll:()=>[]});s=B.change(s,action);assert.equal(T.settings(s).requiredWithinDays,10);
+ui.show('courses');html=ui.render();assert(html.includes('Coffee program')&&html.includes('data-action="tr-course-duplicate"')&&html.includes('open Q'),'the course list flags open questions');
+ui.handle('edit','c-new',{});html=ui.render();assert(html.includes('Lessons · 2')&&html.includes('Pull a shot')&&html.includes('Flash cards · 2')&&html.includes('Routine · 4')&&html.includes('Dial in a shot'),'the builder shows every part');
+ui.handle('course-meta','c-new',{});assert(formed.at(-1)[1].includes('name="audience"')&&formed.at(-1)[1].includes('name="prereq"')&&formed.at(-1)[1].includes('name="objectives"'));
+action=ui.submit({title:'Coffee program',emoji:'☕',description:'x',objectives:'Dial in\nSteam',stage:'advanced',cover:'',prereq:'',required:'true',skill:'',minutes:'12',xp:'120',status:'Published'},{getAll:k=>k==='audience'?['Bar','Host']:[]});
+assert.equal(action.type,'training:course-save');s=B.change(s,action);assert.equal(T.course(s,'c-new').audience.join(),'Bar,Host');assert.equal(T.course(s,'c-new').objectives.length,2);
+ui.handle('lesson-new','c-new',{});assert(formed.at(-1)[1].includes('data-tr-kind')&&formed.at(-1)[1].includes('name="takeaways"'));
+action=ui.submit({kind:'scenario',title:'Rush',situation:'Ten tickets.',choice0:'Breathe',outcome0:'Good',grade0:'best',choice1:'Run',outcome1:'Bad',grade1:'bad',choice2:'',outcome2:'',grade2:'ok',takeaways:'Breathe first'},{getAll:()=>[]});
+assert.equal(action.lesson.choices.length,2);s=B.change(s,action);assert.equal(T.course(s,'c-new').lessons.length,3);
+ui.handle('question-new','c-new',{});action=ui.submit({text:'Yield?',option0:'36 g',option1:'18 g',option2:'',option3:'',answer:'0',explain:'',passMark:'60'},{getAll:()=>[]});s=B.change(s,action);assert.equal(T.course(s,'c-new').quiz.questions.length,2);
+ui.handle('practical-edit','c-new',{});action=ui.submit({title:'Pull a shot',steps:'Dial in\nSteam\n',note:'',trainers:'on'},{getAll:k=>k==='roles'?['Bartender']:[]});s=B.change(s,action);assert.equal(T.course(s,'c-new').practical.steps.length,2);
+ui.handle('sequence-edit','c-new',{});action=ui.submit({steps:'Grind\nDose\nTamp\nPull\nServe'},{getAll:()=>[]});s=B.change(s,action);assert.equal(T.course(s,'c-new').sequence.length,5);
+ui.handle('assign','c-new',{person:'alex'});assert(formed.at(-1)[1].includes('value="alex" checked'));action=ui.submit({course:'c-new',due:B.addDays(today,3),note:''},{getAll:k=>k==='people'?['alex','mia']:[]});s=B.change(s,action);assert.equal(s.training.assignments.filter(a=>a.course==='c-new').length,2);
+ui.handle('answer',T.course(s,'c-mise').qa.find(x=>!x.answer).id,{course:'c-mise'});action=ui.submit({text:'Next to the dish pit.'},{getAll:()=>[]});s=B.change(s,action);assert(T.course(s,'c-mise').qa.every(x=>x.answer));
+ui.handle('nudge',cook.id,{course:'c-temps'});assert(formed.at(-1)[2]==='Send');action=ui.submit({message:'Please finish it today.'},{getAll:()=>[]});assert.equal(action.type,'training:nudge');
+ui.handle('signoff','c-allergen',{person:T.pending(s)[0].person,decision:'Returned'});assert(formed.at(-1)[2]==='Return'&&formed.at(-1)[1].includes('required'));
+ui.handle('course-stats','c-service',{});assert(opened.at(-1)[1].includes('On the path')&&opened.at(-1)[1].includes('Everyone on this course'));
+// Reports board and the HR file section.
+const common={state:()=>s,e,button,badge,dateLabel,render(){},notify(){},open(){},form(){},close(){},go(){},commit:a=>{s=B.change(s,a);return true;}};
+const fin=c.createFinanceUI(common),rp=c.createReportsUI({...common,finance:fin,training:()=>ui,person(){}});
+rp.show('training');html=rp.render();assert(html.includes('COURSES FINISHED')&&html.includes('Most missed questions')&&html.includes('data-action="tr-person"')&&html.includes('rp-kpi'),'the Training report board renders');
+assert(ui.csvRows(B.addDays(today,-27),today).length>5);
+const wu=c.createWriteupsUI(common),hr=c.createHRUI({...common,writeups:wu,training:()=>ui});
+html=hr.file('priya');assert(html.includes('Training')&&html.includes('tr-cert-mini'),'the HR file shows training and certificates');
+html=hr.myFile.call(null);assert(typeof html==='string');
+// Crew: the journey, the course page, the player, the quiz and the arena.
+s=as(s,noah.id);ui.show('home');html=ui.render();
+assert(html.includes('tr-hero')&&html.includes('Question of the day')&&html.includes('Bartender journey')&&html.includes('tr-node')&&html.includes('tr-week')&&html.includes('Team challenge'),'the crew home shows the hero, daily question, journey map and challenges');
+assert(!ui.render().includes('data-id="courses"'),'crew do not see the builder');
+{const open=s.training.duels.find(d=>d.status==='Open'&&!d.scores[d.to]);const sAs=as(s,open.to);const ui2=c.createTrainingUI({...api,state:()=>sAs});ui2.show('home');assert(ui2.render().includes('tr-duel')&&ui2.render().includes('challenged you'),'a duel waiting for you shows on the home');}
+ui.show('library');html=ui.render();assert(html.includes('data-tr-search')&&html.includes('Coffee program'));ui.handle('lib','Kitchen',{});assert(ui.render().includes('Station setup'));ui.handle('lib','onboarding',{});assert(ui.render().includes('Welcome to The Copper Room'));
+ui.handle('open','c-new',{});html=ui.render();assert(html.includes('tr-detail-hero')&&html.includes('What you’ll learn')&&html.includes('Syllabus')&&html.includes('Reviews')&&html.includes('Questions')&&html.includes('data-action="tr-play"'),'the course page has objectives, syllabus, reviews and questions');
+{const sP=as(s,'priya');const uiP=c.createTrainingUI({...api,state:()=>sP});uiP.show('home');uiP.handle('open','c-wine',{});const h=uiP.render();assert(h.includes('🔒')&&h.includes('Steps of service'),'Wine is locked for Priya until Steps of service is done');}
+s=as(s,'alex');s.team.find(x=>x.id==='alex').name='Alex Morgan';ui.show('home');ui.handle('open','c-new',{});html=ui.render();assert(html.includes('Due '),'the assigned due date shows on the course page');
+ui.handle('play','',{});html=ui.render();assert(html.includes('tr-player')&&html.includes('tr-outline')&&html.includes('Dial in')&&html.includes('Key takeaways')&&html.includes('data-action="tr-lesson-done"'),'the player opens with the outline and takeaways');
+ui.handle('lesson-done','l-n1',{});assert.equal(T.progress(s,'alex','c-new').lessonsDone,1);
+html=ui.render();assert(html.includes('tr-scenario'),'the next step is the scenario');
+ui.handle('choose','0',{lesson:'l-n3'});html=ui.render();assert(html.includes('tr-outcome')&&html.includes('Best call'));
+ui.handle('lesson-done','l-n3',{choice:'0'});assert.equal(T.progress(s,'alex','c-new').lessonsDone,2);
+const rush=T.course(s,'c-new').lessons[2];ui.handle('choose','0',{lesson:rush.id});ui.handle('lesson-done',rush.id,{choice:'0'});assert.equal(T.progress(s,'alex','c-new').lessonsDone,3);
+ui.handle('step','3',{});html=ui.render();assert(html.includes('tr-quiz-intro'),'the quiz step comes after the lessons');
+ui.handle('quiz-start','',{});ui.handle('quiz-pick','1',{});html=ui.render();assert(html.includes('Not quite'));ui.handle('quiz-next','',{});ui.handle('quiz-pick','0',{});ui.handle('quiz-next','',{});
+html=ui.render();assert(html.includes('tr-quiz-result')&&html.includes('50%')&&html.includes('tr-review-list'),'the result screen reviews the misses');assert(!T.progress(s,'alex','c-new').quizPassed);
+ui.handle('quiz-start','',{});ui.handle('quiz-pick','0',{});ui.handle('quiz-next','',{});ui.handle('quiz-pick','0',{});ui.handle('quiz-next','',{});assert(T.progress(s,'alex','c-new').quizPassed);
+ui.handle('step','4',{});html=ui.render();assert(html.includes('tr-practical')&&html.includes('data-action="tr-signoff-request"'),'the practical can be requested');
+ui.handle('signoff-request','c-new',{});action=ui.submit({note:'Ready'},{getAll:k=>k==='checked'?['0','1']:[]});s=B.change(s,action);assert.equal(T.progress(s,'alex','c-new').status,'Awaiting sign-off');
+ui.handle('back','',{});html=ui.render();assert(html.includes('tr-detail-hero'),'back from the player lands on the course page');
+ui.handle('ask','c-new',{});action=ui.submit({text:'Which grinder?'},{getAll:()=>[]});s=B.change(s,action);assert(ui.render().includes('Which grinder?'));
+ui.handle('back','',{});ui.show('arena');html=ui.render();assert(html.includes('Speed round')&&html.includes('In order')&&html.includes('True or false')&&html.includes('Leaderboard')&&html.includes('tr-podium')&&html.includes('data-tr-duel')&&html.includes('tr-badge-bar'),'the arena has four games, duels, a podium and badge progress');
+ui.handle('game-start','speed',{});html=ui.render();assert(html.includes('tr-game-timer')&&html.includes('data-action="tr-game-answer"'));ui.handle('game-answer','0',{});ui.handle('game-quit','',{});assert(!ui.render().includes('tr-game-timer'));
+ui.handle('game-start','lightning',{});html=ui.render();assert(html.includes('tr-tf'));ui.handle('game-answer','true',{});ui.handle('game-quit','',{});
+ui.handle('game-start','order',{});html=ui.render();assert(html.includes('tr-order-pool'));const g=ui.render();ui.handle('game-answer','0',{});ui.handle('game-quit','',{});
+ui.handle('game-start','pairs',{});html=ui.render();assert((html.match(/tr-tile/g)||[]).length>=12,'twelve tiles');ui.handle('game-flip','0',{});ui.handle('game-quit','',{});
+ui.handle('duel-send','',{to:'mia'});assert(s.training.duels.some(d=>d.from==='alex'&&d.to==='mia'&&d.status==='Open'),'a duel can be sent from the arena');
+const myDuel=s.training.duels.find(d=>d.from==='alex'&&d.to==='mia'&&d.status==='Open');ui.handle('duel-play',myDuel.id,{});html=ui.render();assert(html.includes('data-action="tr-duel-pick"'));
+for(let i=0;i<5;i++){ui.handle('duel-pick','0',{});ui.handle('duel-next','',{});}assert(s.training.duels.find(d=>d.id===myDuel.id).scores.alex,'the duel score is locked in');assert(ui.render().includes('Waiting for Mia'));ui.handle('duel-quit','',{});
+ui.handle('period','all',{});assert(ui.render().includes('data-id="all" aria-pressed="true"'));
+html=ui.card();assert(html.includes('Training')&&html.includes('tr-today-next'),'the Today card shows the next course');{const uiC=c.createTrainingUI({...api,state:()=>as(s,cook.id)});assert(uiC.card().includes('tr-today-due')&&uiC.card().includes('Overdue'),'a course due by the shift is flagged on Today');}
+s=mgr(s);html=ui.manageSummary();assert(html.includes('Training center')&&html.includes('data-id="training"'));
+assert(ui.attention().some(x=>/sign-off/.test(x.title)));
+// Manage, the schedule router and Today hand off to Training.
+const ops=c.createShiftOperationsUI({...common,input,textarea,select,view(){},reportScreen(){},createInContext(){},navigate(){}});
+const mg=c.createManageUI({...common,finance:fin,writeups:wu,hr,training:ui,reports:()=>'',setup:()=>ops.section('setup'),openReport(){}});
+mg.show('skills');html=mg.render();assert(html.includes('Training center')&&html.includes('Training matrix'),'Manage keeps the matrix and opens the center');
+mg.show('todo');assert(mg.render().includes('waiting for sign-off'));
+mg.handle('profile','priya',{});
+const sched=c.createScheduleUI({...common,input,textarea,select,week:()=>B.monday(s.date),home:()=>'',training:()=>'<training>',roster:()=>'',extras:()=>'',section:()=>'',context:()=>'',manage:()=>'',reportsPage:()=>'',reportBoard(){},manageTab(){},pay:()=>'',myfile:()=>''});
+sched.show('training');assert.equal(sched.screen(),'training');assert.equal(sched.render(),'<training>','the Training screen renders on its own');
+const home=c.createShiftHome({...common,training:()=>'<tr-card>',clock:()=>'',payroll:()=>[],chatPreview:()=>'',openContext(){},showHome(){},focus(){}});
+assert(home.render().includes('<tr-card>'),'Today shows the training card');
+console.log('PASS: every Training screen for managers and crew, course pages, the player, quiz review, games, duels, builder forms, the report board, HR files, Today and Manage.');

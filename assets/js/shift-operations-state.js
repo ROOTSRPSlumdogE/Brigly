@@ -61,6 +61,29 @@
       if(old)Object.assign(old,item);else s.shiftNotes.push(item);
     }else if(action.type==='ops:archive-note'){
       const item=lookup(s.shiftNotes,action.id);if(!manager&&item.author!==me)throw Error('You can only archive your own note.');item.archived=true;
+    }else if(action.type==='ops:special-question'){
+      const item=lookup(s.specials,action.id);
+      if(!txt(action.text,500)||!action.text.trim())throw Error('Write a question of up to 500 characters.');
+      item.questions=item.questions||[];
+      item.questions.push({id:'q-'+crypto.randomUUID().slice(0,8),author:me,text:action.text.trim(),at:new Date().toISOString()});
+    }else if(action.type==='ops:special-answer'){
+      const item=lookup(s.specials,action.id);
+      const q=(item.questions||[]).find(x=>x.id===action.questionId);
+      if(!q)throw Error('This question no longer exists.');
+      if(!txt(action.text,500)||!action.text.trim())throw Error('Write an answer of up to 500 characters.');
+      q.answer={author:me,text:action.text.trim(),at:new Date().toISOString()};
+    }else if(action.type==='ops:approve-briefing'){
+      needManager();
+      const item=lookup(s.briefings,action.id);
+      const status=action.status||'Approved';
+      item.approvalStatus=status;
+      if(status==='Pending'){
+        delete item.approvedBy;
+        delete item.approvedAt;
+      }else{
+        item.approvedBy=me;
+        item.approvedAt=new Date().toISOString();
+      }
     }else if(action.type==='ops:alert'){
       writable(action.date,action.service);
       if(!label(action.name)||!txt(action.reason,500)||!action.reason.trim()||!s.setup.areas.includes(action.area))throw Error('Add an item, station and reason (up to 500 characters).');

@@ -1,6 +1,6 @@
 /* Checklists: every station and list in one navigator, the selected list with big tap targets, due times and per-task notes, manager editing in place, service templates, and a history view for audits. */
 globalThis.createDutiesUI=function(api){
- const B=Brigly,{e,button,input,textarea,select}=api,s=()=>api.state(),manager=()=>s().role==='manager',me=()=>B.actor(s().role,s().crewId,s().managerId);
+ const B=Brigly,{e,button,input,textarea,select}=api,s=()=>api.state(),boss=()=>s().role==='manager',manager=()=>boss()||!!B.permissions?.can(s(),'checklists'),me=()=>B.actor(s().role,s().crewId,s().managerId);
 
  let historyMode=false,historyFrom='',historyTo='',historyService='',historyArea='',historyPerson='',historyFilter='',historyLimit=14,historySyncedDate='';
  const paths={Floor:'M4 9h16 M6 9v11 M18 9v11 M8 5h8',Bar:'M5 4h14l-7 8z M12 12v8 M8 20h8',Kitchen:'M4 11h16v2a7 7 0 0 1-7 7h-2a7 7 0 0 1-7-7z M9 7c0-2 2-2 2-4 M14 7c0-2 2-2 2-4',station:'M4 6h16v12H4z M8 10h8 M8 14h5',note:'M4 4h16v13H9l-5 4z M8 8h8 M8 12h5',edit:'M4 20h4L19 9l-4-4L4 16z M13 7l4 4',add:'M12 4v16 M4 12h16',template:'M4 4h16v6H4z M4 14h7v6H4z M14 14h6v6h-6z',report:'M4 3v18h17 M8 16v-5 M13 16V6 M18 16v-8',back:'M15 5l-7 7 7 7',check:'M6 12.5l4 4 8-9',clear:'M5 7h14 M9 7V4h6v3 M7 7l1 13h8l1-13',save:'M5 4h11l3 3v13H5z M8 4v5h7 M8 14h8',download:'M12 4v11 M7 10l5 5 5-5 M5 20h14',filter:'M4 5h16l-6 8v6l-4-2v-4z','86':'M5 5l14 14 M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20',cart:'M3 4h2l3 12h10l3-9H6 M9 20h.1 M18 20h.1',star:'m12 3 2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9L6.5 20l1-6.1L3 9.5l6.3-.9z',count:'M9 4h6v3H9z M6 6h12v15H6z M9 11h6 M9 15h4',clock:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v5l3 2',lock:'M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3'};
@@ -63,7 +63,7 @@ globalThis.createDutiesUI=function(api){
  function modeTabs(current,late=0){
   if(!manager())return '';
   const tab=(id,label,key,action,dataId,badge='')=>'<button type="button" data-action="'+action+'" data-id="'+dataId+'" '+(current===id?'aria-current="page"':'')+'><span class="sk-tab-icon">'+icon(key)+badge+'</span><span class="sk-tab-label">'+label+'</span></button>';
-  return '<nav class="sk-tabs cl-modes" aria-label="Checklist sections">'+tab('shift','Shift lists','check','checklist-mode','shift',late?'<em data-tone="danger" aria-label="'+late+' late">'+late+'</em>':'')+tab('defaults','Templates','template','checklist-mode','defaults')+tab('history','History','report','checklist-view','history')+'<button type="button" class="cl-modes-new" data-action="checklist-new-list" data-id=""'+(current==='defaults'?' data-default="true"':'')+'><span class="sk-tab-icon">'+icon('add')+'</span><span class="sk-tab-label">New list</span></button></nav>';
+  return '<nav class="sk-tabs cl-modes" aria-label="Checklist sections">'+tab('shift','Shift lists','check','checklist-mode','shift',late?'<em data-tone="danger" aria-label="'+late+' late">'+late+'</em>':'')+tab('defaults','Templates','template','checklist-mode','defaults')+(boss()?tab('history','History','report','checklist-view','history'):'')+'<button type="button" class="cl-modes-new" data-action="checklist-new-list" data-id=""'+(current==='defaults'?' data-default="true"':'')+'><span class="sk-tab-icon">'+icon('add')+'</span><span class="sk-tab-label">New list</span></button></nav>';
  }
  function onChange(t){
   if(['historyFrom','historyTo','historyService','historyArea','historyPerson','historyFilter'].includes(t.name)){
@@ -99,7 +99,7 @@ globalThis.createDutiesUI=function(api){
  }
 
  function lists(){
-  if(manager()&&historyMode)return historyPanel();
+  if(boss()&&historyMode)return historyPanel();
   const state=s(),c=listContext(),activeSvc=c.service,day=state.date,editing=manager()&&(checklistEditing||defaultsMode);
   const all=defaultsMode?B.work.defaultTasks(state,activeSvc):B.work.tasks(state,state.date,state.service);
   const checks=defaultsMode?{}:(state.checks[state.date+'|'+state.service]||{});
@@ -145,7 +145,7 @@ globalThis.createDutiesUI=function(api){
 
   const row=t=>{
    const check=checks[t.id],notes=notesFor(t),important=notes.some(n=>n.important)&&!check;
-   const meta=[check?'Done by '+e(first(check.by))+' · '+stamp(check.at,day):'',isSpec(t)?tag('Tonight only','orange'):'',important?tag('Priority','danger'):''].filter(Boolean).join(' ');
+   const meta=[check?'Done by '+e(first(check.by))+' · '+stamp(check.at,day):'',isSpec(t)?tag('Tonight only','orange'):'',t.rollover?tag('Rollover','amber'):'',important?tag('Priority','danger'):''].filter(Boolean).join(' ');
    const box=defaultsMode?'<span class="cl-bullet" aria-hidden="true"></span>':'<input type="checkbox" data-task="'+e(t.id)+'" '+(check?'checked ':'')+(!c.editable?'disabled':'')+'><span class="cl-box" aria-hidden="true">'+icon('check')+'</span>';
    return '<div class="cl-task'+(check?' is-done':'')+(important?' has-important':'')+'" data-task-row="'+e(t.id)+'"><div class="cl-task-row"><label class="cl-check'+(defaultsMode?' is-template':'')+'">'+box+'<span class="cl-task-text"><strong>'+e(t.title)+'</strong>'+(meta?'<small>'+meta+'</small>':'')+'</span></label>'+
     (!defaultsMode?'<button type="button" class="cl-note-btn'+(notes.length?' has-notes':'')+(important?' is-important':'')+'" data-action="checklist-note" data-id="'+e(t.id)+'" aria-label="'+(notes.length?notes.length+' notes':'Add note')+' for '+e(t.title)+'">'+icon('note')+(notes.length?'<span>'+notes.length+'</span>':'')+'</button>':'')+
@@ -167,7 +167,7 @@ globalThis.createDutiesUI=function(api){
    ?group(specificRows,'specific-tasks-panel','<strong>Special &amp; event tasks '+tag('Shift-specific','orange')+'</strong>','Only for '+e(state.service)+' on '+e(humanDate(state.date)))+group(defaultRows,'default-tasks-panel','<strong>Standard '+e(c.list.toLowerCase())+' routine</strong>','')
    :group(defaultRows,'','','');
 
-  const editTools=editing?'<div class="cl-edit"><form class="cl-quickadd" data-cl-quickadd><label class="sr-only" for="cl-quick-title">New task</label><input id="cl-quick-title" name="clQuickTitle" maxlength="200" autocomplete="off" placeholder="Add a task to '+e(c.area)+' · '+e(c.list)+'" required>'+(defaultsMode?'':'<select name="clQuickScope" aria-label="How often"><option value="shift">Tonight only</option><option value="default">Every '+e(state.service)+'</option></select>')+'<button type="submit" class="button">'+icon('add')+'Add tasks</button></form><div class="cl-edit-links"><button type="button" class="cl-link" data-action="checklist-add" data-id=""'+(defaultsMode?' data-default="true"':'')+'>Add several at once</button>'+(defaultsMode?'':'<button type="button" class="cl-link" data-action="checklist-save-defaults" data-id="'+e(state.service)+'">'+icon('save')+'Save as the '+e(state.service)+' default</button>')+'<button type="button" class="cl-link is-danger" data-action="work-empty" data-id=""'+(defaultsMode?' data-default="true"':'')+'>'+icon('clear')+'Clear list</button></div><small>Editing '+(defaultsMode?'the '+e(activeSvc)+' template':'this shift only')+' · '+e(c.area)+' · '+e(c.list)+'</small></div>':'';
+  const editTools=editing?'<div class="cl-edit"><form class="cl-quickadd" data-cl-quickadd><label class="sr-only" for="cl-quick-title">New task</label><input id="cl-quick-title" name="clQuickTitle" maxlength="200" autocomplete="off" placeholder="Add a task to '+e(c.area)+' · '+e(c.list)+'" required>'+(defaultsMode?'':'<select name="clQuickScope" aria-label="How often"><option value="shift">Tonight only</option><option value="default">Every '+e(state.service)+'</option></select>')+'<button type="submit" class="button">'+icon('add')+'Add tasks</button></form><div class="cl-edit-links"><button type="button" class="cl-link" data-action="checklist-add" data-id=""'+(defaultsMode?' data-default="true"':'')+'>Add several at once</button>'+(defaultsMode?'':'<button type="button" class="cl-link" data-action="checklist-save-defaults" data-id="'+e(state.service)+'">'+icon('save')+'Save as the '+e(state.service)+' default</button>')+'<button type="button" class="cl-link" data-action="manage-rollovers"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>Manage rollovers</button><button type="button" class="cl-link is-danger" data-action="work-empty" data-id=""'+(defaultsMode?' data-default="true"':'')+'>'+icon('clear')+'Clear list</button></div><small>Editing '+(defaultsMode?'the '+e(activeSvc)+' template':'this shift only')+' · '+e(c.area)+' · '+e(c.list)+'</small></div>':'';
   const readonly=!c.editable&&!defaultsMode?'<p class="cl-readonly">'+icon('lock')+'<span>'+(c.own.length?'Viewing another team’s list. Only its assigned crew and managers can check off tasks or leave notes here.':'You’re not working '+e(state.service)+', so this list is view-only. Crew on shift and managers can check off tasks.')+'</span></p>':'';
 
   return '<div class="cl station-checklists'+(defaultsMode?' is-template':'')+'">'+modes+top+switcher+nav+'<section class="cl-pane" aria-label="'+e(c.area+' '+c.list)+'">'+head+progress+linked+readonly+list+editTools+'</section></div>';
@@ -241,7 +241,7 @@ globalThis.createDutiesUI=function(api){
    return;
   }
   if(a==='export'){
-   if(!manager())throw Error('Only managers can export checklist reports.');
+   if(!boss())throw Error('Only managers can export checklist reports.');
    syncHistoryDates();
    const csv=B.work.historyCSV(s(),historyFrom,historyTo,historyService,historyArea,{person:historyPerson,filter:historyFilter});
    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');

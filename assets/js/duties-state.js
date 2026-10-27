@@ -27,16 +27,16 @@
    const isDef=a.type==='checklist:add-default'||a.target==='default'||a.isDefault;
    if(isDef){
     const svc=a.service||s.service;if(!s.setup.services.some(v=>v.name===svc))throw Error('Choose a valid service.');
-    for(const title of titles){if(s.tasks.some(t=>!t.date&&t.service===svc&&t.area===a.area&&t.list===a.list&&t.title.toLowerCase()===title.toLowerCase()))continue;let n=s.tasks.length,id='default-task-'+n;while(s.tasks.some(t=>t.id===id)||(s.taskEvents||[]).some(x=>x.task===id)||(s.taskNotes||[]).some(x=>x.task===id))id='default-task-'+(++n);s.tasks.push({id,title,area:a.area,list:a.list,service:svc,specific:false,isDefault:true});}
+    for(const title of titles){if(s.tasks.some(t=>!t.date&&t.service===svc&&t.area===a.area&&t.list===a.list&&t.title.toLowerCase()===title.toLowerCase()))continue;let n=s.tasks.length,id='default-task-'+n;while(s.tasks.some(t=>t.id===id)||(s.taskEvents||[]).some(x=>x.task===id)||(s.taskNotes||[]).some(x=>x.task===id))id='default-task-'+(++n);s.tasks.push({id,title,area:a.area,list:a.list,service:svc,specific:false,isDefault:true,rollover:Boolean(a.rollover)});}
     // Added from a shift that already has its own list: put it on tonight's list too, as part of the routine.
-    if(a.alsoShift&&svc===s.service&&s.checklistScopes.includes(key(s.date,s.service)))for(const title of titles){if(tasks(s).some(t=>t.area===a.area&&t.list===a.list&&t.title.toLowerCase()===title.toLowerCase()))continue;let n=s.tasks.length,id='shift-task-'+n;while(s.tasks.some(t=>t.id===id)||(s.taskEvents||[]).some(x=>x.task===id)||(s.taskNotes||[]).some(x=>x.task===id))id='shift-task-'+(++n);s.tasks.push({id,title,area:a.area,list:a.list,date:s.date,service:s.service,specific:false,isDefault:true});}
+    if(a.alsoShift&&svc===s.service&&s.checklistScopes.includes(key(s.date,s.service)))for(const title of titles){if(tasks(s).some(t=>t.area===a.area&&t.list===a.list&&t.title.toLowerCase()===title.toLowerCase()))continue;let n=s.tasks.length,id='shift-task-'+n;while(s.tasks.some(t=>t.id===id)||(s.taskEvents||[]).some(x=>x.task===id)||(s.taskNotes||[]).some(x=>x.task===id))id='shift-task-'+(++n);s.tasks.push({id,title,area:a.area,list:a.list,date:s.date,service:s.service,specific:false,isDefault:true,rollover:Boolean(a.rollover)});}
    }else{
-    materialize(s);for(const title of titles){if(tasks(s).some(t=>t.area===a.area&&t.list===a.list&&t.title.toLowerCase()===title.toLowerCase()))continue;let n=s.tasks.length,id='shift-task-'+n;while(s.tasks.some(t=>t.id===id)||(s.taskEvents||[]).some(x=>x.task===id)||(s.taskNotes||[]).some(x=>x.task===id))id='shift-task-'+(++n);s.tasks.push({id,title,area:a.area,list:a.list,date:s.date,service:s.service,specific:a.specific!==false});}
+    materialize(s);for(const title of titles){if(tasks(s).some(t=>t.area===a.area&&t.list===a.list&&t.title.toLowerCase()===title.toLowerCase()))continue;let n=s.tasks.length,id='shift-task-'+n;while(s.tasks.some(t=>t.id===id)||(s.taskEvents||[]).some(x=>x.task===id)||(s.taskNotes||[]).some(x=>x.task===id))id='shift-task-'+(++n);s.tasks.push({id,title,area:a.area,list:a.list,date:s.date,service:s.service,specific:a.specific!==false,rollover:Boolean(a.rollover)});}
    }
   }else if(a.type==='checklist:save-defaults'){
    if(!manager)throw Error('Only managers can set default checklists.');const svc=a.service||s.service;if(!s.setup.services.some(v=>v.name===svc))throw Error('Choose a valid service.');
    const cur=tasks(s,s.date,s.service);s.tasks=s.tasks.filter(t=>t.date||!t.service||t.service!==svc);
-   for(const [i,t] of cur.entries()){let n=s.tasks.length+i,id='default-'+svc.toLowerCase()+'-'+n;while(s.tasks.some(x=>x.id===id))id='default-'+svc.toLowerCase()+'-'+(++n);s.tasks.push({id,title:t.title,area:t.area,list:t.list,service:svc,specific:false,isDefault:true});}
+   for(const [i,t] of cur.entries()){let n=s.tasks.length+i,id='default-'+svc.toLowerCase()+'-'+n;while(s.tasks.some(x=>x.id===id))id='default-'+svc.toLowerCase()+'-'+(++n);s.tasks.push({id,title:t.title,area:t.area,list:t.list,service:svc,specific:false,isDefault:true,rollover:Boolean(t.rollover)});}
   }else if(a.type==='checklist:create'||a.type==='checklist:empty'||a.type==='checklist:empty-default'){
    if(!manager)throw Error('Only managers can create shift lists.');
    const isDef=a.type==='checklist:empty-default'||a.target==='default'||a.isDefault;
@@ -46,7 +46,7 @@
      const defs=defaultTasks(s,svc);
      for(const [i,t] of defs.filter(t=>(a.area&&t.area!==a.area)||(a.list&&t.list!==a.list)).entries()){
       let n=s.tasks.length+i,id='default-'+svc.toLowerCase()+'-'+n;while(s.tasks.some(x=>x.id===id))id='default-'+svc.toLowerCase()+'-'+(++n);
-      s.tasks.push({id,title:t.title,area:t.area,list:t.list,service:svc,specific:false,isDefault:true});
+      s.tasks.push({id,title:t.title,area:t.area,list:t.list,service:svc,specific:false,isDefault:true,rollover:Boolean(t.rollover)});
      }
     }else{
      s.tasks=s.tasks.filter(t=>t.date||!t.service||t.service!==svc||(a.area&&t.area!==a.area)||(a.list&&t.list!==a.list));
@@ -66,7 +66,7 @@
     }else{
      if(old&&!tasks(s).some(t=>t.id===id))throw Error('This task belongs to a different shift.');
      const map=materialize(s);
-     if(a.type==='put'){const isSpec=a.item.specific!==undefined?a.item.specific:(old?.specific!==undefined?old.specific:true);a.item={...a.item,id:map[id]||id,date:s.date,service:s.service,specific:isSpec};}else a.id=map[id]||id;
+     if(a.type==='put'){const isSpec=a.item.specific!==undefined?a.item.specific:(old?.specific!==undefined?old.specific:true);a.item={...old,...a.item,id:map[id]||id,date:s.date,service:s.service,specific:isSpec,rollover:a.item.rollover!==undefined?Boolean(a.item.rollover):Boolean(old?.rollover)};}else a.id=map[id]||id;
     }
    }
    if(a.type==='check'){

@@ -394,7 +394,7 @@
      <div class="phone-check"><i>✓</i> Cooler temp logged (3.7°C)</div>
      <div class="phone-card orange">
        <strong>Supply flagged · Fresh limes</strong>
-       2 cases · Sent to Manager Inbox
+       2 cases · Sent to your manager
      </div>`,
     `<small>FRIDAY 23:15 · HANDOVER</small>
      <h3>Tomorrow’s team<br>starts ahead.</h3>
