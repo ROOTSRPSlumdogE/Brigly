@@ -5,6 +5,8 @@ globalThis.BriglyNavigation={
    ['app-screen','home','Today','home','orange'],
    ['navigate','lists','Checklists','lists','sage'],
    ['navigate','stock','Stock','stock','danger'],
+   ['navigate','pos','POS','pos','orange'],
+   ['navigate','menu','Menu','menu','amber'],
    ['navigate','reservations','Reservations','reservations','slate'],
    ['navigate','specials','Happenings','specials','amber']
   ]},
@@ -23,12 +25,14 @@ globalThis.BriglyNavigation={
  serviceItems(){return [
   ['navigate','lists','Checklists','lists','sage'],
   ['navigate','stock','Stock','stock','danger'],
+  ['navigate','pos','POS','pos','orange'],
+  ['navigate','menu','Menu','menu','amber'],
   ['navigate','specials','Happenings','specials','amber'],
   ['navigate','reservations','Reservations','reservations','slate']
  ];},
  hub:['me','shifts','earnings','requests','myfile'],
  active(screen,id){return screen===id||(screen==='briefing'&&id==='home')||(id==='me'&&this.hub.includes(screen));},
- service(screen){return ['lists','stock','specials','reservations'].includes(screen);},
+ service(screen){return ['lists','stock','specials','reservations','pos','menu'].includes(screen);},
  primary(manager){return manager?[
   ['app-screen','home','Today','home','orange'],
   ['navigate','lists','Checklists','lists','sage'],
@@ -61,6 +65,9 @@ globalThis.BriglyNavigation={
    stock:reported86?{text:String(reported86)+' new',tone:'danger'}:manager&&openOrders?{text:String(openOrders),tone:'amber'}:approved86?{text:String(approved86),tone:'danger'}:null,
    reservations:activeRes?{text:String(activeRes),tone:'slate'}:null,
    specials:activeSpecials?{text:String(activeSpecials),tone:'amber'}:null,
+   // POS: open checks (yours for crew); Menu: dishes off right now.
+   pos:(()=>{if(!B.pos||!state.pos)return null;const open=B.pos.openChecks(state,state.date,state.service).filter(c=>manager||c.server===me);const late=B.pos.tickets(state,state.date,state.service).filter(t=>t.late).length;if(late&&(manager||['Kitchen','Bar'].includes(B.person(me)?.area)))return {text:late+' late',tone:'danger'};return open.length?{text:String(open.length),tone:'orange'}:null;})(),
+   menu:(()=>{if(!B.menu||!state.menu)return null;const o=B.menu.outs(state,state.date,state.service);return o.off.length?{text:String(o.off.length),tone:'danger'}:o.reported.length?{text:String(o.reported.length),tone:'amber'}:null;})(),
    myfile:(state.writeups||[]).some(w=>w.person===me&&w.status==='Issued')||(state.business?.reviews||[]).some(r=>r.person===me&&r.status==='Shared')?{text:'New',tone:'orange'}:null,
    // Training: sign-offs waiting for an approver first, then overdue courses, then required courses still to do.
    training:(()=>{const T=B.training;if(!T||!state.training)return null;const pend=T.pending(state,me).length;if(pend)return {text:String(pend),tone:'orange'};const rows=T.pathFor(state,me).map(c=>[c,T.progress(state,me,c.id)]);const over=rows.filter(([,p])=>p.overdue).length;if(over)return {text:String(over),tone:'danger'};const req=rows.filter(([c,p])=>c.required&&p.status!=='Completed').length;return req?{text:String(req),tone:'amber'}:null;})(),
@@ -307,6 +314,14 @@ globalThis.BriglyNotifications={
     const declined=o.status==='Declined';
     push({id:`order-${o.id}-${o.status}`,category:'team',tone:declined?'danger':'sage',badge:declined?'Request declined':'Request '+o.status.toLowerCase(),time:'Stock · '+(o.area||''),title:`${o.quantity} ${o.unit} ${o.name}`,body:declined?(o.feedback||'Declined by your manager.'):o.status==='Ordered'?`Ordered${o.expected?' · arrives '+o.expected:''}.`:o.status==='Received'?'Delivered and checked in.':'Approved and on the order sheet.',actions:[{label:'My requests',action:'notif-go',view:'orders',style:'secondary'}]});
    }
+  }
+
+  // 7d. POS: tickets running late for the kitchen and bar, and checks still open after a service has ended.
+  if(B.pos&&state.pos){
+   const area=B.person(me)?.area,late=B.pos.tickets(state,state.date,state.service).filter(t=>t.late&&(manager||t.lines.some(l=>l.station===area)));
+   if(late.length)push({id:`pos-late-${state.date}-${state.service}-${late.map(t=>t.check.id).join(',')}`,category:'urgent',tone:'danger',badge:`${late.length} late ticket${late.length===1?'':'s'}`,time:`${state.service} · kitchen & bar`,title:`${late.length===1?'A ticket has':late.length+' tickets have'} waited over 15 minutes`,body:late.map(t=>'#'+t.check.number+(t.check.tables.length?' · Table '+t.check.tables.join('+'):'')+' · '+t.lines.map(l=>l.qty+'× '+l.name).join(', ')).join(' · '),actions:[{label:'Open tickets',action:'ps-go',id:'',tab:'tickets',style:'primary'}]});
+   if(manager){const {end}=B.floor.serviceWindow(state,state.service),ended=state.date<B.dateString(new Date())||(state.date===B.dateString(new Date())&&B.floor.nowMinutes()>=end),open=B.pos.openChecks(state,state.date,state.service);
+    if(ended&&open.length)push({id:`pos-open-${state.date}-${state.service}-${open.length}`,category:'service',tone:'amber',badge:`${open.length} open check${open.length===1?'':'s'}`,time:`${state.service} has ended`,title:`Close ${open.length===1?'the last check':open.length+' checks'} before the close-out`,body:open.map(c=>'#'+c.number+' · '+(c.tables.length?'Table '+c.tables.join('+'):'Tab')+' · '+personName(c.server)).join(' · '),actions:[{label:'Open POS',action:'ps-go',id:'',tab:'checks',style:'primary'}]});}
   }
 
   // 8. Checklist progress pulse

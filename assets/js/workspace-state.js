@@ -17,7 +17,7 @@
     areas=state?.setup?.areas||['Floor','Bar','Kitchen'];
     if(root.Brigly)root.Brigly.crew=crew;
   }
-  const views=['schedules','lists','specials','eighty-six','onboarding','orders','reservations','private','stock','inventory'];
+  const views=['schedules','lists','specials','eighty-six','onboarding','orders','reservations','private','stock','inventory','menu','pos'];
   const dateString=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const addDays=(date,n)=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+n);return dateString(d);};
   const monday=date=>{const day=new Date(date+'T12:00:00').getDay();return addDays(date,-((day+6)%7));};

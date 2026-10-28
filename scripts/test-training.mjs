@@ -263,6 +263,7 @@ mg.show('todo');assert(mg.render().includes('waiting for sign-off'));
 mg.handle('profile','priya',{});
 const sched=c.createScheduleUI({...common,input,textarea,select,week:()=>B.monday(s.date),home:()=>'',training:()=>'<training>',roster:()=>'',extras:()=>'',section:()=>'',context:()=>'',manage:()=>'',reportsPage:()=>'',reportBoard(){},manageTab(){},pay:()=>'',myfile:()=>''});
 sched.show('training');assert.equal(sched.screen(),'training');assert.equal(sched.render(),'<training>','the Training screen renders on its own');
-const home=c.createShiftHome({...common,training:()=>'<tr-card>',clock:()=>'',payroll:()=>[],chatPreview:()=>'',openContext(){},showHome(){},focus(){}});
-assert(home.render().includes('<tr-card>'),'Today shows the training card');
+// Training lives on its own screen; Today stays focused on the shift.
+const home=c.createShiftHome({...common,training:()=>'<tr-card>',clock:()=>null,payroll:()=>[],chatPreview:()=>'<chat-card>',openContext(){},showHome(){},focus(){}});
+assert(!home.render().includes('<tr-card>')&&!home.render().includes('<chat-card>'),'Today shows neither the training card nor the chat preview');
 console.log('PASS: every Training screen for managers and crew, course pages, the player, quiz review, games, duels, builder forms, the report board, HR files, Today and Manage.');

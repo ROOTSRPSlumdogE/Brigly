@@ -12,9 +12,13 @@
   ['reservations','Handle reservations','Add, seat and update guest bookings.','everyday'],
   ['swaps','Request shift swaps','Offer one of their shifts to a teammate.','everyday'],
   ['timeoff','Request time off','Ask for days off.','everyday'],
+  ['pos','Use the POS','Open checks, ring up orders, send to the kitchen and take payments.','everyday'],
   ['stock','Run stock & 86s','Approve 86 reports, review stock requests, place and receive orders and count any team.','lead'],
+  ['menu','Run the menu','Add and edit dishes, recipes, prices, modifiers and allergens.','lead'],
+  ['posLead','Run the POS','Void and comp items, discounts, sections, transfers, close-out and POS settings.','lead'],
   ['checklists','Edit checklists','Build shift lists and templates and check off tasks for any station.','lead'],
   ['happenings','Run happenings','Add, edit and pause specials, happy hours and events.','lead'],
+  ['floor','Edit the floor plan','Add rooms, draw tables and set seats on the table map.','lead'],
   ['training','Run training','Create and assign courses, and sign off any practical.','lead']
  ];
  const keys=list.map(x=>x[0]),title=key=>list.find(x=>x[0]===key)?.[1]||key,base=key=>list.find(x=>x[0]===key)?.[3]==='everyday';
@@ -67,6 +71,7 @@
   if(['ops:alert','stock:alert'].includes(a.type))return 'report86';
   if(a.type==='checklist:note'&&String(a.stockItem||'').trim())return 'report86';
   if(a.type==='stock:request')return 'stockRequests';
+  if(a.type.startsWith('pos:'))return 'pos';
   if(a.type==='ops:note')return 'notes';
   if(a.type==='put'&&a.collection==='briefings')return 'briefings';
   if((a.type==='put'&&a.collection==='reservations')||a.type==='reservation-status')return 'reservations';

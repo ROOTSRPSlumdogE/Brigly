@@ -13,12 +13,16 @@ s.role='crew';s.team.find(x=>x.id==='alex').name='<script>alert(1)</script>';s.d
 console.log('PASS: focused crew/manager entry actions, correct shift scoping, shift selection, full-calendar access and no-shift state.');
 // Overview actions reuse the same service-scoped operations and escape shared content.
 s=B.starter('2026-10-25');s.role='crew';s.crewId='alex';s.date='2026-10-21';s.service='Dinner';
-s.checks[s.date+'|'+s.service]={};html=home.render();assert(html.includes('Up next for you'));assert(html.includes('Before taking orders'));assert(html.includes('On shift'));assert(html.includes('data-task='));assert(!html.includes('ops-approve-alert'));
+s.checks[s.date+'|'+s.service]={};html=home.render();assert(html.includes('Up next for you'));assert(html.includes('Before taking orders'));assert(html.includes('td-hero-team'),'the team lives in the hero');assert(html.includes('data-action="chat-dm"'));assert(!html.includes('td-card td-team'));assert(!html.includes('Team chat'));assert(!html.includes('tr-today'));assert(html.includes('data-task='));assert(!html.includes('ops-approve-alert'));
 const ctx=B.ops.context(s,s.date,s.service);if(ctx.notes.length){ctx.notes[0].body='<img src=x onerror=alert(1)>';html=home.render();assert(!html.includes('<img src=x'));assert(html.includes('&lt;img'));}
 s.unavailable.push({id:'overview-review',date:s.date,service:s.service,name:'Test item',reason:'Check stock',status:'Reported',active:false,area:'Kitchen',author:'alex',reviewer:'',feedback:''});
 s.role='manager';html=home.render();assert(html.includes('Needs your attention'));assert(html.includes('86 report · Test item'));assert(html.includes('ops-approve-alert'));assert(html.includes('data-id="overview-review"'));
 s.date='2026-10-22';html=home.render();assert(!html.includes('data-id="overview-review"'));
 console.log('PASS: inline overview actions, role visibility, service isolation, checklist access and escaped shared notes.');
+// The time clock is part of the hero card, not a second card above it.
+const punch=c.createShiftHome({state:()=>s,e:escape,dateLabel:x=>x,render(){},focus(){},close(){},open(){},clock:()=>({state:'on',label:'On the clock',detail:'1 h worked',acts:'<button data-action="tc-out">Clock out</button>'})});
+s.role='crew';s.date='2026-10-21';html=punch.render();assert(html.includes('td-hero-tc" data-state="on"'));assert(html.includes('data-action="tc-out"'));assert(html.includes('On the clock'));assert(!html.includes('td-clock"'));assert.equal(html.indexOf('td-hero-tc')<html.indexOf('td-actions'),true,'clock sits inside the hero above the actions');
+console.log('PASS: time clock merged into the Today hero.');
 
 // Daily operations navigation & Notification Center engine verification
 const N=c.BriglyNavigation,Notifs=c.BriglyNotifications;

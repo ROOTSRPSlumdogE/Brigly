@@ -1,7 +1,7 @@
-/* Today: the selected shift at a glance, one queue of what needs you now, and the service board (briefing, checklists, 86s, specials, arrivals, team, notes, chat). Everything follows the date and service in the command bar. */
+/* Today: the selected shift at a glance (time, team, time clock in one card), one queue of what needs you now, and the service board (briefing, checklists, 86s, specials, arrivals, notes). Everything follows the date and service in the command bar. */
 globalThis.createShiftHome=function(api){
  const B=Brigly,{e,dateLabel}=api,s=()=>api.state(),manager=()=>s().role==='manager',me=()=>B.actor(s().role,s().crewId,s().managerId);
- const paths={note:'M4 4h16v13H9l-5 4z M8 8h8 M8 12h5',alert:'M5 5l14 14 M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20',late:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v5l3 2',sick:'M9 3h6v6h6v6h-6v6H9v-6H3V9h6z',swap:'M4 7h15l-4-4 M20 17H5l4 4',tips:'M12 3v18 M17 7c-1-3-10-3-10 1s10 3 10 7-9 4-10 1',add:'M12 4v16 M4 12h16',roster:'M4 5h16v15H4z M8 3v4 M16 3v4 M4 10h16',inbox:'M4 5h16v14H4z M4 13h5l2 3h2l2-3h5',team:'M8 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M2 21v-3a6 6 0 0 1 12 0v3 M17 4a4 4 0 0 1 0 8 M18 15a5 5 0 0 1 4 5',cart:'M3 4h2l3 12h10l3-9H6 M9 20h.1 M18 20h.1',count:'M9 4h6v3H9z M6 6h12v15H6z M9 11h6 M9 15h4',brief:'M5 4h14v16H5z M9 8h6 M9 12h6 M9 16h3',off:'M12 3v2 M12 19v2 M3 12h2 M19 12h2 M5.6 5.6l1.4 1.4 M17 17l1.4 1.4 M5.6 18.4 7 17 M17 7l1.4-1.4 M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8',earn:'M12 2v20 M18 5H9a4 4 0 0 0 0 8h6a3 3 0 0 1 0 6H5',clock:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v5l3 2',truck:'M2 7h12v10H2z M14 10h4l4 4v3h-8 M6 20a2 2 0 1 0 0-.1 M18 20a2 2 0 1 0 0-.1',task:'M9 5h11 M9 12h11 M9 19h11 M3 5l1 1 2-3 M3 12l1 1 2-3 M3 19l1 1 2-3',check:'M5 12l5 5 9-10',todo:'M4 5h16v14H4z M8 12l3 3 5-6',chev:'M9 6l6 6-6 6',star:'m12 3 2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9L6.5 20l1-6.1L3 9.5l6.3-.9z',res:'M4 9h16v11H4z M8 9V6a4 4 0 0 1 8 0v3 M8 14h8',Floor:'M4 9h16 M6 9v11 M18 9v11 M8 5h8',Bar:'M5 4h14l-7 8z M12 12v8 M8 20h8',Kitchen:'M4 11h16v2a7 7 0 0 1-7 7h-2a7 7 0 0 1-7-7z M9 7c0-2 2-2 2-4 M14 7c0-2 2-2 2-4'};
+ const paths={note:'M4 4h16v13H9l-5 4z M8 8h8 M8 12h5',alert:'M5 5l14 14 M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20',late:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v5l3 2',sick:'M9 3h6v6h6v6h-6v6H9v-6H3V9h6z',swap:'M4 7h15l-4-4 M20 17H5l4 4',tips:'M12 3v18 M17 7c-1-3-10-3-10 1s10 3 10 7-9 4-10 1',add:'M12 4v16 M4 12h16',roster:'M4 5h16v15H4z M8 3v4 M16 3v4 M4 10h16',inbox:'M4 5h16v14H4z M4 13h5l2 3h2l2-3h5',team:'M8 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M2 21v-3a6 6 0 0 1 12 0v3 M17 4a4 4 0 0 1 0 8 M18 15a5 5 0 0 1 4 5',cart:'M3 4h2l3 12h10l3-9H6 M9 20h.1 M18 20h.1',count:'M9 4h6v3H9z M6 6h12v15H6z M9 11h6 M9 15h4',brief:'M5 4h14v16H5z M9 8h6 M9 12h6 M9 16h3',off:'M12 3v2 M12 19v2 M3 12h2 M19 12h2 M5.6 5.6l1.4 1.4 M17 17l1.4 1.4 M5.6 18.4 7 17 M17 7l1.4-1.4 M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8',earn:'M12 2v20 M18 5H9a4 4 0 0 0 0 8h6a3 3 0 0 1 0 6H5',clock:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v5l3 2',truck:'M2 7h12v10H2z M14 10h4l4 4v3h-8 M6 20a2 2 0 1 0 0-.1 M18 20a2 2 0 1 0 0-.1',task:'M9 5h11 M9 12h11 M9 19h11 M3 5l1 1 2-3 M3 12l1 1 2-3 M3 19l1 1 2-3',check:'M5 12l5 5 9-10',todo:'M4 5h16v14H4z M8 12l3 3 5-6',chev:'M9 6l6 6-6 6',star:'m12 3 2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9L6.5 20l1-6.1L3 9.5l6.3-.9z',res:'M4 9h16v11H4z M8 9V6a4 4 0 0 1 8 0v3 M8 14h8',pos:'M3 7h18v10H3z M3 11h18 M7 15h3',Floor:'M4 9h16 M6 9v11 M18 9v11 M8 5h8',Bar:'M5 4h14l-7 8z M12 12v8 M8 20h8',Kitchen:'M4 11h16v2a7 7 0 0 1-7 7h-2a7 7 0 0 1-7-7z M9 7c0-2 2-2 2-4 M14 7c0-2 2-2 2-4'};
  const icon=key=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[key]||paths.task}"/></svg>`;
  const tone=area=>area==='Bar'?'orange':area==='Kitchen'?'slate':'sage';
  const name=id=>B.person(id)?.name||'Team member',first=id=>name(id).split(' ')[0];
@@ -36,31 +36,37 @@ globalThis.createShiftHome=function(api){
   const shift=team.find(x=>x.person===me()),ctx=B.ops.context(st,st.date,service);
   const briefs=st.briefings.filter(b=>b.date===st.date&&b.service===service);
   const brief=briefing(st,team,briefs,service,!!shift);
-  return `<div class="td" data-role="${e(st.role)}"><div class="td-main">${hero(st,team,shift,ctx,svc)}${api.clock?api.clock():''}${actions(st,shift)}${brief}${queue(st,team,ctx,briefs,svc)}${checklist(st,svc)}${arrivals(st,ctx,service)}</div><aside class="td-rail" aria-label="Service board">${eightySix(st,ctx,!!shift)}${specials(st,service)}${api.training?.()||''}${crew(st,team,briefs)}${notes(st,ctx,team,service)}${api.chatPreview?.()||''}</aside></div>`;
+  return `<div class="td" data-role="${e(st.role)}"><div class="td-main">${hero(st,team,shift,ctx,svc,briefs)}${actions(st,shift)}${brief}${queue(st,team,ctx,briefs,svc)}${checklist(st,svc)}${arrivals(st,ctx,service)}</div><aside class="td-rail" aria-label="Service board">${pos()}${eightySix(st,ctx,!!shift)}${specials(st,service)}${notes(st,ctx,team,service)}</aside></div>`;
+ }
+ // The POS card: sales for managers, my tables for servers, tickets for the kitchen and bar.
+ function pos(){
+  let c=null;try{c=api.pos?.();}catch{c=null;}
+  if(!c)return '';
+  return card('td-pos',e(c.title),c.body,{meta:c.meta||'',foot:c.foot||''});
  }
 
- // The shift: when, where, who with, and how far into it we are.
- function hero(st,team,shift,ctx,svc){
-  const now=Date.now(),time=manager()?svc:shift;
+ // The shift: when, where, who with, how far into it we are, and the time clock. One card, so nothing is said twice.
+ function hero(st,team,shift,ctx,svc,briefs){
+  const now=Date.now(),time=manager()?svc:shift,tc=api.clock?.();
+  const punch=tc?`<div class="td-hero-tc" data-state="${e(tc.state)}"><div class="td-hero-tc-text"><small>${e(tc.label)}</small><span>${tc.detail}</span></div><div class="td-hero-tc-acts">${tc.acts}</div></div>`:'';
   if(!time){
    const mine=st.shifts.filter(x=>x.person===me()).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
    const other=mine.find(x=>x.date===st.date),next=mine.find(x=>at(x.date,x.start)+B.duration(x)*60000>now&&!(x.date===st.date&&x.service===st.service));
    const jump=x=>`<button type="button" class="td-hero-jump" data-action="ctx-pick" data-date="${e(x.date)}" data-service="${e(x.service)}">${other===x?'Switch to '+e(x.service):'Go to this shift'}<span aria-hidden="true">›</span></button>`;
-   return `<section class="td-hero is-off"><div class="td-hero-top"><span class="td-hero-eyebrow">${e(dayName(st.date))} · ${e(st.service)}</span><span class="td-hero-status" data-tone="slate">${other?'Not on '+e(st.service):'Day off'}</span></div><h1 class="td-hero-time is-text">${other?'You’re on '+e(other.service):'You’re off'}</h1><p class="td-hero-sub">${other?e(other.start+'–'+other.end+' · '+other.area):next?'Next shift: '+e(dayName(next.date))+' · '+e(next.service)+' '+e(next.start):'No upcoming shifts on the roster yet.'}</p>${other?jump(other):next?jump(next):''}</section>`;
+   return `<section class="td-hero is-off"><div class="td-hero-top"><span class="td-hero-eyebrow">${e(dayName(st.date))} · ${e(st.service)}</span><span class="td-hero-status" data-tone="slate">${other?'Not on '+e(st.service):'Day off'}</span></div><h1 class="td-hero-time is-text">${other?'You’re on '+e(other.service):'You’re off'}</h1><p class="td-hero-sub">${other?e(other.start+'–'+other.end+' · '+other.area):next?'Next shift: '+e(dayName(next.date))+' · '+e(next.service)+' '+e(next.start):'No upcoming shifts on the roster yet.'}</p>${other?jump(other):next?jump(next):''}${punch}</section>`;
   }
   const [start,end]=[at(st.date,time.start),at(st.date,time.start)+B.duration(time)*60000],live=now>=start&&now<end,past=now>=end;
   const m=shift&&B.schedule.metrics(st,shift);
   const people=[...new Set(team.map(x=>x.person))],others=people.filter(id=>id!==me());
   const absent=team.filter(x=>B.schedule.metrics(st,x).absence).length,late=team.filter(x=>!B.schedule.metrics(st,x).absence&&B.schedule.metrics(st,x).late).length;
   const status=manager()?(absent?[plural(absent,'person','people')+' out','danger']:late?[late+' running late','amber']:people.length?['Full team','sage']:['No one scheduled','slate'])
-   :m.absence?['Absent','danger']:m.late?['Late · '+m.late.minutes+' min','amber']:live?['On shift','sage']:past?['Done','slate']:['Scheduled','slate'];
+   :m.absence?['Absent','danger']:tc?.state==='break'?['On break','amber']:tc?.state==='on'?['On the clock','sage']:m.late?['Late · '+m.late.minutes+' min','amber']:live?['On shift','sage']:past?['Done','slate']:['Scheduled','slate'];
   const guests=ctx.reservations.filter(r=>!['Cancelled','No-show'].includes(r.status)).reduce((n,r)=>n+r.guests,0),out86=ctx.alerts.filter(x=>x.status==='Approved').length;
-  const sub=manager()?[plural(people.length,'person','people')+' on shift',plural(guests,'guest')+' booked',out86?plural(out86,'item')+' 86’d':'Full menu'].join(' · '):[shift.area,(m.workMinutes/60).toLocaleString('en-US',{maximumFractionDigits:1})+' h',money(m.wages)+' est.'].join(' · ');
+  const posNet=B.pos&&st.pos?B.pos.sales(st,{from:st.date,to:st.date,service:st.service}).net:0;
+  const sub=manager()?[plural(people.length,'person','people')+' on shift',plural(guests,'guest')+' booked',out86?plural(out86,'item')+' 86’d':'Full menu',...(posNet?[money(posNet)+' net so far']:[])].join(' · '):[shift.area,(m.workMinutes/60).toLocaleString('en-US',{maximumFractionDigits:1})+' h',money(m.wages)+' est.'].join(' · ');
   const eyebrow=live?'<span class="td-live"></span>Live now · '+e(st.service):e(dayName(st.date))+' · '+e(st.service)+(past?' · ended':'');
   const clock=live?`<div class="td-hero-clock"><span class="td-hero-bar"><span style="width:${Math.round((now-start)/(end-start)*100)}%"></span></span><small>${span(now-start)} in · ${span(end-now)} left</small></div>`:!past&&start-now<36*3600000?`<div class="td-hero-clock"><small>Starts in ${span(start-now)}</small></div>`:'';
-  const avatars=(manager()?people:others).slice(0,5).map(id=>`<span data-tone="${tone(team.find(x=>x.person===id)?.area)}">${e(B.person(id)?.initials||'TM')}</span>`).join('');
-  const who=manager()?people.slice(0,3).map(first).join(', ')+(people.length>3?' +'+(people.length-3):''):others.length?'With '+others.slice(0,2).map(first).join(', ')+(others.length>2?' +'+(others.length-2):''):'Working solo';
-  return `<section class="td-hero${live?' is-live':''}"><div class="td-hero-top"><span class="td-hero-eyebrow">${eyebrow}</span><span class="td-hero-status" data-tone="${status[1]}">${e(status[0])}</span></div><h1 class="td-hero-time">${e(time.start)}<span>–</span>${e(time.end)}${time.end<time.start?'<small>+1 day</small>':''}</h1><p class="td-hero-sub">${e(sub)}</p>${clock}${people.length?`<button type="button" class="td-hero-team" data-action="home-scroll" data-id="td-team"><span class="td-stack">${avatars}</span><span>${e(who)}</span></button>`:''}</section>`;
+  return `<section class="td-hero${live?' is-live':''}"><div class="td-hero-top"><span class="td-hero-eyebrow">${eyebrow}</span><span class="td-hero-status" data-tone="${status[1]}">${e(status[0])}</span></div><h1 class="td-hero-time">${e(time.start)}<span>–</span>${e(time.end)}${time.end<time.start?'<small>+1 day</small>':''}</h1><p class="td-hero-sub">${e(sub)}</p>${clock}${punch}${crew(st,team,briefs,people,others)}</section>`;
  }
 
  // The things people do most during a shift, one tap each.
@@ -71,10 +77,11 @@ globalThis.createShiftHome=function(api){
    const brief=st.briefings.find(b=>b.date===st.date&&b.service===st.service);
    html=(brief?act('Briefing','brief','amber','edit',brief.id,'data-collection="briefings"'):act('Post briefing','brief','amber','ops-context-create','briefings',c))
     +act('Add note','note','sage','ops-note','',c)+act('86 an item','alert','danger','ops-alert','',c)+act('Order stock','cart','amber','stock-go','orders','data-stage="order"')
-    +act('Assign count','count','sage','stock-assign','')+act('Add shift','add','orange','plan-add','')+act('Roster','roster','slate','app-screen','shifts')+act('Manage','team','slate','app-screen','manage');
+    +act('Assign count','count','sage','stock-assign','')+act('Add shift','add','orange','plan-add','')+act('Roster','roster','slate','app-screen','shifts')+(B.pos&&st.pos?act('POS','pos','orange','ps-go',''):act('Manage','team','slate','app-screen','manage'));
   }else if(shift){
    const m=B.schedule.metrics(st,shift);
-   html=(may('report86')?act('Report 86','alert','danger','ops-alert','',c):'')+(may('stockRequests')?act('Request stock','cart','amber','stock-go','items'):'')+(may('notes')?act('Add note','note','sage','ops-note','',c):'')+act('Add tips','tips','sage','schedule-shift-tips',shift.id)
+   // With the POS running, tips come from paid checks, so the POS takes the tips tile for servers.
+   html=(may('report86')?act('Report 86','alert','danger','ops-alert','',c):'')+(may('stockRequests')?act('Request stock','cart','amber','stock-go','items'):'')+(may('notes')?act('Add note','note','sage','ops-note','',c):'')+(B.pos&&st.pos&&may('pos')?act('POS','pos','orange','ps-go',''):act('Add tips','tips','sage','schedule-shift-tips',shift.id))
     +act(m.late?'Late reported':'Running late','late','amber','schedule-report-late',shift.id,m.absence||m.late?'disabled':'')+act(m.absence?'Absence reported':'I’m sick','sick','danger','schedule-report-sick',shift.id,m.absence?'disabled':'')
     +(may('swaps')?act('Swap shift','swap','slate','schedule-swap',shift.id,m.absence||m.late?'disabled':''):'')+(may('timeoff')?act('Time off','off','slate','schedule-timeoff',shift.id):'');
   }else html=act('My schedule','roster','slate','app-screen','shifts')+(may('timeoff')?act('Time off','off','slate','schedule-timeoff',''):'')+(may('stockRequests')?act('Request stock','cart','amber','stock-go','items'):'')+act('Earnings','earn','sage','app-screen','earnings');
@@ -239,14 +246,17 @@ globalThis.createShiftHome=function(api){
   return card('td-arrivals','Arrivals',list.length?rows+(list.length>5?`<p class="td-more-note">+${list.length-5} more bookings</p>`:''):`<p class="td-empty">No upcoming arrivals for ${e(service)}.</p>`,{meta:list.length?`<span class="td-card-sub">${plural(guests,'guest')} · ${plural(list.length,'booking')}</span>`:'',foot:link('All reservations','navigate','reservations')+link('Add booking','edit','','data-collection="reservations"')});
  }
 
- // Who is working: status only shows when it needs attention; tap anyone to message them.
- function crew(st,team,briefs){
-  if(!team.length)return card('td-team','On shift',`<p class="td-empty">No one is scheduled for ${e(st.service)}.</p>`,{foot:manager()?link('Open roster','app-screen','shifts'):''});
+ // Who is working, inside the hero: avatars and names on the row, the full list with status flags when you open it; tap anyone to message them.
+ function crew(st,team,briefs,people,others){
+  if(!people.length)return manager()?`<button type="button" class="td-hero-jump" data-action="app-screen" data-id="shifts">Open the roster<span aria-hidden="true">›</span></button>`:'';
+  if(!manager()&&!others.length)return `<p class="td-hero-solo">Working solo</p>`;
+  const avatars=(manager()?people:others).slice(0,5).map(id=>`<span data-tone="${tone(team.find(x=>x.person===id)?.area)}">${e(B.person(id)?.initials||'TM')}</span>`).join('');
+  const who=manager()?people.slice(0,3).map(first).join(', ')+(people.length>3?' +'+(people.length-3):''):'With '+others.slice(0,2).map(first).join(', ')+(others.length>2?' +'+(others.length-2):'');
   const rows=team.map(x=>{const m=B.schedule.metrics(st,x),p=B.person(x.person),self=x.person===me(),unread=manager()&&briefs.some(b=>!hasRead(b,x.person));
    const flags=m.absence?tag('Out','danger'):m.late?tag('Late '+m.late.minutes+'m','amber'):unread?tag('Briefing unread','slate'):'';
    const inner=`<span class="td-avatar" data-tone="${tone(x.area)}">${e(p?.initials||'TM')}</span><span class="td-person"><strong>${e(self?'You':p?.name||'Team member')}</strong><small>${e(x.area)} · ${e(x.start)}–${e(x.end)}</small></span>${flags}`;
    return self?`<div class="td-member is-me">${inner}</div>`:`<button type="button" class="td-member" data-action="chat-dm" data-id="${e(x.person)}" aria-label="Message ${e(p?.name||'teammate')}">${inner}</button>`;}).join('');
-  return `<section class="td-card td-team" id="td-team"><header class="td-card-head"><h2>On shift</h2><div class="td-card-meta"><span class="td-card-sub">${plural(new Set(team.map(x=>x.person)).size,'person','people')}</span></div></header><div class="td-members">${rows}</div><p class="td-hint">Tap someone to message them.</p></section>`;
+  return `<details class="td-hero-team" data-key="home-team-${e(st.date+'|'+st.service)}"><summary><span class="td-stack">${avatars}</span><span class="td-hero-who">${e(who)}</span><span class="td-hero-count">${plural(people.length,'person','people')}</span>${icon('chev')}</summary><div class="td-hero-members">${rows}<p class="td-hint">Tap someone to message them.</p></div></details>`;
  }
 
  // Shift notes are managed in full here: add, edit and archive without leaving Today.
