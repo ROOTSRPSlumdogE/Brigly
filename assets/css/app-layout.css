@@ -6249,3 +6249,75 @@ tr.is-muted{opacity:.6}
  .ps-order-body.is-readonly .ps-rail{display:grid}
  .ps-sheet-grid{grid-template-columns:1fr}
 }
+
+/* Light-theme sidebar: the charcoal sidebar above is the dark look; in light mode the sidebar follows the theme tokens (requested 2026-10-29). */
+@media(min-width:761px){
+  :root[data-theme="light"] .sidebar{background:var(--surface)!important;color:var(--ink)!important;border-right:1px solid var(--line)!important;box-shadow:none}
+  :root[data-theme="light"] .sidebar .brand img:not(.brand-mark){content:url("../logos/brigly-on-light.svg")}
+  :root[data-theme="light"] .sidebar .venue{background:var(--surface-soft);border-color:var(--line)}
+  :root[data-theme="light"] .sidebar .venue strong{color:var(--ink)}
+  :root[data-theme="light"] .sidebar .venue small{color:var(--muted)}
+  :root[data-theme="light"] .sidebar .venue-icon{background:var(--tone-orange-bg);color:var(--tone-orange-fg);border-color:var(--tone-orange-bd)}
+  :root[data-theme="light"] .sidebar .nav-group>p{color:var(--muted)}
+  :root[data-theme="light"] .sidebar .nav-group button{color:var(--tone-slate-fg)}
+  :root[data-theme="light"] .sidebar .nav-group button:hover{background:var(--surface-soft);color:var(--ink)}
+  :root[data-theme="light"] .sidebar .nav-group button.active{background:var(--surface-soft);color:var(--ink)!important;border-color:var(--line);box-shadow:inset 3px 0 0 var(--orange)}
+  :root[data-theme="light"] .sidebar button[data-tone="orange"] .nav-icon{background:var(--tone-orange-bg);color:var(--tone-orange-fg)}
+  :root[data-theme="light"] .sidebar button[data-tone="sage"] .nav-icon{background:var(--tone-sage-bg);color:var(--tone-sage-fg)}
+  :root[data-theme="light"] .sidebar button[data-tone="amber"] .nav-icon{background:var(--tone-amber-bg);color:var(--tone-amber-fg)}
+  :root[data-theme="light"] .sidebar button[data-tone="danger"] .nav-icon{background:var(--tone-danger-bg);color:var(--tone-danger-fg)}
+  :root[data-theme="light"] .sidebar button[data-tone="slate"] .nav-icon{background:var(--tone-slate-bg);color:var(--tone-slate-fg)}
+  :root[data-theme="light"] .sidebar .nav-pill[data-tone="orange"]{background:var(--tone-orange-bg);color:var(--tone-orange-fg)}
+  :root[data-theme="light"] .sidebar .nav-pill[data-tone="sage"]{background:var(--tone-sage-bg);color:var(--tone-sage-fg)}
+  :root[data-theme="light"] .sidebar .nav-pill[data-tone="amber"]{background:var(--tone-amber-bg);color:var(--tone-amber-fg)}
+  :root[data-theme="light"] .sidebar .nav-pill[data-tone="danger"]{background:var(--tone-danger-bg);color:var(--tone-danger-fg)}
+  :root[data-theme="light"] .sidebar .nav-pill[data-tone="slate"]{background:var(--tone-slate-bg);color:var(--tone-slate-fg)}
+  :root[data-theme="light"] .sidebar .nav-number.alert-count{background:var(--surface-soft);color:var(--muted)}
+  :root[data-theme="light"] .sidebar .sidebar-profile{background:var(--surface-soft);border-color:var(--line);color:var(--ink)}
+  :root[data-theme="light"] .sidebar .sidebar-profile:hover{background:var(--surface-soft);border-color:#C9C3B6}
+  :root[data-theme="light"] .sidebar .sidebar-profile small,:root[data-theme="light"] .sidebar .sidebar-profile>span:last-child{color:var(--muted)}
+  :root[data-theme="light"] .sidebar .sidebar-profile .avatar{background:var(--tone-sage-bg);border-color:var(--tone-sage-bd);color:var(--tone-sage-fg)}
+  :root[data-theme="light"] .sidebar .sidebar-bottom{border-top-color:var(--line)}
+  :root[data-theme="light"] .sidebar .role-label{color:var(--muted)}
+  :root[data-theme="light"] .sidebar select{background:var(--surface);border-color:var(--line);color:var(--ink)}
+  :root[data-theme="light"] .sidebar-pulse{background:var(--surface-soft);border-color:var(--line)}
+  :root[data-theme="light"] .sidebar-pulse:hover{border-color:var(--orange)}
+  :root[data-theme="light"] .sidebar-pulse strong{color:var(--ink)}
+  :root[data-theme="light"] .sidebar-pulse small{color:var(--muted)}
+  :root[data-theme="light"] .sidebar-pulse .pulse-bell{background:var(--tone-orange-bg);border-color:var(--tone-orange-bd);color:var(--tone-orange-fg)}
+  :root[data-theme="light"] #sidebar-notif-badge[data-urgent="false"]{background:var(--surface);color:var(--ink)}
+}
+
+/* Light-theme Today shift card: the dark gradient card is the dark look; in light mode it follows the theme (requested 2026-10-29). */
+:root[data-theme="light"] .td-hero{background:linear-gradient(135deg,#FFFFFF 0%,#F3F0E8 100%);border-color:var(--line);color:var(--ink);box-shadow:var(--card-shadow,0 1px 2px rgba(15,20,18,.04),0 6px 18px rgba(15,20,18,.04))}
+:root[data-theme="light"] .td-hero::after{background:radial-gradient(circle,rgba(255,107,61,.18),transparent 68%)}
+:root[data-theme="light"] .td-hero-eyebrow{color:var(--muted)}
+:root[data-theme="light"] .td-hero .td-live{--live:#1F8A4C}
+:root[data-theme="light"] .td-hero-status{background:rgba(15,20,18,.06);color:var(--ink);border-color:rgba(15,20,18,.12)}
+:root[data-theme="light"] .td-hero-status[data-tone="sage"]{background:var(--tone-sage-bg);color:var(--tone-sage-fg);border-color:var(--tone-sage-bd)}
+:root[data-theme="light"] .td-hero-status[data-tone="amber"]{background:var(--tone-amber-bg);color:var(--tone-amber-fg);border-color:var(--tone-amber-bd)}
+:root[data-theme="light"] .td-hero-status[data-tone="danger"]{background:var(--tone-danger-bg);color:var(--tone-danger-fg);border-color:var(--tone-danger-bd)}
+:root[data-theme="light"] .td-hero-time{color:var(--ink)}
+:root[data-theme="light"] .td-hero-time small,:root[data-theme="light"] .td-hero-clock small,:root[data-theme="light"] .td-hero-count,:root[data-theme="light"] .td-hero .td-person small,:root[data-theme="light"] .td-hero .td-hint,:root[data-theme="light"] .td-hero-tc-text small{color:var(--muted)}
+:root[data-theme="light"] .td-hero-sub,:root[data-theme="light"] .td-hero-solo,:root[data-theme="light"] .td-hero-team>summary,:root[data-theme="light"] .td-hero-tc-text span{color:var(--tone-slate-fg)}
+:root[data-theme="light"] .td-hero-team>summary:hover{color:var(--ink)}
+:root[data-theme="light"] .td-hero-team>summary svg{color:var(--tone-orange-fg)}
+:root[data-theme="light"] .td-hero-bar{background:rgba(15,20,18,.08)}
+:root[data-theme="light"] .td-hero-members{border-top-color:var(--line)}
+:root[data-theme="light"] .td-hero .td-member{color:var(--ink)}
+:root[data-theme="light"] .td-hero .td-member.is-me,:root[data-theme="light"] .td-hero .td-member:hover{background:rgba(15,20,18,.05)}
+:root[data-theme="light"] .td-hero .td-avatar,:root[data-theme="light"] .td-hero .td-stack>span{background:var(--surface-soft);border-color:#FFFFFF;color:var(--ink)}
+:root[data-theme="light"] .td-hero .td-avatar[data-tone="orange"],:root[data-theme="light"] .td-hero .td-stack>span[data-tone="orange"]{background:var(--tone-orange-bg);color:var(--tone-orange-fg)}
+:root[data-theme="light"] .td-hero .td-avatar[data-tone="slate"],:root[data-theme="light"] .td-hero .td-stack>span[data-tone="slate"]{background:var(--tone-slate-bg);color:var(--tone-slate-fg)}
+:root[data-theme="light"] .td-hero .td-avatar[data-tone="sage"],:root[data-theme="light"] .td-hero .td-stack>span[data-tone="sage"]{background:var(--tone-sage-bg);color:var(--tone-sage-fg)}
+:root[data-theme="light"] .td-hero-tc{background:rgba(15,20,18,.04);border-color:var(--line)}
+:root[data-theme="light"] .td-hero-tc[data-state="on"]{background:var(--tone-sage-bg);border-color:var(--tone-sage-bd)}
+:root[data-theme="light"] .td-hero-tc[data-state="break"]{background:var(--tone-amber-bg);border-color:var(--tone-amber-bd)}
+:root[data-theme="light"] .td-hero-tc[data-state="ready"]{border-color:var(--tone-orange-bd)}
+:root[data-theme="light"] .td-hero-tc[data-state="on"] .td-hero-tc-text small{color:var(--tone-sage-fg)}
+:root[data-theme="light"] .td-hero-tc[data-state="break"] .td-hero-tc-text small{color:var(--tone-amber-fg)}
+:root[data-theme="light"] .td-hero-tc[data-state="ready"] .td-hero-tc-text small{color:var(--tone-orange-fg)}
+:root[data-theme="light"] .td-hero-tc .button.secondary{background:#FFFFFF;color:var(--ink);border-color:var(--line)}
+:root[data-theme="light"] .td-hero-tc .button.secondary:hover:not(:disabled){background:var(--surface-soft);border-color:#C9C3B6}
+:root[data-theme="light"] .td-hero-jump{background:var(--tone-orange-bg);border-color:var(--tone-orange-bd);color:var(--tone-orange-fg)}
+

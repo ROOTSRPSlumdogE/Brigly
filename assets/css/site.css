@@ -159,16 +159,6 @@ em{font-style:normal;color:var(--orange)}
 .device.phone .island{position:absolute;left:50%;top:16px;transform:translateX(-50%);width:78px;height:20px;border-radius:999px;background:#0b0f0d;z-index:5}
 .screen{position:relative;overflow:hidden;background:var(--surface)}
 .screen .shot{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top left}
-.live{position:absolute;inset:0;overflow:hidden;opacity:0;pointer-events:none;transition:opacity .5s ease}
-.live iframe{position:absolute;left:0;top:0;border:0;width:1200px;height:750px;transform-origin:0 0;transform:scale(var(--s,1));background:transparent}
-.live[data-kind="phone"] iframe{width:390px;height:780px}
-.live[data-state="ready"]{opacity:1;pointer-events:auto}
-.make-live{position:absolute;right:12px;bottom:12px;z-index:4;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;background:rgba(15,20,18,.82);color:#F6F4EF;font-size:12.5px;font-weight:700;border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(8px);transition:background .2s,transform .2s;box-shadow:0 8px 24px rgba(0,0,0,.35)}
-.make-live:hover{background:rgba(15,20,18,.95);transform:translateY(-1px)}
-.make-live[data-state="loading"]{color:rgba(246,244,239,.7)}
-.make-live[data-state="loading"] span{display:inline-block;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.device.phone .make-live{right:10px;bottom:10px;font-size:11.5px;padding:0 12px}
 
 /* ---------- Hero ---------- */
 .hero{padding:124px 0 clamp(48px,7vw,96px);position:relative;overflow:clip}
@@ -191,7 +181,6 @@ em{font-style:normal;color:var(--orange)}
   .hero-stage .device.phone{position:absolute;left:-28px;bottom:0;width:168px;z-index:3;box-shadow:0 30px 70px rgba(0,0,0,.55)}
   .hero-stage .device.phone .screen{border-radius:22px}
   .hero-stage .device.phone .island{width:54px;height:14px;top:12px}
-  .hero-stage .device.phone .make-live{display:none}
 }
 @media(min-width:1240px){.hero-stage .device.phone{left:-56px;width:190px}}
 
@@ -371,7 +360,6 @@ em{font-style:normal;color:var(--orange)}
   .training-stage .device.phone{position:absolute;right:-24px;bottom:0;width:160px;z-index:3;box-shadow:0 30px 70px rgba(0,0,0,.55)}
   .training-stage .device.phone .screen{border-radius:22px}
   .training-stage .device.phone .island{width:54px;height:14px;top:12px}
-  .training-stage .device.phone .make-live{display:none}
 }
 @media(min-width:1240px){.training-stage .device.phone{right:-44px;width:180px}}
 

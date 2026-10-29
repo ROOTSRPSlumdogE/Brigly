@@ -7,70 +7,7 @@
   const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
   if(!reduced)root.classList.add('motion');
 
-  /* =====================================================================
-     Live app previews. Every product visual is a static screenshot; the
-     real app only boots into a `.live[data-src]` host when the visitor
-     asks ("Make it live"), and only one instance runs at a time.
-     ===================================================================== */
-  const BASE={desktop:[1200,750],phone:[390,780]};
   const themeNow=()=>root.dataset.theme==='light'?'light':'dark';
-  function applyTheme(frame){try{frame.contentDocument.documentElement.dataset.theme=themeNow();}catch{}}
-  function fit(host){
-    const screen=host.closest('.screen');if(!screen)return;
-    const [w]=BASE[host.dataset.kind==='phone'?'phone':'desktop'];
-    host.style.setProperty('--s',(screen.clientWidth/w).toFixed(4));
-  }
-  const fitter=new ResizeObserver(entries=>entries.forEach(en=>en.target.querySelectorAll('.live').forEach(fit)));
-  all('.screen').forEach(s=>fitter.observe(s));
-
-  let current=null;
-  const openUrl=src=>src.replace(/embed=[^&]*&?/,'').replace(/[?&]$/,'');
-  function unmount(host){
-    if(!host||!host.dataset.state)return;
-    host.querySelector('iframe')?.remove();
-    delete host.dataset.state;
-    const btn=host.parentElement.querySelector('[data-live-toggle]');
-    if(btn){btn.replaceWith(liveButton());}
-    if(current===host)current=null;
-  }
-  function liveButton(){
-    const b=document.createElement('button');
-    b.type='button';b.className='make-live';b.dataset.liveToggle='';b.setAttribute('aria-label','Make this preview live');
-    b.innerHTML='Make it live <span aria-hidden="true">▸</span>';
-    return b;
-  }
-  function mount(host,btn){
-    if(!host||host.dataset.state)return;
-    if(current&&current!==host)unmount(current);
-    current=host;host.dataset.state='loading';
-    if(btn){btn.dataset.state='loading';btn.innerHTML='Loading the app <span aria-hidden="true">◌</span>';btn.disabled=true;}
-    const f=document.createElement('iframe');
-    f.src=host.dataset.src;f.title=host.dataset.title||'Brigly app preview';
-    f.setAttribute('tabindex','-1');f.loading='eager';
-    let done=false;
-    const ready=()=>{
-      if(done)return;done=true;
-      if(!f.isConnected)return;
-      applyTheme(f);fit(host);host.dataset.state='ready';
-      if(btn){
-        const a=document.createElement('a');
-        a.className='make-live';a.href=openUrl(host.dataset.src);a.target='_blank';a.rel='noopener';a.dataset.cta='live-open';
-        a.innerHTML='Live · open in the demo <span aria-hidden="true">↗</span>';
-        btn.replaceWith(a);
-      }
-    };
-    f.addEventListener('load',()=>setTimeout(ready,120));
-    setTimeout(ready,12000);
-    fit(host);host.appendChild(f);
-  }
-  document.addEventListener('click',e=>{
-    const btn=e.target.closest('[data-live-toggle]');if(!btn)return;
-    const host=btn.parentElement.querySelector('.live[data-src]');
-    mount(host,btn);
-  });
-  // A live instance inside a device the breakpoint hides is dropped.
-  const visible=h=>h.getClientRects().length>0;
-  desktop.addEventListener('change',()=>{if(current&&!visible(current))unmount(current);});
 
   /* ---------- Theme (shared `brigly-theme` key with the app) ---------- */
   function swapShots(){
@@ -90,7 +27,6 @@
   function setTheme(next){
     root.dataset.theme=next;
     try{localStorage.setItem('brigly-theme',next);}catch{}
-    all('.live iframe').forEach(applyTheme);
     swapShots();themeLabels();
   }
   document.addEventListener('click',e=>{const b=e.target.closest('[data-action="theme"]');if(b)setTheme(themeNow()==='light'?'dark':'light');});
@@ -148,7 +84,7 @@
     const panels=list.map(t=>document.getElementById(t.getAttribute('aria-controls')));
     function select(i,focus){
       list.forEach((t,j)=>{const on=j===i;t.setAttribute('aria-selected',on?'true':'false');t.tabIndex=on?0:-1;});
-      panels.forEach((p,j)=>{const on=j===i;if(on&&p.hidden){p.hidden=false;p.classList.remove('enter');void p.offsetWidth;p.classList.add('enter');}else if(!on){p.hidden=true;p.querySelectorAll('.live[data-state]').forEach(unmount);}});
+      panels.forEach((p,j)=>{const on=j===i;if(on&&p.hidden){p.hidden=false;p.classList.remove('enter');void p.offsetWidth;p.classList.add('enter');}else if(!on)p.hidden=true;});
       if(focus)list[i].focus();
       list[i].scrollIntoView({block:'nearest',inline:'nearest',behavior:reduced?'auto':'smooth'});
     }

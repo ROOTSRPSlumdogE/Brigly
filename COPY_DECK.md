@@ -20,7 +20,7 @@ Page order (2026-10-29 restructure, at Jonas's request to go deeper on team mana
 - **Subhead:** Brigly replaces the scheduling app, the clipboards, the inventory spreadsheet, the training binder and the staff group text with one workspace, so every screen agrees. Built for independent restaurants and bars.
 - **CTA:** Try the live demo → `demo.html` (`hero-primary`). The only element besides the headline and subhead, at Jonas's request (status line, microcopy, secondary CTA and trust line were cut as clutter).
 - **Preview status:** stated once in the device window bar: "Live preview · no sign-up · Today at The Copper Room".
-- **Visual:** static Today screenshots (desktop + phone, dark and light variants), with a "Make it live ▸" button that boots the real app in place.
+- **Visual:** static Today screenshots (desktop + phone, dark and light variants; the light desktop shots were regenerated on 2026-10-29 after the app's sidebar was made to follow the light theme). The "Make it live" buttons that used to boot the real app in place were removed on 2026-10-29 at Jonas's request; the only way into the app is now the demo links.
 - Verified for later use: `demo.html?as=crew` opens the staff view outside embed mode (used in the team section).
 
 ### The five headline options
@@ -211,7 +211,7 @@ Added 2026-10-29 at Jonas's request: three products in development. Jonas then a
 
 - **Eyebrow:** FAQ · **H2:** Fair questions. · **Lede:** Short answers. The demo has the long ones.
 
-1. **Is this real? Can I try it?** Yes. Every screenshot on this page comes from the working app, and "Make it live" swaps any of them for the real thing, running in your browser. The demo is a fictional restaurant, The Copper Room, with six months of sample history. There is no sign-up. Try the live demo (`faq-try`).
+1. **Is this real? Can I try it?** Yes. Every screenshot on this page comes from the working app, and the demo is that same app, running in your browser. The demo is a fictional restaurant, The Copper Room, with six months of sample history. There is no sign-up. Try the live demo (`faq-try`).
 2. **What does it cost?** Brigly is in preview. The demo is free, with no account and no card. Pricing will come later, and it will be built for independents, not enterprise contracts.
 3. **Do I have to replace my POS?** Not to try it. The demo includes Brigly's own POS so you can see what service looks like on one record. How Brigly fits beside an existing POS is a question for the first real customers, and we will be honest about what works.
 4. **What hardware do I need?** None to start. Brigly runs in a browser on the computer, tablet or phone you already have. Card readers, printers and kitchen screens are not part of the preview yet.
