@@ -3,7 +3,7 @@
 (function(){
  'use strict';
  const B=Brigly,prev={change:B.change,starter:B.starter,load:B.load};
- const copy=x=>JSON.parse(JSON.stringify(x));
+ const copy=x=>globalThis.Brigly.clone(x);
  const round=n=>Math.round(n*100)/100;
  const today=()=>B.payroll.stamp().slice(0,10);
  const txt=(x,max)=>typeof x==='string'&&x.length<=max;

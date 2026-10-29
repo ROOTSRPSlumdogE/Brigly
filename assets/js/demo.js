@@ -2,7 +2,7 @@
   'use strict';
   const B=globalThis.Brigly,$=id=>document.getElementById(id);
   let storage;try{storage=localStorage;}catch{}
-  let state=B.load(storage),week=B.monday(state.date),editing=null,toastTimer,externalDirty=false;
+  let state=B.withSharedClones(()=>B.load(storage)),week=B.monday(state.date),editing=null,toastTimer,externalDirty=false;
   const e=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const titles={schedules:'Team schedules',lists:'Checklists',specials:'Happenings','eighty-six':'86 board',onboarding:'Shift briefing',orders:'Station supplies',reservations:'Reservations',stock:'Stock',menu:'Menu',pos:'POS'};
   const paths={menu:'M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h5',pos:'M3 7h18v10H3z M3 11h18 M7 15h3',home:'m3 10 9-7 9 7 M5 9v12h14V9 M9 21v-8h6v8',earnings:'M12 2v20 M18 5H9a4 4 0 0 0 0 8h6a3 3 0 0 1 0 6H5',reports:'M4 3v18h17 M8 16v-5 M13 16V6 M18 16v-8',team:'M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M2 21v-3a7 7 0 0 1 14 0v3 M17 4a4 4 0 0 1 0 8 M19 15a6 6 0 0 1 3 6',schedules:'M4 5h16v15H4z M8 3v4 M16 3v4 M4 10h16 M8 14h2 M14 14h2',lists:'M9 5h11 M9 12h11 M9 19h11 M3 5l1 1 2-3 M3 12l1 1 2-3 M3 19l1 1 2-3',specials:'m12 3 2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9L6.5 20l1-6.1L3 9.5l6.3-.9z','eighty-six':'M5 5l14 14 M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20',onboarding:'M4 4h16v13H9l-5 4z M8 8h8 M8 12h5',orders:'M3 4h2l3 12h10l3-9H6 M9 20h.1 M18 20h.1',stock:'M21 8 12 3 3 8v8l9 5 9-5z M3 8l9 5 9-5 M12 13v8',reservations:'M4 9h16v11H4z M8 9V6a4 4 0 0 1 8 0v3 M8 14h8',training:'M12 4 2 9l10 5 10-5-10-5z M6 11.5v4.5c0 1.5 3 3 6 3s6-1.5 6-3v-4.5 M22 9v6',me:'M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2'};
@@ -485,7 +485,7 @@
     $('sidebar-person').textContent=viewer.name;$('sidebar-access').textContent=(viewer.role||'Team member')+' · '+viewer.area+(manager()&&viewer.role!=='Manager'?' · manager access':'');$('sidebar-avatar').textContent=viewer.initials;
     $('app-menu-title').textContent=matchMedia('(max-width:760px)').matches?'Explore Brigly':'Profile & preferences';
     for(const table of $('view').querySelectorAll('table:not(.schedule-table)')){table.classList.add('responsive-table');const labels=[...table.querySelectorAll('thead th')].map(x=>x.textContent);for(const row of table.querySelectorAll('tbody tr'))[...row.cells].forEach((cell,i)=>cell.dataset.label=labels[i]||'');}
-    document.body.dataset.role=state.role;document.body.dataset.section=screen;document.body.dataset.view=state.view;
+    document.body.dataset.role=state.role;document.body.dataset.section=screen;document.body.dataset.view=state.view;applyNav();
     // Dock screens are one tap away on phones; everything else gets a way back to Today.
     document.body.dataset.dock=['home','lists','stock',manager()?'shifts':'me'].includes(screen)||(!manager()&&N.hub.includes(screen))?'true':'false';
     $('breadcrumb').textContent=screen==='home'?'Today':!manager()&&N.hub.includes(screen)?'My space':screen==='shifts'?'Roster':screen==='earnings'?'Earnings':screen==='requests'?'Requests':screen==='manage'?'Manage':screen==='reports'?'Reports':screen==='myfile'?'My file':screen==='briefing'?'Shift briefing':screen==='training'?'Training':titles[state.view];
@@ -836,9 +836,25 @@
     }
     try{state=B.change(state,action);const message=editing.type==='stock'?stockUI.saved():editing.type==='writeups'?writeupsUI.saved():editing.type==='finance'?financeUI.saved():editing.type==='hr'?hrUI.saved():editing.type==='training'?trainingUI.saved():editing.type==='floor'?floorUI.saved():editing.type==='menu'?menuUI.saved():editing.type==='pos'?posUI.saved():'';const saved=persist();$('editor').close();render();notify(saved?message||'Changes saved.':'Updated in memory. Browser storage is unavailable.');}catch(err){$('form-error').textContent=err.message;}
   });
+  // Sidebar layout on desktop: full, compact rail (icons only) or hidden. The POS starts compact unless the person chose a layout.
+  const NAV_KEY='brigly-nav',NAV_MODES=['full','rail','hidden'];
+  function navPref(){try{const v=localStorage.getItem(NAV_KEY);return NAV_MODES.includes(v)?v:'';}catch{return '';}}
+  function navMode(){if(/[?&]embed=/.test(location.search))return state.view==='pos'?'rail':'full';return navPref()||(state.view==='pos'?'rail':'full');}
+  function applyNav(){
+    const mode=navMode();document.body.dataset.nav=mode;
+    const next={full:'Menu shown in full. Switch to compact',rail:'Compact menu. Hide the menu',hidden:'Menu hidden. Show the menu'};
+    $('nav-switch')?.setAttribute('aria-label',next[mode]);
+    const col=document.querySelector('.nav-collapse');if(col){col.setAttribute('aria-label',mode==='rail'?'Expand the menu':'Collapse the menu');const l=col.querySelector('.nav-label');if(l)l.textContent=mode==='rail'?'Expand menu':'Collapse menu';}
+    for(const b of document.querySelectorAll('#nav-pref button'))b.setAttribute('aria-pressed',String(b.dataset.id===mode));
+  }
+  function setNav(mode){try{localStorage.setItem(NAV_KEY,mode);}catch{}applyNav();}
   function updateThemeLabels(){const dark=document.documentElement.dataset.theme!=='light';for(const b of document.querySelectorAll('.theme-toggle')){b.setAttribute('aria-label','Switch to '+(dark?'light':'dark')+' mode');if(b.closest('dialog'))b.textContent='Switch to '+(dark?'light':'dark')+' mode';}document.querySelector('meta[name="theme-color"]').content=dark?'#0F1412':'#F6F4EF';}
   document.addEventListener('click',ev=>{const b=ev.target.closest('[data-action]');if(!b)return;
     if(b.dataset.action==='theme'){const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;try{localStorage.setItem('brigly-theme',next);}catch{}updateThemeLabels();}
+    if(b.dataset.action==='nav-cycle')setNav(NAV_MODES[(NAV_MODES.indexOf(navMode())+1)%NAV_MODES.length]);
+    if(b.dataset.action==='nav-toggle')setNav(navMode()==='rail'?'full':'rail');
+    if(b.dataset.action==='nav-set')setNav(b.dataset.id);
+    if(b.dataset.action==='nav-hide')setNav('hidden');
     if(b.dataset.action==='app-menu')$('app-menu').showModal();
     if(b.dataset.action==='menu-close')$('app-menu').close();
     if(b.dataset.action==='navigate'){$('app-menu').close();window.scrollTo({top:0,behavior:'instant'});}
@@ -857,7 +873,7 @@
   const homeUI=createShiftHome({pos:()=>posUI.todayCard(),clock:()=>financeUI.clockState(),payroll:()=>manager()?[...financeUI.attention(),...hrUI.attention()]:[],openContext:openShiftPicker,notify,commit,showHome:()=>{state.view='schedules';scheduleUI.show('home');},state:()=>state,e,dateLabel,render,focus:(date,service)=>{state.date=date;state.service=service;week=B.monday(date);},close:()=>$('editor').close(),open:(title,fields)=>{editing={type:'home'};showDialog(title,fields);$('editor-form').querySelector('[type=submit]').hidden=true;}});
   const meUI=createMeUI({state:()=>state,week:()=>week,e,button,badge,dateLabel,schedule:()=>scheduleUI,training:()=>trainingUI,hr:()=>hrUI,finance:()=>financeUI});
   const scheduleUI=createScheduleUI({state:()=>state,week:()=>week,home:()=>homeUI.render(),training:()=>trainingUI.render(),me:screen=>meUI.render(screen),e,button,badge,input,textarea,select,dateLabel,roster:()=>manager()?plannerUI.render():roster(),render,commit,extras:()=>operationsUI.extras(),section:key=>operationsUI.section(key),manage:()=>manageUI.render(),reportsPage:()=>reportsUI.render(),reportBoard:b=>reportsUI.show(b),pay:()=>financeUI.myPay(),manageTab:tab=>manageUI.show(tab),myfile:()=>hrUI.myFile(),context:(date,service)=>operationsUI.hub(date,service,true),open:(title,fields)=>{editing={type:'schedule'};showDialog(title,fields);}});
-  window.addEventListener('storage',event=>{if(event.key===B.KEY){const context={role:state.role,crewId:state.crewId,managerId:state.managerId,date:state.date,service:state.service,view:state.view};state={...B.load(storage),...context};if($('editor').open)externalDirty=true;render();notify('Workspace updated from another tab.');}});
+  window.addEventListener('storage',event=>{if(document.body.dataset.embed)return;if(event.key===B.KEY){const context={role:state.role,crewId:state.crewId,managerId:state.managerId,date:state.date,service:state.service,view:state.view};state={...B.withSharedClones(()=>B.load(storage)),...context};if($('editor').open)externalDirty=true;render();notify('Workspace updated from another tab.');}});
   const goManage=section=>{if($('editor').open)$('editor').close();state.view='schedules';scheduleUI.show('manage');manageUI.show(section);persist();render();window.scrollTo({top:0,behavior:'instant'});};
   const financeUI=createFinanceUI({state:()=>state,e,button,badge,dateLabel,commit,render,notify,open:infoDialog,form:formDialog('finance'),go:goManage});
   const writeupsUI=createWriteupsUI({state:()=>state,e,button,badge,dateLabel,commit,render,notify,open:infoDialog,form:formDialog('writeups'),close:()=>{if($('editor').open)$('editor').close();}});
@@ -889,7 +905,14 @@
     ev.preventDefault();const search=(state.view==='stock'&&document.querySelector('[data-stock-search]'))||(state.view==='menu'&&document.querySelector('[data-mn-search]'))||(state.view==='pos'&&document.querySelector('[data-ps-search]'));if(search)search.focus();else quickUI.open('search');
   });
   const aliases={shifts:'schedules',checklists:'lists',briefings:'onboarding',supply:'orders',supplies:'orders','86':'eighty-six',count:'inventory',dashboard:'schedules',till:'pos',checks:'pos',dishes:'menu',recipes:'menu'};
-  const requested=location.hash.slice(1);if(B.views.includes(requested))state.view=requested;else if(aliases[requested])state.view=aliases[requested];
-  if(!requested){state.view='schedules';scheduleUI.show('home');homeUI.entry();}
+  // The website embeds the app at a chosen screen and role: demo.html?embed=1&screen=home&as=crew (or #view for service screens).
+  const params=new URLSearchParams(location.search);
+  const requested=location.hash.slice(1)||params.get('view')||'';if(B.views.includes(requested))state.view=requested;else if(aliases[requested])state.view=aliases[requested];
+  const asRole=params.get('as');if(asRole==='crew'||asRole==='manager'){const p=state.team.find(x=>x.active&&x.access===asRole);if(p){state.role=p.access;if(p.access==='manager')state.managerId=p.id;else state.crewId=p.id;}}
+  const screen=params.get('screen');
+  if(screen&&['home','shifts','manage','training','reports','me','requests','earnings','myfile'].includes(screen)){state.view='schedules';scheduleUI.show(screen);if(screen==='home')homeUI.entry();if(screen==='training')trainingUI.show();}
+  else if(!requested){state.view='schedules';scheduleUI.show('home');homeUI.entry();}
+  if(params.has('embed'))document.body.dataset.embed=params.get('embed')||'1';
+  const openPanel=params.get('open');if(params.has('embed')&&(openPanel==='chat'||openPanel==='alerts')){document.body.dataset.embedOpen=openPanel;setTimeout(()=>$(openPanel==='chat'?'chat-btn':'notif-btn')?.click(),0);}
   persist();render();if(!storage)$('save-status').textContent='Storage unavailable. Changes last only while this page is open.';
 })();

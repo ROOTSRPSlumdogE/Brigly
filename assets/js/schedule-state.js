@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const B=globalThis.Brigly, original={starter:B.starter,load:B.load,valid:B.validState,change:B.change};
-  const clone=x=>JSON.parse(JSON.stringify(x));
+  const clone=x=>globalThis.Brigly.clone(x);
   const round=x=>Math.round((x+Number.EPSILON)*100)/100;
   const minutes=t=>Number(t.slice(0,2))*60+Number(t.slice(3));
   const integer=(x,max=100000)=>Number.isInteger(x)&&x>=0&&x<=max;

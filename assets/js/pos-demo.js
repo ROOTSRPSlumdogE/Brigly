@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const B=Brigly,prev={starter:B.starter,load:B.load};
- const copy=x=>JSON.parse(JSON.stringify(x));
+ const copy=x=>globalThis.Brigly.clone(x);
  const hash=t=>{let n=2166136261;for(const c of String(t)){n^=c.charCodeAt(0);n=Math.imul(n,16777619);}return n>>>0;};
  const round=n=>Math.round(n*100)/100;
  const iso=(date,minutes)=>{const m=((minutes%1440)+1440)%1440,d=minutes>=1440?B.addDays(date,1):minutes<0?B.addDays(date,-1):date;return new Date(d+'T'+String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')+':00').toISOString();};

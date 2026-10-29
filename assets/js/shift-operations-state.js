@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   const B=globalThis.Brigly,previous={starter:B.starter,load:B.load,valid:B.validState,change:B.change};
-  const copy=x=>JSON.parse(JSON.stringify(x));
+  const copy=x=>globalThis.Brigly.clone(x);
   const txt=(x,max=500)=>typeof x==='string'&&x.length<=max;
   const label=x=>txt(x,80)&&x.trim().length>0&&!x.includes('|');
   const identifier=x=>typeof x==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(x);

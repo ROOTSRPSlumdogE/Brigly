@@ -1,7 +1,7 @@
 /* Team chat: one channel for everyone, one per station and direct messages — text, photos, voice notes and to-dos. */
 (function(){
  const B=Brigly,prev={starter:B.starter,load:B.load,valid:B.validState,change:B.change};
- const clone=x=>JSON.parse(JSON.stringify(x));
+ const clone=x=>globalThis.Brigly.clone(x);
  const kinds=['text','image','voice','todo'];
  const dm=(a,b)=>'dm:'+[a,b].sort().join(':');
  const threadShape=t=>typeof t==='string'&&(t==='team'||/^station:.{1,80}$/.test(t)||/^role:.{1,80}$/.test(t)||/^dm:[^:]{1,100}:[^:]{1,100}$/.test(t));

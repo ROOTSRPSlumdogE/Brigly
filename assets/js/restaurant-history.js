@@ -1,6 +1,6 @@
 /* Expanded fictional restaurant lifecycle; fills gaps without replacing saved records. */
 (function(){
- const B=Brigly,prev={starter:B.starter,load:B.load},copy=x=>JSON.parse(JSON.stringify(x));
+ const B=Brigly,prev={starter:B.starter,load:B.load},copy=x=>globalThis.Brigly.clone(x);
  const hash=t=>{let n=0;for(const c of t)n=(Math.imul(n,31)+c.charCodeAt(0))>>>0;return n;};
  function enrich(input){if(input.restaurantHistory?.version===2)return input;const s=copy(input),from=s.demoHistory?.from||B.addDays(s.date,-180),to=s.demoHistory?.to||s.date,end=s.demoHistory?.planningTo||s.date;
   const profiles=[['demo-grace','Grace Allen','Server','Floor',18,64],['demo-marcus','Marcus Bell','Bartender','Bar',20,119]];

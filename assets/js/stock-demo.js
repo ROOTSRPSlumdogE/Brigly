@@ -1,7 +1,7 @@
 /* Demo-only purchasing content: six months of received deliveries per vendor, today's open order pipeline and the last stock count. Runs once per fictional workspace. */
 (function(){
  const B=Brigly,prev={starter:B.starter,load:B.load};
- const copy=x=>JSON.parse(JSON.stringify(x));
+ const copy=x=>globalThis.Brigly.clone(x);
  const hash=t=>{let n=2166136261;for(const c of String(t)){n^=c.charCodeAt(0);n=Math.imul(n,16777619);}return n>>>0;};
  const at=(date,clock)=>new Date(date+'T'+clock+':00');
  // Deliveries per week: perishables come more often than wine or dry goods.

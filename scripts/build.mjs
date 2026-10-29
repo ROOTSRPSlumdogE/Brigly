@@ -25,6 +25,7 @@ const images=[
   'brigly-dining-room.webp'
 ];
 for(const name of images)await cp(path.join(root,'assets/images',name),path.join(out,'assets/images',name));
+await cp(path.join(root,'assets/images/screens'),path.join(out,'assets/images/screens'),{recursive:true});
 
 // Set only after the canonical public URL is owned and chosen.
 const origin=process.env.SITE_URL?.replace(/\/$/,'');

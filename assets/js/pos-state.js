@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const B=Brigly,prev={starter:B.starter,load:B.load,valid:B.validState,change:B.change};
- const copy=x=>JSON.parse(JSON.stringify(x));
+ const copy=x=>globalThis.Brigly.clone(x);
  const txt=(x,max)=>typeof x==='string'&&x.length<=max;
  const num=(x,max=1000000)=>typeof x==='number'&&Number.isFinite(x)&&x>=0&&x<=max;
  const money=x=>typeof x==='number'&&Number.isFinite(x)&&Math.abs(x)<=1000000;

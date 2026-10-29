@@ -6,6 +6,7 @@
 }
 @media(min-width:761px) and (max-width:1150px){:root{--shell-width:214px}main{padding:20px}.topbar{padding:0 20px}.shift-home{gap:16px;grid-template-columns:1fr 1fr}.shift-hero{padding:20px;min-height:226px}.shift-hero h2{font-size:31px}.instant-action{min-height:106px;font-size:10px;padding:12px 4px}.setup-cards{grid-template-columns:1fr 1fr}.home-intro h1{font-size:26px}}
 @media(max-width:760px){
+ .nav-switch,.nav-tools,.nav-pref{display:none}
  .sidebar-profile{display:none}.sidebar{display:none}.workspace{margin:0}.topbar{height:calc(58px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 15px 0;background:var(--paper)}.breadcrumb strong{font-size:18px}.topbar .avatar{background:var(--surface-soft);border-color:var(--line)}main{padding:14px 14px calc(91px + env(safe-area-inset-bottom))}.page-heading{margin-bottom:12px}.page-heading .service-picker{min-width:0}.page-heading .service-picker label:first-child{min-width:0}.panel,.shift-context{border-radius:18px}.panel-head{padding:17px}.panel-head h2{font-size:17px}.panel-head p{font-size:11px}.section-bar{margin-bottom:14px;gap:12px}.section-bar h2{font-size:18px;letter-spacing:-.4px}.section-bar p{font-size:11px;line-height:1.6}.content-grid{gap:12px}.button{border-radius:12px;min-height:44px}.context-heading,.context-section,.setup-section{padding:16px}.context-heading h2{font-size:18px}.context-heading .eyebrow{display:none}.context-section h3{font-size:14px}.shift-note-card{padding:14px;border-radius:14px}.check-row{padding:17px 15px}.check-row strong{font-size:13px;line-height:1.5}.card-body{padding:18px}.card-body h3{font-size:19px}.card-body p{font-size:12px}.price{font-size:25px}.request-card{padding:16px}.request-heading strong{font-size:13px}.request-card p{font-size:12px}.report-stats{gap:9px}.report-stats>div{border-radius:14px;padding:15px}.report-stats strong{font-size:24px}.report-heading h2{font-size:23px}.estimate-note{font-size:10px}.setup-section>.report-presets .button{font-size:11px;padding:10px 6px}.responsive-table tbody{padding:0 12px 12px}.responsive-table tr{padding:17px 3px;gap:12px}.responsive-table td:first-child{font-size:14px}#service-nav{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 14px 14px;margin:0 -14px 0;flex-direction:row}#service-nav button{display:flex;align-items:center;gap:6px;flex-shrink:0;min-height:42px;padding:9px 12px;border:1px solid var(--line);background:var(--surface);border-radius:12px;font-size:11px;color:var(--muted)}#service-nav button.active{background:var(--surface-soft);border-color:var(--mint);color:var(--ink)}#service-nav .nav-icon{width:17px;height:17px}#service-nav svg{width:17px;height:17px}#bottom-nav{background:var(--paper);border-top:1px solid var(--line);padding:7px 10px calc(8px + env(safe-area-inset-bottom));gap:5px}#bottom-nav button{border-radius:15px;min-height:50px;font-size:9px;gap:5px}#bottom-nav button[aria-current=page]{color:var(--mint);background:var(--surface-soft)}#bottom-nav button[aria-current=page] svg{color:var(--orange)}#bottom-nav svg{width:21px;height:21px}.more-icon{font-size:17px}#app-menu{padding:24px 18px calc(20px + env(safe-area-inset-bottom));max-height:91dvh}#app-menu .dialog-heading h2{font-size:22px}#app-menu .dialog-heading{margin-bottom:10px}.explore-group>div{gap:8px}.explore-group .menu-link{min-height:63px;font-size:11px}#more-links .menu-link>span:last-child{display:block!important}.explore-group .nav-icon{height:22px!important;width:22px!important}.explore-group .nav-icon svg{width:21px!important;height:21px!important}#mobile-account .sidebar-bottom{margin-top:22px}.home-intro{margin-bottom:12px}.home-intro p{font-size:10px}.shift-hero{box-shadow:0 5px 18px #0000000d}.instant-action{box-shadow:0 3px 12px #00000008}.home-date{color:var(--ink)}.hero-status{border:1px solid var(--line)}
 }
 /* Compact service sections. */
@@ -6136,14 +6137,35 @@ tr.is-muted{opacity:.6}
 .sk.ps{max-width:none}
 .ps-item-flag[data-tone=orange]{color:var(--tone-orange-fg)}
 @media(min-width:761px){
- body[data-view="pos"] .sidebar{width:76px;padding:18px 10px 14px}
- body[data-view="pos"] .workspace{margin-left:76px}
- body[data-view="pos"] .sidebar .brand{padding:0;margin:0 0 16px;display:grid;place-items:center}
- body[data-view="pos"] .sidebar .brand img{width:54px}
- body[data-view="pos"] .sidebar .venue,body[data-view="pos"] .nav-group>p,body[data-view="pos"] .sidebar-bottom,body[data-view="pos"] .nav-group button>*:not(.nav-icon),body[data-view="pos"] .sidebar-profile>*:not(.avatar){display:none}
- body[data-view="pos"] .nav-group button{justify-content:center;padding:0;min-height:46px;gap:0}
- body[data-view="pos"] .nav-group button .nav-icon{margin:0}
- body[data-view="pos"] .sidebar-profile{justify-content:center;padding:8px;margin-top:10px}
+ /* Compact rail: icons only. Used by the POS by default and by anyone who picks "Compact" in the menu. */
+ body[data-nav="rail"] .sidebar{width:76px;padding:18px 10px 14px}
+ body[data-nav="rail"] .workspace{margin-left:76px}
+ body[data-nav="rail"] .sidebar .brand{padding:0;margin:0 0 8px;display:grid;place-items:center}
+ body[data-nav="rail"] .sidebar .brand img:not(.brand-mark){display:none}
+ body[data-nav="rail"] .brand .brand-mark{display:block;width:34px;height:34px}
+ body[data-nav="rail"] .sidebar .venue,body[data-nav="rail"] .nav-group>p,body[data-nav="rail"] .sidebar-bottom,body[data-nav="rail"] .nav-group button>*:not(.nav-icon),body[data-nav="rail"] .sidebar-profile>*:not(.avatar){display:none}
+ body[data-nav="rail"] .nav-group button{justify-content:center;padding:0;min-height:46px;gap:0}
+ body[data-nav="rail"] .nav-group button .nav-icon{margin:0}
+ body[data-nav="rail"] .sidebar-profile{justify-content:center;padding:8px;margin-top:10px}
+ body[data-nav="rail"] .nav-collapse svg{transform:scaleX(-1)}
+ /* Hidden: the whole width for the screen; the switch in the command bar brings the menu back. */
+ body[data-nav="hidden"] .sidebar{display:none}
+ body[data-nav="hidden"] .workspace{margin-left:0}
+ .brand .brand-mark{display:none}
+ /* The layout control is an ordinary menu row under the navigation; the command-bar button only shows while the menu is hidden. */
+ .nav-tools{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);flex-shrink:0}
+ .nav-tools button{display:flex;align-items:center;text-align:left;background:none;color:var(--muted);font-weight:600;transition:color .2s,background .2s}
+ .nav-tools button:hover{background:var(--surface-soft);color:var(--ink)}
+ .nav-tools .nav-icon{color:var(--muted)}
+ .nav-tools svg{width:20px;height:20px;transition:transform .25s}
+ /* Ghost icon, like the shift-stepper arrows: no box, just the glyph, only while the menu is hidden. */
+ .nav-switch{display:none;place-items:center;width:38px;min-width:38px;height:38px;border-radius:10px;background:none;border:0;color:var(--muted);margin-left:-8px;transition:color .2s,background .2s}
+ body[data-nav="hidden"] .nav-switch{display:grid}
+ .nav-switch:hover{background:var(--surface-soft);color:var(--ink)}
+ .nav-switch svg{width:20px;height:20px}
+ .nav-pref{margin:16px 0 4px;display:grid;gap:10px}
+ .nav-pref .segmented{display:flex}
+ .nav-pref .segmented button{flex:1}
  body[data-view="pos"] main{max-width:none;padding:14px 20px 28px}
  body[data-view="pos"] .topbar{padding:0 20px}
  .ps-layout{grid-template-columns:minmax(0,1fr) 380px}

@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const B=Brigly,prev={change:B.change,starter:B.starter,load:B.load};
- const copy=x=>JSON.parse(JSON.stringify(x));
+ const copy=x=>globalThis.Brigly.clone(x);
  // A warning is a documented heads-up; a write-up is the formal record, and can be the final one.
  const kinds=[['warning','Warning'],['writeup','Write-up']];
  const categories=['Attendance','Punctuality','Conduct','Performance','Policy','Safety & hygiene','Cash handling','Guest complaint','Other'];

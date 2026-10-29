@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const B=Brigly,prev={change:B.change,starter:B.starter};
- const copy=x=>JSON.parse(JSON.stringify(x));
+ const copy=x=>globalThis.Brigly.clone(x);
  // Everyday actions start on for every role; lead permissions start off and hand one part of the back office to a role or person.
  const list=[
   ['report86','Report 86 items','Flag dishes and stock that ran out. A manager or stock lead approves each report.','everyday'],

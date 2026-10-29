@@ -5,7 +5,7 @@
 (function(){
  'use strict';
  const B=Brigly,prev={change:B.change,starter:B.starter,load:B.load};
- const copy=x=>JSON.parse(JSON.stringify(x));
+ const copy=x=>globalThis.Brigly.clone(x);
  const now=()=>new Date().toISOString();
  const today=()=>(B.payroll?.stamp?.()||now()).slice(0,10);
  const txt=(x,max)=>typeof x==='string'&&x.length<=max;

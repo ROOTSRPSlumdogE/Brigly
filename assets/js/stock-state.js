@@ -1,7 +1,7 @@
 /* Stock: one catalog of what each team can 86 and order, vendors with delivery days and cut-offs, and purchase orders from crew request to delivery. */
 (function(){
  const B=Brigly,prev={starter:B.starter,load:B.load,valid:B.validState,change:B.change};
- const clone=x=>JSON.parse(JSON.stringify(x));
+ const clone=x=>globalThis.Brigly.clone(x);
  const slug=t=>String(t).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
  const txt=(x,max)=>typeof x==='string'&&x.length<=max;
  const label=(x,max=80)=>txt(x,max)&&x.trim().length>0;

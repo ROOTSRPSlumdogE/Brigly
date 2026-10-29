@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const B=Brigly,prev={starter:B.starter,load:B.load,valid:B.validState,change:B.change};
- const copy=x=>JSON.parse(JSON.stringify(x));
+ const copy=x=>globalThis.Brigly.clone(x);
  const slug=t=>String(t).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
  const txt=(x,max)=>typeof x==='string'&&x.length<=max;
  const label=(x,max=80)=>txt(x,max)&&x.trim().length>0;

@@ -2,6 +2,18 @@
 (function (root) {
   'use strict';
   const KEY = 'brigly-workspace-v2';
+  // Fast structural deep copy with JSON semantics (drops undefined and functions, nulls non-finite numbers, dates to ISO strings).
+  // Inside withSharedClones (used while loading from storage, where nobody else holds the parsed object)
+  // the wrappers' defensive clones are skipped, so the 30+ modules upgrade one object in place.
+  let share=false;
+  function withSharedClones(fn){share=true;try{return fn();}finally{share=false;}}
+  function clone(v){
+    if(share)return v;
+    if(v===null||typeof v!=='object'){return typeof v==='number'&&!Number.isFinite(v)?null:v;}
+    if(Array.isArray(v)){const a=new Array(v.length);for(let i=0;i<v.length;i++){const x=v[i];a[i]=x===undefined||typeof x==='function'?null:clone(x);}return a;}
+    if(v instanceof Date)return v.toISOString();
+    const o={};for(const k in v){const x=v[k];if(x===undefined||typeof x==='function')continue;o[k]=clone(x);}return o;
+  }
   const seedCrew = [
     {id:'jamie',name:'Jamie Chen',role:'Manager',area:'Floor',initials:'JC'},
     {id:'alex',name:'Alex Morgan',role:'Server',area:'Floor',initials:'AM'},
@@ -114,7 +126,7 @@
   function change(s,action,role=s.role){
     configure(s);
     if(!['manager','crew'].includes(role))throw Error('Choose a valid preview role.');
-    const d=JSON.parse(JSON.stringify(s)), me=actor(role,s.crewId,s.managerId), manager=role==='manager';
+    const d=clone(s), me=actor(role,s.crewId,s.managerId), manager=role==='manager';
     const needManager=()=>{if(!manager)throw Error('Only managers can make this change.');};
     const get=(collection,id)=>{const item=d[collection].find(x=>x.id===id);if(!item)throw Error('This record no longer exists.');return item;};
     if(action.type==='put'){
@@ -160,5 +172,5 @@
     }else throw Error('Unknown action.');
     if(!validState(d))throw Error('This change could not be saved. Check the entered values.');return d;
   }
-  root.Brigly={configure,duration,overlaps,KEY,crew,views,starter,validState,load,save,change,dateString,addDays,monday,isDate,actor,person,scoped};
+  root.Brigly={clone,withSharedClones,configure,duration,overlaps,KEY,crew,views,starter,validState,load,save,change,dateString,addDays,monday,isDate,actor,person,scoped};
 })(globalThis);

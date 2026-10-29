@@ -8,7 +8,7 @@
   const clock=n=>`${String(Math.floor(n/60)%24).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;
   function enrich(input,anchor=B.dateString(new Date())){
     if(input.demoHistory?.version===1)return input;
-    const s=JSON.parse(JSON.stringify(input));B.configure(s);
+    const s=globalThis.Brigly.clone(input);B.configure(s);
     const start=new Date(anchor+'T12:00:00');start.setDate(1);start.setMonth(start.getMonth()-5);
     const from=B.dateString(start),to=anchor,planningTo=B.addDays(anchor,7);
     const hired=new Date(start);hired.setMonth(hired.getMonth()+2);const hireDate=B.dateString(hired);

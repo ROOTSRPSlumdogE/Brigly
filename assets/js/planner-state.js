@@ -1,6 +1,6 @@
 /* Atomic, reusable roster planning and employment dates. */
 (function(){
- const B=globalThis.Brigly,prev={starter:B.starter,load:B.load,change:B.change,valid:B.validState},clone=x=>JSON.parse(JSON.stringify(x));
+ const B=globalThis.Brigly,prev={starter:B.starter,load:B.load,change:B.change,valid:B.validState},clone=x=>globalThis.Brigly.clone(x);
  const upgrade=s=>{s=clone(s);s.planning||={version:1,templates:[]};for(const p of s.team){p.joinedOn??='';p.leftOn??='';}return s;};
  const employed=(p,date)=>p&&(!p.joinedOn||date>=p.joinedOn)&&(!p.leftOn||date<=p.leftOn)&&(p.active||!!p.leftOn);
  function check(s,x,ignore=''){

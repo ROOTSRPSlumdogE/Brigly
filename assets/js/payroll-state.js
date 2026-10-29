@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const B=Brigly,prev={change:B.change,starter:B.starter,load:B.load};
- const copy=x=>JSON.parse(JSON.stringify(x));
+ const copy=x=>globalThis.Brigly.clone(x);
  const pad=n=>String(n).padStart(2,'0');
  // Times are local wall-clock stamps (YYYY-MM-DDTHH:MM), like shift dates and times.
  const stamp=(d=new Date())=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;

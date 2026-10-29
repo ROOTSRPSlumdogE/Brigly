@@ -1,7 +1,7 @@
 /* Checklist comments, realistic demo history, and append-only completion reporting. */
 (function(){
  const B=Brigly,prev={starter:B.starter,load:B.load,valid:B.validState,change:B.change};
- const copy=x=>JSON.parse(JSON.stringify(x)),scope=(x,d,v)=>x.date===d&&x.service===v;
+ const copy=x=>globalThis.Brigly.clone(x),scope=(x,d,v)=>x.date===d&&x.service===v;
  const hash=t=>{let n=2166136261;for(const c of String(t)){n^=c.charCodeAt(0);n=Math.imul(n,16777619);}return n>>>0;};
  const pad=n=>String(n).padStart(2,'0');
  const stampAt=(date,hm)=>{const [h,m]=hm.split(':').map(Number);return `${date}T${pad(h%24)}:${pad(m%60)}:00.000Z`;};

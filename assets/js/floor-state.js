@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const B=Brigly,prev={starter:B.starter,load:B.load,valid:B.validState,change:B.change};
- const copy=x=>JSON.parse(JSON.stringify(x));
+ const copy=x=>globalThis.Brigly.clone(x);
  const SHAPES=['round','square','rect','booth','bar'];
  const SOURCES=['Phone','Online','Walk-in','Email','Event','Other'];
  const TAGS=['VIP','Regular','Birthday','Anniversary','Allergy','Window','Quiet','High chair','Wheelchair','Business','Large party'];

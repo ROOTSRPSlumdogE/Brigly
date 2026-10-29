@@ -1,7 +1,7 @@
 /* Per-service checklist overrides, service-specific defaults and custom checklists. */
 (function(){
  const B=Brigly,prev={starter:B.starter,load:B.load,valid:B.validState,change:B.change};
- const clone=x=>JSON.parse(JSON.stringify(x));
+ const clone=x=>globalThis.Brigly.clone(x);
  const key=(date,service)=>date+'|'+service;
  function upgrade(s){s=clone(s);s.checklistScopes??=[];return s;}
  function defaultTasks(s,service=s.service){const svc=s.tasks.filter(t=>!t.date&&t.service===service);if(svc.length)return svc;return s.tasks.filter(t=>!t.date&&(!t.service||t.service===service));}
