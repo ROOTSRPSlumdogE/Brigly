@@ -191,6 +191,28 @@
     all('.reveal,.stagger').forEach(el=>io.observe(el));
   }else all('.reveal,.stagger').forEach(el=>el.classList.add('in'));
 
+  /* ---------- Feature popups (the all-features grid) ---------- */
+  const fd=$('#feature-dialog');
+  if(fd&&typeof fd.showModal==='function'){
+    const fdBody=fd.querySelector('.fd-body');let fdOpener=null;
+    function openFeature(link){
+      const tpl=$('template[data-feature="'+link.dataset.feature+'"]');if(!tpl)return false;
+      fdBody.replaceChildren(tpl.content.cloneNode(true));
+      const h=fdBody.querySelector('h2');if(h)h.id='fd-title';
+      swapShots();
+      fdOpener=link;fd.showModal();document.body.style.overflow='hidden';
+      fd.querySelector('.fd-inner').scrollTop=0;fd.querySelector('.fd-close').focus();
+      return true;
+    }
+    document.addEventListener('click',e=>{
+      const link=e.target.closest('.all-grid a[data-feature]');
+      if(link){if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;if(openFeature(link))e.preventDefault();return;}
+      if(e.target.closest('[data-fd-close]')){fd.close();return;}
+      if(e.target===fd)fd.close();
+    });
+    fd.addEventListener('close',()=>{document.body.style.overflow='';fdBody.replaceChildren();fdOpener?.focus();fdOpener=null;});
+  }
+
   /* ---------- FAQ: one open at a time ---------- */
   all('details').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)all('details').forEach(o=>{if(o!==d)o.open=false;});}));
 })();
