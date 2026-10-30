@@ -1,1 +1,1 @@
-(function(){let theme='light';try{theme=localStorage.getItem('brigly-theme')==='dark'?'dark':'light';}catch{}document.documentElement.dataset.theme=theme;})();
+(function(){let theme='dark';try{theme=localStorage.getItem('brigly-theme')==='light'?'light':'dark';}catch{}document.documentElement.dataset.theme=theme;})();

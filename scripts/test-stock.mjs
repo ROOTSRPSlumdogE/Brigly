@@ -70,6 +70,11 @@ const alert=s.unavailable.find(x=>x.id==='alert-1');assert.equal(alert.item,'st-
 assert(s.orders.some(o=>o.item==='st-oysters'&&o.status==='Requested'&&o.author==='sam'));
 fails(()=>B.change(s,{type:'stock:alert',id:'alert-2',item:'st-oysters',date,service,reason:'Gone.'}),/already on the 86 board/);
 fails(()=>B.change(s,{type:'stock:alert',id:'alert-3',item:'st-chocolate-tart',date,service,reason:'All gone.',restock:1}),/made in house/);
+// What to offer instead: a manager (or a lead) sets it on a live 86, as plain text in a chain without a menu; crew cannot.
+fails(()=>B.change(s,{type:'ops:sub',id:'alert-1',sub:{item:'',name:'Mussels'}}),/Only managers/);
+s=B.change(as(s,'manager','jamie'),{type:'ops:sub',id:'alert-1',sub:{item:'',name:'Mussels in white wine'}});assert.equal(s.unavailable.find(x=>x.id==='alert-1').sub.name,'Mussels in white wine');assert(B.validState(s));
+s=B.change(as(s,'manager','jamie'),{type:'ops:sub',id:'alert-1',sub:{item:'',name:'  '}});assert(!s.unavailable.find(x=>x.id==='alert-1').sub,'blank clears it');
+s=as(s,'crew','sam');
 // Free-text 86s from checklist notes still link when the name matches.
 s=B.change(s,{type:'ops:alert',id:'note-86',date,service,name:'fresh oysters',reason:'From a task note.',area:'Kitchen'});
 assert.equal(s.unavailable.find(x=>x.id==='note-86').item,'st-oysters');
@@ -144,6 +149,16 @@ u.handle('filter','low');html=u.render().split('class="sk-rail"')[0];assert(html
 u.handle('tab','86');assert(u.render().includes('Report 86'));u.handle('tab','requests');assert(u.render().includes('My requests'));
 view=as(view,'manager','jamie');u=ui(view);
 for(const t of ['items','orders','86','vendors']){u.handle('tab',t);assert(u.render().length>1000,t);}
+// The 86 board shows what to offer instead and lets a manager set or change it; the 86 dialog and the substitute dialog send it along.
+view=B.change(view,{type:'stock:alert',id:'ui86',item:'st-mussels',date:view.date,service,reason:'Last pot sold.',sub:{item:'',name:'Mussels in white wine'}});u=ui(view);
+u.handle('tab','86');html=u.render();assert(html.includes('Offer instead: <b>Mussels in white wine</b>')&&html.includes('data-action="stock-sub" data-id="ui86"')&&html.includes('Change substitute'),'board shows the substitute');
+u.handle('sub','ui86');assert.equal(opened.title,'Offer instead');const subAct=u.submit({subText:'Prawn cocktail'},{getAll:()=>[]});assert.equal(subAct.type,'ops:sub');assert.equal(subAct.id,'ui86');assert.equal(subAct.sub.name,'Prawn cocktail');
+u.handle('report-86');const rep=u.submit({item:'s:st-oysters',reason:'Gone.',subText:'Oysters'},{getAll:()=>[]});assert.equal(rep.type,'stock:alert');assert.equal(rep.sub.name,'Oysters');
+assert.equal(u.submit({item:'s:st-oysters',reason:'Gone.'},{getAll:()=>[]}).sub,null);
+u.handle('open','st-mussels');assert(opened.fields.includes('Offer instead: <b>Mussels in white wine</b>'),'item sheet shows it');
+view=as(view,'crew','sam');u=ui(view);u.handle('tab','86');html=u.render();assert(html.includes('Offer instead: <b>Mussels in white wine</b>')&&!html.includes('data-action="stock-sub"'),'crew read it only');
+u.handle('report-86');assert.equal(u.submit({item:'s:st-oysters',reason:'Gone.',subText:'Oysters'},{getAll:()=>[]}).sub,undefined,'crew reports never carry one');
+view=as(view,'manager','jamie');u=ui(view);
 u.handle('tab','orders');html=u.render();assert(html.includes('aria-selected="true">Review')&&html.includes('stock-approve'));
 u.handle('stage','order');html=u.render();assert(html.includes('Place order')&&html.includes('below par'));
 u.handle('stage','arriving');html=u.render();assert(view.orders.some(o=>o.status==='Ordered')?html.includes('Check in delivery'):html.includes('Nothing on the way'));

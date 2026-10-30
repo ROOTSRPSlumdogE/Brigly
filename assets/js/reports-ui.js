@@ -216,11 +216,10 @@ globalThis.createReportsUI=function(api){
  }
 
  function render(){
-  const head=`<div class="section-bar mg-head rp-head"><div><h2>Reports</h2><p>Everything Brigly tracks across sales, labor, stock, the team and service, compared with the period before.</p></div></div>`;
-  const tabs=head+`<div class="rp-boards" role="tablist" aria-label="Report boards">${boards.map(([id,label])=>`<button type="button" class="rp-board ${board===id?'selected':''}" data-action="rp-board" data-id="${id}" aria-pressed="${board===id}">${label}</button>`).join('')}</div>`;
-  if(board==='inventory')return `<div class="rp-page">${tabs}<p class="rp-board-sub">Live numbers from Stock: what is on the shelves now, the last four weeks of purchasing, price changes and credits owed.</p>${api.finance.inventory()}</div>`;
-  const d=data(),sub=boards.find(x=>x[0]===board)[2];
-  const bar=`<div class="rp-toolbar"><div class="rp-toolbar-actions">${button('Download CSV','rp-csv','','','secondary small')}</div><p class="rp-board-sub">${sub}</p><div class="rp-range" role="group" aria-label="Period">${[4,12,26].map(n=>`<button type="button" class="${span===n?'selected':''}" data-action="rp-span" data-id="${n}" aria-pressed="${span===n}">${n} weeks</button>`).join('')}</div><p>${dateLabel(d.R.from)} – ${dateLabel(d.R.to,{month:'short',day:'numeric',year:'numeric'})} <span>compared with ${dateLabel(d.Q.from)} – ${dateLabel(d.Q.to)}</span></p></div>`;
+  const tabs=`<div class="rp-boards page-tabs" role="tablist" aria-label="Report boards">${boards.map(([id,label])=>`<button type="button" class="rp-board ${board===id?'selected':''}" data-action="rp-board" data-id="${id}" aria-pressed="${board===id}">${label}</button>`).join('')}</div>`;
+  if(board==='inventory')return `<div class="rp-page">${tabs}${api.finance.inventory()}</div>`;
+  const d=data();
+  const bar=`<div class="rp-toolbar"><div class="rp-range" role="group" aria-label="Period">${[4,12,26].map(n=>`<button type="button" class="${span===n?'selected':''}" data-action="rp-span" data-id="${n}" aria-pressed="${span===n}">${n} weeks</button>`).join('')}</div><p>${dateLabel(d.R.from)} – ${dateLabel(d.R.to,{month:'short',day:'numeric',year:'numeric'})} <span>compared with ${dateLabel(d.Q.from)} – ${dateLabel(d.Q.to)}</span></p><div class="rp-toolbar-actions">${button('Download CSV','rp-csv','','','quiet small')}</div></div>`;
   const training=()=>{const t=api.training?.();return t?.report?t.report({d,kpi,panel,bars,hbars,line,lbl,span,badge,button}):'<div class="empty"><strong>Training is not loaded</strong></div>';};
   return `<div class="rp-page">${tabs}${bar}<div class="rp-board-body">${board==='sales'?sales(d):board==='menu'?menu(d):board==='pos'?(api.pos?.()?.report(d)||'<div class="empty"><strong>POS not available</strong></div>'):board==='guests'?guests(d):board==='labor'?labor(d):board==='operations'?operations(d):board==='people'?peopleBoard(d):board==='training'?training():executive(d)}</div></div>`;
  }

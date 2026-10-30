@@ -116,7 +116,7 @@ globalThis.BriglyNotifications={
      badge:'86 approval needed',
      time:`${a.area} · Reported by ${personName(a.author)}`,
      title:`86 report: ${a.name}`,
-     body:a.reason||'Reported unavailable by the crew. Approve to alert the whole floor and kitchen.',
+     body:(a.reason||'Reported unavailable by the crew. Approve to alert the whole floor and kitchen.')+(a.sub?' Offer '+a.sub.name+' instead.':''),
      actions:[
       {label:'Approve 86',action:'ops-approve-alert',id:a.id,style:'primary'},
       {label:'Open 86 board',action:'notif-go',view:'eighty-six',style:'secondary'}
@@ -143,7 +143,7 @@ globalThis.BriglyNotifications={
     badge:`${approved.length} confirmed 86`,
     time:`${state.service} · Live menu`,
     title:`Unavailable this service: ${approved.map(x=>x.name).join(', ')}`,
-    body:approved.map(x=>`${x.name} (${x.area}): ${x.reason}`).join(' · '),
+    body:approved.map(x=>`${x.name} (${x.area}): ${x.reason}${x.sub?' Offer '+x.sub.name+' instead.':''}`).join(' · '),
     actions:[{label:'Open 86 board',action:'notif-go',view:'eighty-six',style:'secondary'}]
    });
   }

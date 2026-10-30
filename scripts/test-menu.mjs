@@ -34,6 +34,20 @@ same(M.allergens(m,salmon),['Fish','Milk']);assert.equal(M.cost(m,salmon),Math.r
 fails(()=>B.change(m,{type:'menu:item',id:'',name:'grilled SALMON',category:'mains',price:1}),/already has that name/);
 fails(()=>B.change(m,{type:'menu:item',id:'',name:'Ghost',category:'mains',price:1,recipe:[{item:'st-nope',units:1}]}),/not on the stock list/);
 fails(()=>B.change(m,{type:'menu:item',id:'',name:'Nocat',category:'zzz',price:1}),/Choose a category/);
+// The menu is the source of truth for ingredients: naming one that is not stocked yet creates it in Stock, matched by normalised name, never twice.
+m=B.change(m,{type:'menu:item',id:'',name:'Yuzu sorbet',category:'desserts',price:9,recipe:[{name:'Yuzu purée',amount:'40 g',units:.04},{name:'  heavy CREAM ',amount:'30 ml',units:.005}]});
+const yuzu=m.stock.items.find(i=>i.name==='Yuzu purée');assert(yuzu&&yuzu.source==='menu'&&yuzu.category==='Ingredients'&&yuzu.teams.includes('Kitchen')&&yuzu.active,'a new ingredient lands in Stock');
+same(m.menu.items.find(i=>i.id==='mi-yuzu-sorbet').recipe.map(r=>r.item),[yuzu.id,'st-heavy-cream']);
+m=B.change(m,{type:'menu:item',id:'',name:'Yuzu tonic',category:'cocktails',price:9,recipe:[{name:'yuzu puree',units:.02},{name:'YUZU PURÉE',units:.02},{item:'st-fever-tree-tonic',units:.042}]});
+assert.equal(m.stock.items.filter(i=>/^yuzu/i.test(i.name)).length,1,'no duplicate ingredients');assert.equal(m.menu.items.find(i=>i.id==='mi-yuzu-tonic').recipe.length,2);
+assert(M.usedIn(m,yuzu.id).map(i=>i.id).includes('mi-yuzu-tonic'),'affected dishes follow the ingredient');
+m=B.change(m,{type:'menu:item',id:'mi-yuzu-sorbet',name:'Yuzu sorbet',category:'desserts',price:9,recipe:[]});
+assert(m.stock.items.find(i=>i.id===yuzu.id).active,'still used by another dish, so it stays');
+m=B.change(m,{type:'menu:archive',id:'mi-yuzu-tonic',active:false});
+assert.equal(m.stock.items.find(i=>i.id===yuzu.id).active,false,'an unused menu ingredient is archived, not deleted');assert(m.stock.items.some(i=>i.id==='st-fever-tree-tonic'&&i.active),'stocked items are never touched');
+m=B.change(m,{type:'menu:archive',id:'mi-yuzu-tonic',active:true});assert(m.stock.items.find(i=>i.id===yuzu.id).active,'restoring the dish brings its ingredient back');
+assert(B.validState(m));
+console.log('PASS: recipes create and reuse stock ingredients by normalised name, and archive the ones the menu no longer uses.');
 let lead=as(B.change(m,{type:'manage:permissions',person:'alex',perms:{menu:true}}),'crew','alex');
 lead=B.change(lead,{type:'menu:item',id:'mi-grilled-salmon',name:'Grilled salmon',category:'mains',price:31,recipe:salmon.recipe});
 assert.equal(lead.menu.items.find(i=>i.id==='mi-grilled-salmon').price,31,'a menu lead edits dishes');
@@ -63,6 +77,30 @@ assert.equal(M.availability(mm,M.item(mm,'mi-rib-eye-steak'),today,'Dinner').sta
 mm=B.change(mm,{type:'menu:archive',id:'mi-kids-pasta',active:false});assert.equal(M.availability(mm,M.item(mm,'mi-kids-pasta')).status,'archived');assert(!M.list(mm).some(i=>i.id==='mi-kids-pasta'));
 fails(()=>B.change(as(mm,'crew','noah'),{type:'menu:settings',targetCost:28}),/managers/);
 mm=B.change(mm,{type:'menu:settings',targetCost:28});assert.equal(mm.menu.settings.targetCost,28);
+// Substitutes: a manager sets what to offer instead of an 86’d dish (a dish, named after it, or free text); the Menu carries it on availability, and crew cannot set one.
+let sv=as(mm,'manager','jamie');
+sv=B.change(sv,{type:'menu:86',id:'a86w',item:'mi-house-white-glass',reason:'Case didn’t arrive.',date:today,service:'Dinner',sub:{item:'mi-rose-glass'}});
+const uw=sv.unavailable.find(x=>x.id==='a86w');assert.equal(uw.sub.item,'mi-rose-glass');assert.equal(uw.sub.name,'Rosé · glass','named after the dish');assert(B.validState(sv));
+av=M.availability(sv,M.item(sv,'mi-house-white-glass'),today,'Dinner');assert.equal(av.status,'86');assert.equal(av.sub.name,'Rosé · glass');assert(av.sub.dish&&av.sub.available===true);
+const opts=M.subOptions(sv,{cat:'wine',exclude:['mi-house-white-glass']}),optIds=opts.flatMap(g=>g.items.map(i=>i.id));
+assert(opts[0].label.startsWith('Same category')&&opts[0].items.some(i=>i.id==='mi-rose-glass'),'own category first');
+assert(!optIds.includes('mi-house-white-glass')&&!optIds.includes('mi-rib-eye-steak')&&!optIds.includes('mi-kids-pasta'),'excluded, 86’d and archived dishes are not offered');
+fails(()=>B.change(sv,{type:'menu:86',id:'a86x',item:'mi-rose-glass',reason:'Gone.',date:today,service:'Dinner',sub:{item:'mi-rose-glass'}}),/different dish/);
+fails(()=>B.change(sv,{type:'ops:sub',id:'a86w',sub:{item:'mi-nope'}}),/no longer on the menu/);
+fails(()=>B.change(as(sv,'crew','alex'),{type:'ops:sub',id:'a86w',sub:{item:'',name:'Prosecco'}}),/Only managers/);
+fails(()=>B.change(as(sv,'crew','alex'),{type:'menu:86',id:'a86d',item:'mi-house-red-glass',reason:'Gone.',date:today,service:'Dinner',sub:{item:'',name:'Rosé'}}),/Only managers/);
+let cr=B.change(as(sv,'crew','alex'),{type:'menu:86',id:'a86c',item:'mi-prosecco-glass',reason:'Last bottle.',date:today,service:'Dinner'});assert(!cr.unavailable.find(x=>x.id==='a86c').sub,'crew reports carry no substitute');
+cr=B.change(as(cr,'manager','jamie'),{type:'ops:sub',id:'a86c',sub:{item:'',name:'Ask the bar for the cava'}});assert.equal(cr.unavailable.find(x=>x.id==='a86c').sub.name,'Ask the bar for the cava');
+av=M.availability(cr,M.item(cr,'mi-prosecco-glass'),today,'Dinner');assert.equal(av.sub.available,null,'free text has no dish');assert.equal(av.sub.item,'');
+cr=B.change(as(cr,'manager','jamie'),{type:'ops:sub',id:'a86c',sub:null});assert(!cr.unavailable.find(x=>x.id==='a86c').sub,'cleared');
+// A stock 86 carries one too and every dish it takes off shows it; a substitute that is itself off says so; two 86s pointing at each other never loop.
+let sk=B.change(sv,{type:'ops:sub',id:'s86',sub:{item:'mi-whole-roasted-sea-bass'}});
+av=M.availability(sk,M.item(sk,'mi-rib-eye-steak'),today,'Dinner');assert.equal(av.status,'ingredient');assert.equal(av.sub.name,'Whole roasted sea bass');assert(av.sub.available);
+sk=B.change(sk,{type:'menu:86',id:'a86sb',item:'mi-whole-roasted-sea-bass',reason:'Gone.',date:today,service:'Dinner',sub:{item:'mi-rib-eye-steak'}});
+assert.equal(M.availability(sk,M.item(sk,'mi-rib-eye-steak'),today,'Dinner').sub.available,false,'the sea bass is off too');assert.equal(M.availability(sk,M.item(sk,'mi-whole-roasted-sea-bass'),today,'Dinner').sub.available,false);
+assert(!M.subOptions(sk).some(g=>g.items.some(i=>i.id==='mi-whole-roasted-sea-bass')),'an 86’d dish is never offered');
+// A substitute dish that disappears keeps its name as plain text.
+const gone=B.clone(sk);gone.unavailable.find(x=>x.id==='a86w').sub.item='mi-gone';const up=M.upgrade(gone),ug=up.unavailable.find(x=>x.id==='a86w');assert.equal(ug.sub.item,'');assert.equal(ug.sub.name,'Rosé · glass');assert(B.validState(up));
 // A menu that no longer fits is rebuilt without losing the rest of the workspace.
 const broken=JSON.parse(JSON.stringify(mm));broken.menu.items[0].category='nope';store.v=JSON.stringify(broken);const re=B.load(store);
 assert(B.validState(re));assert(re.menu.items.length>=40,'menu rebuilt');assert.equal(re.shifts.length,mm.shifts.length);
@@ -83,11 +121,20 @@ menuUI.show('allergens');menuUI.handle('avoid','Milk');html=menuUI.render();asse
 menuUI.show('86');html=menuUI.render();assert(html.includes('Off the menu now')&&html.includes('Rib-eye steak'));
 menuUI.handle('open','mi-pan-roasted-halibut');assert.equal(opened.at(-1)[0],'Pan-roasted halibut');assert(opened.at(-1)[1].includes('Recipe')&&opened.at(-1)[1].includes('Fish')&&opened.at(-1)[1].includes('stock-open'));
 menuUI.handle('item','mi-pan-roasted-halibut');
-const act=menuUI.submit({name:'Pan-roasted halibut',category:'mains',station:'Kitchen',price:'39',description:'x',r_item_0:'st-halibut-fillet',r_amount_0:'180 g',r_units_0:'0.18',r_item_1:'',prep:'',plating:'',active:'true'},{getAll:k=>k==='dietary'?['Gluten-free']:[]});
+const act=menuUI.submit({name:'Pan-roasted halibut',category:'mains',station:'Kitchen',price:'39',description:'x',r_name_0:'Halibut fillet',r_amount_0:'180 g',r_units_0:'0.18',r_name_1:'',prep:'',plating:'',active:'true'},{getAll:k=>k==='dietary'?['Gluten-free']:[]});
 assert.equal(act.type,'menu:item');assert.equal(act.recipe.length,1);assert.equal(act.price,39);same(act.dietary,['Gluten-free']);
-menuUI.handle('86','mi-fries');assert.equal(opened.at(-1)[0],'86 a dish');const a86=menuUI.submit({reason:'Fryer down'},{getAll:()=>[]});assert.equal(a86.type,'menu:86');assert.equal(a86.item,'mi-fries');
+menuUI.handle('86','mi-fries');assert.equal(opened.at(-1)[0],'86 a dish');assert(opened.at(-1)[1].includes('name="sub"')&&opened.at(-1)[1].includes('<optgroup label="Same category · Sides">')&&!opened.at(-1)[1].includes('value="mi-fries"'),'manager picks what to offer instead');
+const a86=menuUI.submit({reason:'Fryer down',sub:'mi-rib-eye-steak'},{getAll:()=>[]});assert.equal(a86.type,'menu:86');assert.equal(a86.item,'mi-fries');same(a86.sub,{item:'mi-rib-eye-steak',name:''});
+same(menuUI.submit({reason:'Fryer down',sub:'text:',subText:'Crisps from the bar'},{getAll:()=>[]}).sub,{item:'',name:'Crisps from the bar'});assert.equal(menuUI.submit({reason:'Fryer down',sub:''},{getAll:()=>[]}).sub,null);
+// The dish sheet and the 86 tab show the substitute; the sheet lets a manager set or change it.
+ui=B.change(ui,{type:'menu:86',id:'ui86',item:'mi-house-white-glass',reason:'Case didn’t arrive.',date:today,service:'Dinner',sub:{item:'mi-rose-glass'}});
+menuUI.handle('open','mi-house-white-glass');assert(opened.at(-1)[1].includes('mn-sub')&&opened.at(-1)[1].includes('Offer instead')&&opened.at(-1)[1].includes('data-action="mn-open" data-id="mi-rose-glass"')&&opened.at(-1)[1].includes('data-action="stock-sub" data-id="ui86"'),'sheet shows the substitute');
+menuUI.show('86');html=menuUI.render();assert(html.includes('offer Rosé · glass instead'),'86 tab names the substitute');
+menuUI.handle('open','mi-rib-eye-steak');assert(opened.at(-1)[1].includes('Nothing set to offer instead')&&opened.at(-1)[1].includes('data-action="stock-sub" data-id="s86"'),'an ingredient 86 without a substitute offers to set one');
 menuUI.show('setup');for(const p of ['categories','modifiers','ingredients','settings']){menuUI.handle('pane',p);html=menuUI.render();assert(html.includes('mn-seg'),p);}
-ui=as(mm,'crew','alex');menuUI.show('menu');html=menuUI.render();assert(!html.includes('data-id="setup"'),'crew have no setup tab');assert(!html.includes('mn-cost'),'crew do not see cost');assert(html.includes('mn-86'),'crew can report an 86');
+ui=as(ui,'crew','alex');menuUI.handle('open','mi-house-white-glass');assert(opened.at(-1)[1].includes('Offer instead')&&!opened.at(-1)[1].includes('data-action="stock-sub"'),'crew see the substitute but cannot change it');
+menuUI.handle('86','mi-fries');assert(!opened.at(-1)[1].includes('name="sub"'),'crew reports have no substitute field');
+ui=as(mm,'crew','alex');menuUI.show('menu');html=menuUI.render();assert(!html.includes('data-id="setup"'),'crew have no setup tab');assert(!html.includes('mn-cost'),'crew do not see cost');menuUI.show('86');assert(menuUI.render().includes('mn-86'),'crew can report an 86 from the 86 tab');menuUI.show('menu');
 // Navigation: Menu and POS sit in Live service, follow the shift, and the Menu pill counts dishes that are off.
 assert(N.groups(true)[0].items.some(x=>x[1]==='menu')&&N.groups(true)[0].items.some(x=>x[1]==='pos'));assert(N.service('menu')&&N.service('pos'));
 const badges=N.badges(as(mm,'manager','jamie'));assert(badges.menu&&badges.menu.tone==='danger');
@@ -154,7 +201,7 @@ console.log('PASS: Menu screen for managers and crew, dish sheet, forms, allerge
  let v=as(mm,'manager','jamie');const api2={state:()=>v,e,input,textarea,select,dateLabel:(d)=>d,render(){},notify(){},close(){},go(){},open(t,h,save){opened.push([t,h,save]);},commit(a){try{v=B.change(v,a);return true;}catch(err){return false;}}};
  const ui2=c.createMenuUI(api2);let h=ui2.render();
  assert(h.includes('mn-stats')&&h.includes('mn-cats')&&h.includes('data-action="mn-view"')&&h.includes('data-mn-sort')&&h.includes('--ct:var(--cat-')&&h.includes('data-id="performance"'),'manager menu screen');
- assert(h.includes('mn-diet')&&h.includes('Set a count'));
+ assert(h.includes('mn-diet'));ui2.show('86');assert(ui2.render().includes('Set a count'),'counts are set from the 86 tab');ui2.show('menu');h=ui2.render();
  ui2.handle('view','list');h=ui2.render();assert(h.includes('mn-list')&&h.includes('mn-row-dish')&&!h.includes('mn-grid'),'list view');
  ui2.onChange({dataset:{mnSort:''},value:'price'});h=ui2.render();const prices=[...h.matchAll(/mn-price">\$([\d.]+)/g)].map(x=>Number(x[1])).slice(0,6);assert(prices.every((p,i)=>i===0||p>=prices[i-1]),'sorted by price '+prices);
  ui2.handle('view','cards');ui2.onChange({dataset:{mnSort:''},value:'menu'});

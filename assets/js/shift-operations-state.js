@@ -21,6 +21,12 @@
       s.unavailable=s.unavailable.map(x=>({...x,date:s.date,service:s.service,status:x.active?'Approved':'Restored',reviewer:'jamie',feedback:''}));
     }
     for(const item of s.unavailable)if(item.feedback==='Migrated from the earlier shared 86 list.')item.feedback='';
+    // Briefing approval is one switch: approved or not. Earlier sub-states (on-time, late, pending) fold into it.
+    for(const b of s.briefings||[]){
+      if(b.approvalStatus!==undefined){b.approved=b.approvalStatus!=='Pending';delete b.approvalStatus;}
+      if(typeof b.approved!=='boolean')b.approved=(s.team||[]).find(p=>p.id===b.author)?.access==='manager';
+      if(!b.approved){delete b.approvedBy;delete b.approvedAt;}
+    }
     B.configure(s);return s;
   }
   function valid(s){try{
@@ -33,13 +39,18 @@
     B.configure(s);if(!previous.valid(s))return false;
     const scope=x=>B.isDate(x.date)&&s.setup.services.some(v=>v.name===x.service);
     if(!Array.isArray(s.shiftNotes)||new Set(s.shiftNotes.map(x=>x.id)).size!==s.shiftNotes.length||!s.shiftNotes.every(x=>identifier(x.id)&&scope(x)&&B.person(x.author)&&txt(x.body,2000)&&x.body.trim()&&['manager','crew'].includes(x.priority)&&typeof x.archived==='boolean'&&txt(x.updated,100)))return false;
-    return s.unavailable.every(x=>scope(x)&&['Reported','Approved','Declined','Restored'].includes(x.status)&&x.active===(x.status==='Approved')&&txt(x.feedback,500)&&(!x.reviewer||B.person(x.reviewer)));
+    if(!s.briefings.every(b=>typeof b.approved==='boolean'&&(b.approvedBy===undefined||B.person(b.approvedBy))&&(b.approvedAt===undefined||txt(b.approvedAt,40))))return false;
+    const sub=x=>x.sub===undefined||(x.sub&&typeof x.sub==='object'&&typeof x.sub.item==='string'&&x.sub.item.length<=80&&txt(x.sub.name,100)&&x.sub.name.trim().length>0);
+    return s.unavailable.every(x=>scope(x)&&['Reported','Approved','Declined','Restored'].includes(x.status)&&x.active===(x.status==='Approved')&&txt(x.feedback,500)&&(!x.reviewer||B.person(x.reviewer))&&sub(x));
   }catch{return false;}}
   function change(state,action,role=state.role){
     let s=upgrade(state);const me=B.actor(role,s.crewId,s.managerId),viewer=s.team.find(p=>p.id===me);
     if(!viewer?.active||viewer.access!==role)throw Error('This preview identity no longer has that access. Choose an active team member.');
     const manager=role==='manager',needManager=()=>{if(!manager)throw Error('Only managers can make this change.');};
     const serviceExists=service=>s.setup.services.some(x=>x.name===service);
+    // What to offer instead of an 86’d item: a dish on the menu (named after it) or free text. Managers and menu or stock leads set it.
+    const canSub=()=>manager||!!B.permissions?.can(s,'menu',me)||!!B.permissions?.can(s,'stock',me);
+    const cleanSub=sub=>{if(!sub||typeof sub!=='object')return null;const id=String(sub.item||'').trim();let name=String(sub.name||'').trim();if(id){const d=(s.menu?.items||[]).find(i=>i.id===id);if(!d||!d.active)throw Error('That substitute is no longer on the menu.');name=d.name;}if(!name)return null;if(name.length>100)throw Error('Keep the substitute under 100 characters.');return {item:id,name};};
     const writable=(date,service)=>{if(!B.isDate(date)||!serviceExists(service))throw Error('Choose a valid date and service.');if(!manager&&!s.shifts.some(x=>same(x,date,service)&&x.person===me))throw Error('You can only post to a shift you are assigned to.');};
     const lookup=(list,id)=>{const item=list.find(x=>x.id===id);if(!item)throw Error('This record no longer exists.');return item;};
     const initials=name=>name.trim().split(/\s+/).map(x=>Array.from(x)[0]).slice(0,2).join('').toUpperCase();
@@ -52,6 +63,8 @@
       }
       if(action.type==='put'&&['briefings'].includes(action.collection))writable(action.item.date,action.item.service);
       s=previous.change(s,action,role);
+      // A manager's save approves the briefing; a crew save (new or revised) needs a manager's approval again.
+      if(action.type==='put'&&action.collection==='briefings'){const b=s.briefings.find(x=>x.id===action.item.id);if(b){if(manager){b.approved=true;b.approvedBy=me;b.approvedAt=new Date().toISOString();}else{b.approved=false;delete b.approvedBy;delete b.approvedAt;}}}
     }else if(action.type==='ops:note'){
       writable(action.date,action.service);if(!txt(action.body,2000)||!action.body.trim())throw Error('Write a note of up to 2,000 characters.');
       const old=s.shiftNotes.find(x=>x.id===action.id);
@@ -75,15 +88,9 @@
     }else if(action.type==='ops:approve-briefing'){
       needManager();
       const item=lookup(s.briefings,action.id);
-      const status=action.status||'Approved';
-      item.approvalStatus=status;
-      if(status==='Pending'){
-        delete item.approvedBy;
-        delete item.approvedAt;
-      }else{
-        item.approvedBy=me;
-        item.approvedAt=new Date().toISOString();
-      }
+      item.approved=action.approved!==false;
+      if(item.approved){item.approvedBy=me;item.approvedAt=new Date().toISOString();}
+      else{delete item.approvedBy;delete item.approvedAt;}
     }else if(action.type==='ops:alert'){
       writable(action.date,action.service);
       if(!label(action.name)||!txt(action.reason,500)||!action.reason.trim()||!s.setup.areas.includes(action.area))throw Error('Add an item, station and reason (up to 500 characters).');
@@ -91,7 +98,12 @@
       if(old&&!manager&&(old.author!==me||old.status!=='Reported'))throw Error('Only your pending 86 reports can be edited.');
       if(old&&(old.date!==action.date||old.service!==action.service))throw Error('An 86 report must stay with its original shift.');
       const item={id:action.id,date:action.date,service:action.service,name:action.name.trim(),reason:action.reason.trim(),area:action.area,author:old?.author||me,status:old?.status||(manager?'Approved':'Reported'),active:old?.active??manager,reviewer:old?.reviewer||(manager?me:''),feedback:old?.feedback||''};
-      if(old)Object.assign(old,item);else s.unavailable.push(item);
+      if(action.sub!==undefined){if(action.sub&&!canSub())throw Error('Only managers or a menu lead can set what to offer instead.');const sb=cleanSub(action.sub);if(sb)item.sub=sb;}
+      if(old){Object.assign(old,item);if(action.sub!==undefined&&!item.sub)delete old.sub;}else s.unavailable.push(item);
+    }else if(action.type==='ops:sub'){
+      if(!canSub())throw Error('Only managers or a menu lead can set what to offer instead.');
+      const item=lookup(s.unavailable,action.id);if(!['Reported','Approved'].includes(item.status))throw Error('This 86 is no longer live.');
+      const sb=cleanSub(action.sub);if(sb)item.sub=sb;else delete item.sub;
     }else if(action.type==='ops:review-alert'){
       needManager();const item=lookup(s.unavailable,action.id),allowed={Reported:['Approved','Declined'],Approved:['Restored'],Restored:['Approved'],Declined:['Approved']};
       if(!allowed[item.status]?.includes(action.status))throw Error('That 86 status change is no longer available.');

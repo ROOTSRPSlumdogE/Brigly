@@ -46,12 +46,12 @@ Why 1: it names the category (an app), the audience (restaurant) and the outcome
 
 - **Eyebrow:** How it works
 - **H2:** 86 it once. Everyone knows.
-- **Lede:** The kitchen runs out of sea bass. One tap in Stock, and every screen that matters updates at the same moment.
+- **Lede:** The kitchen runs out of sea bass. One tap in Stock, the manager names what to offer instead, and every screen that matters updates at the same moment.
 - **Center record:** Stock & 86s · Kitchen / Sea bass / 86'd · 8:42 PM / Tapped once by the kitchen
 - **Nodes, in animation order:**
   1. Stock — Sea bass · 0 of par 5 — Added to the next order
-  2. Menu & allergens — ~~Pan-roasted sea bass~~ — Marked off for dinner
-  3. POS — Sea bass · unavailable — Servers can't ring it in
+  2. Menu & allergens — ~~Pan-roasted sea bass~~ — Marked off for dinner · offer the halibut
+  3. POS — Sea bass → Halibut — Tapping the greyed tile rings in the halibut
   4. Pre-shift — "Sea bass is 86'd. Offer the halibut." — In the briefing every server reads
   5. Today — 1 item 86'd · reorder waiting — On the manager's screen, no text needed
 - **Foot line:** No re-entering. No "did anyone tell the bar?". The record changed, so everything that reads it changed.
@@ -153,7 +153,7 @@ Managers: open the manager view → `demo.html?as=manager` (`team-managers`) · 
 - **H3:** Service runs on the same record as everything else.
 - POS — Orders, coursing, splits, tips and refunds on your own menu and floor plan.
 - Menu & allergens — Verified dish specs and allergens that servers, the POS and training all read.
-- Stock & 86s — Counts, par levels and 86s per station, with an 86 reaching every screen at once.
+- Stock & 86s — Counts, par levels and 86s per station, with an 86 and what to offer instead reaching every screen at once.
 - Team chat — Station channels with photos and to-dos, plus alerts for anything that needs a decision.
 - **CTA:** See tonight's floor in the demo → `demo.html#pos` (`chapter-during`)
 

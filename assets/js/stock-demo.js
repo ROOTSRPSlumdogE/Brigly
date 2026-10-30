@@ -124,7 +124,7 @@
    x.onHand=x.name in low?low[x.name]:Math.round(x.par*(1+(h%80)/100)*2)/2;
    x.countedAt=new Date(counted.getTime()+(h%50)*60000).toISOString();x.countedBy=crewFor(x.teams,today,'counter'+x.teams[0]);}
   // Today's halibut 86 points at the short delivery.
-  for(const svc of ['Dinner','Lunch']){const id='sdemo-86-halibut-'+svc.toLowerCase();if(s.setup.services.some(v=>v.name===svc&&v.active)&&!s.unavailable.some(x=>x.id===id||(x.date===today&&x.service===svc&&x.item==='st-halibut-fillet')))s.unavailable.push({id,date:today,service:svc,name:'Halibut fillet',reason:'Delivery came in short (4 of 10 kg). Offer the sea bass instead.',area:'Kitchen',author:'sam',status:'Approved',active:true,reviewer:manager,feedback:'',item:'st-halibut-fillet'});}
+  for(const svc of ['Dinner','Lunch']){const id='sdemo-86-halibut-'+svc.toLowerCase();if(s.setup.services.some(v=>v.name===svc&&v.active)&&!s.unavailable.some(x=>x.id===id||(x.date===today&&x.service===svc&&x.item==='st-halibut-fillet')))s.unavailable.push({id,date:today,service:svc,name:'Halibut fillet',reason:'Delivery came in short (4 of 10 kg). Offer the sea bass instead.',area:'Kitchen',author:'sam',status:'Approved',active:true,reviewer:manager,feedback:'',item:'st-halibut-fillet',sub:{item:'mi-whole-roasted-sea-bass',name:'Whole roasted sea bass'}});}
 
   s.stockDemo={version:1,anchor:today};
   }

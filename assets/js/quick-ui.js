@@ -65,12 +65,12 @@ globalThis.createQuickUI=function(api){
    const vendor=id=>st.stock.vendors.find(v=>v.id===id)?.name||'Made in house';
    const alert=x=>st.unavailable.find(u=>u.item===x.id&&u.date===st.date&&u.service===st.service&&['Approved','Reported'].includes(u.status));
    const found=top(items,x=>Math.max(hit(x.name,q)*2,hit(x.category,q),hit(vendor(x.vendor),q),hit(x.sku,q)),6);
-   if(found.length)out.push(['Stock items',found.map(x=>{const a=alert(x),low=x.onHand!==null&&x.onHand<x.par;return {label:x.name,sub:[x.category,x.teams.join(' · '),a?(a.status==='Approved'?'86’d now':'86 reported'):low?'Below par':''].filter(Boolean).join(' · '),icon:'item',tone:a?'danger':low?'amber':'slate',attrs:attrs({action:'stock-open',id:x.id}),hint:'Open'};})]);
+   if(found.length)out.push(['Stock items',found.map(x=>{const a=alert(x),low=x.onHand!==null&&x.onHand<x.par;return {label:x.name,sub:[x.category,x.teams.join(' · '),a?(a.status==='Approved'?'86’d now':'86 reported')+(a.sub?' · offer '+a.sub.name:''):low?'Below par':''].filter(Boolean).join(' · '),icon:'item',tone:a?'danger':low?'amber':'slate',attrs:attrs({action:'stock-open',id:x.id}),hint:'Open'};})]);
    if(manager()){const v=top(st.stock.vendors.filter(v=>v.active),v=>hit(v.name,q)*2+hit(v.contact,q),3);if(v.length)out.push(['Vendors',v.map(v=>({label:v.name,sub:[v.contact,v.phone].filter(Boolean).join(' · '),icon:'vendor',tone:'slate',attrs:attrs({action:'stock-vendor',id:v.id}),hint:'Edit'}))]);}
   }
   if(B.menu&&st.menu){
    const dishes=top(B.menu.list(st),x=>Math.max(hit(x.name,q)*2,hit(x.description,q),...x.allergenList.map(a=>hit(a,q)),...x.dietary.map(d=>hit(d,q))),6);
-   if(dishes.length)out.push(['Menu',dishes.map(x=>({label:x.name,sub:[B.menu.category(st,x.category)?.name,'$'+Number(x.price).toFixed(2),x.availability.status!=='ok'?x.availability.label:'',x.allergenList.length?x.allergenList.join(', '):'No listed allergens'].filter(Boolean).join(' · '),icon:'dish',tone:['86','ingredient'].includes(x.availability.status)?'danger':x.availability.status==='low'?'amber':'amber',attrs:attrs({action:'mn-open',id:x.id}),hint:'Open'}))]);
+   if(dishes.length)out.push(['Menu',dishes.map(x=>({label:x.name,sub:[B.menu.category(st,x.category)?.name,'$'+Number(x.price).toFixed(2),x.availability.status!=='ok'?x.availability.label+(x.availability.sub?' · offer '+x.availability.sub.name:''):'',x.allergenList.length?x.allergenList.join(', '):'No listed allergens'].filter(Boolean).join(' · '),icon:'dish',tone:['86','ingredient'].includes(x.availability.status)?'danger':x.availability.status==='low'?'amber':'amber',attrs:attrs({action:'mn-open',id:x.id}),hint:'Open'}))]);
   }
   if(B.pos&&st.pos){
    const open=top(B.pos.openChecks(st,st.date,st.service),c=>hit('#'+c.number,q)*2+hit(c.name,q)*2+c.tables.reduce((n,l)=>n+hit('table '+l,q)+hit(l,q),0)+hit(B.person(c.server)?.name,q),4);

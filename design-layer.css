@@ -1,0 +1,92 @@
+
+/* ==========================================================================
+   Design system (2026-10-29). Tokens live on :root in demo.css (--sp-*, --fs-*,
+   --r-*, --accent). This block comes last on purpose: it normalises type,
+   badges, labels and tap targets across every screen, and styles the shift
+   onboarding steps. Later rules win, so section-specific styling above is
+   overridden here rather than edited in forty places.
+   ========================================================================== */
+/* Type: one page title (the command bar), one heading style for cards and panels, body text. */
+.tb-heading{font-size:var(--fs-xl);font-weight:800;letter-spacing:-.4px}
+.td-card-head h2,.td-brief .td-card-head h2,.panel-head h3,.sk-head h2,.context-heading h2,.dialog-heading h2,.chat-threads-head h2,.mg-head h2,.rp-panel h3,.context-section>h3{font-size:var(--fs-lg);font-weight:700;letter-spacing:-.2px;line-height:1.3}
+.eyebrow,.td-eyebrow,.td-subhead,.nav-group>p,.field-label,.sk-group-head,.fl-sub,.res-kpi small,.rp-kpi small,.sk-pick-cat{font-size:var(--fs-xs);font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
+.field-label{margin:0 0 var(--sp-2)}
+.panel-head p,.sk-hint,.context-hint,.td-byline,.td-hint,.td-more-note{font-size:var(--fs-sm);color:var(--muted)}
+/* Badges read as plain text. Only status that changes what you do keeps a soft tint:
+   danger (86'd, out, overdue) and an explicit .is-pill (Approved). Everything else is muted text. */
+.badge,.sk-tag,.td-tag,.fl-tag,.cl-tag,.arrival-pill,.special-price-pill,.ack-state-pill,.td-count,.nav-number{display:inline-flex;align-items:center;gap:4px;background:none;border:0;padding:0;border-radius:0;font-size:var(--fs-xs);font-weight:600;letter-spacing:0;line-height:1.5;color:var(--muted);box-shadow:none;min-width:0}
+.badge.tone-sage,.sk-tag[data-tone="sage"],.td-tag[data-tone="sage"],.fl-tag[data-tone="sage"],.cl-tag[data-tone="sage"]{color:var(--tone-sage-fg)}
+.badge.tone-amber,.badge.amber,.sk-tag[data-tone="amber"],.td-tag[data-tone="amber"],.fl-tag[data-tone="amber"],.cl-tag[data-tone="amber"]{color:var(--tone-amber-fg)}
+.badge.tone-orange,.badge.orange,.sk-tag[data-tone="orange"],.td-tag[data-tone="orange"],.fl-tag[data-tone="orange"],.cl-tag[data-tone="orange"]{color:var(--tone-orange-fg)}
+.badge.tone-danger,.badge.red,.badge.danger,.sk-tag[data-tone="danger"],.td-tag[data-tone="danger"],.fl-tag[data-tone="danger"],.cl-tag[data-tone="danger"],.is-pill{padding:2px 8px;border-radius:99px;font-weight:700;background:var(--tone-danger-bg);color:var(--tone-danger-fg)}
+.is-pill[data-tone="sage"],.badge.is-pill.tone-sage{background:var(--tone-sage-bg);color:var(--tone-sage-fg)}
+.td-count.is-done{color:var(--tone-sage-fg)}
+.nav-pill,#bottom-nav button .nav-pill{background:none;border:0;box-shadow:none;color:var(--muted);font-weight:700}
+.nav-pill[data-tone="danger"],#bottom-nav button .nav-pill[data-tone="danger"]{color:var(--tone-danger-fg)}
+/* Surfaces: one card style, one radius scale, no decorative gradients. */
+.td-card,.panel,.sk-card{border-radius:var(--r-lg);box-shadow:var(--card-shadow)}
+.td-action{border-radius:var(--r-md);box-shadow:none}
+.td-action-icon,.td-q-icon,.td-station-icon{background:var(--surface-soft);color:var(--ink)}
+.td-action[data-tone] .td-action-icon{background:var(--surface-soft);color:var(--ink)}
+.td-action[data-tone="danger"] .td-action-icon,.td-q[data-tone="danger"] .td-q-icon{background:var(--tone-danger-bg);color:var(--tone-danger-fg)}
+.td-queue.is-urgent{box-shadow:var(--card-shadow);border-color:var(--line)}
+.td-brief.is-unread{box-shadow:var(--card-shadow)}
+.td-86 .td-card-sub{margin-left:8px}
+.td-special-tags{display:grid;gap:2px}
+.td-special-time{font-size:var(--fs-xs);color:var(--muted)}
+.td-onboard-cta-group{display:flex;gap:var(--sp-2);flex-wrap:wrap}
+/* Buttons and inputs share one shape. */
+.button{border-radius:var(--r-md)}
+.button.small{min-height:36px}
+input,select,textarea{border-radius:var(--r-sm)}
+/* Shift onboarding dialog: three steps, one primary action each. */
+#onboarding-dialog{width:min(620px,calc(100vw - 24px));padding:0;overflow:hidden;display:none}
+#onboarding-dialog[open]{display:flex;flex-direction:column;max-height:88dvh}
+#onboarding-dialog .dialog-heading{padding:var(--sp-5) var(--sp-6) 0;margin:0;border:0}
+.onboarding-dialog-body{display:flex;flex-direction:column;gap:var(--sp-4);padding:var(--sp-2) var(--sp-6) var(--sp-6);overflow:auto;min-height:0}
+.ob-sub{margin:0;font-size:var(--fs-sm);color:var(--muted)}
+.ob-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:var(--r-md);background:var(--surface-soft)}
+.ob-steps button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;border-radius:var(--r-sm);background:none;color:var(--muted);font-size:var(--fs-sm);font-weight:700}
+.ob-steps button i{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--line);color:var(--ink);font-style:normal;font-size:11px}
+.ob-steps button[aria-current="step"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ob-steps button[aria-current="step"] i{background:var(--accent);color:var(--on-accent)}
+.ob-body{display:grid;gap:var(--sp-5)}
+.ob-section{display:grid;gap:var(--sp-2)}
+.ob-section h3{margin:0;font-size:var(--fs-xs);font-weight:600;color:var(--muted)}
+.ob-lead{margin:0;font-size:var(--fs-sm);color:var(--muted)}
+.ob-empty{margin:0;font-size:var(--fs-md);color:var(--muted)}
+.ob-list{list-style:none;margin:0;padding:0;display:grid}
+.ob-list li{display:grid;gap:2px;padding:10px 0;border-top:1px solid var(--line)}
+.ob-list li:first-child{border-top:0;padding-top:0}
+.ob-list li>span{display:flex;align-items:center;gap:8px;font-size:var(--fs-md);font-weight:600;min-width:0}
+.ob-list li>span em{margin-left:auto;font-style:normal;font-weight:700;color:var(--muted);white-space:nowrap}
+.ob-list li small{font-size:var(--fs-sm);color:var(--muted);line-height:1.45}
+.ob-summary{grid-template-columns:repeat(2,1fr);gap:var(--sp-2)}
+.ob-summary li,.ob-summary li:first-child{border:0;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-soft)}
+.ob-status{display:inline-flex;padding:1px 7px;border-radius:99px;background:var(--tone-danger-bg);color:var(--tone-danger-fg);font-size:var(--fs-xs);font-weight:700;white-space:nowrap}
+.ob-status.is-ok{background:var(--tone-sage-bg);color:var(--tone-sage-fg)}
+.ob-time{min-width:44px;font-variant-numeric:tabular-nums;font-weight:700;color:var(--muted)}
+.ob-muted{color:var(--muted)}
+.ob-brief h4{margin:0 0 6px;font-size:var(--fs-lg);font-weight:700}
+.ob-brief p{margin:0;font-size:var(--fs-md);line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.ob-brief small{display:block;margin-top:6px;font-size:var(--fs-sm);color:var(--muted)}
+.ob-link{min-height:0;padding:0;background:none;color:var(--tone-orange-fg);font-size:inherit;font-weight:700}
+.ob-note{margin-top:8px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-soft)}
+.ob-note.is-priority{box-shadow:inset 3px 0 0 var(--accent)}
+.ob-note small{font-size:var(--fs-xs);color:var(--muted)}
+.ob-note p{margin:3px 0 0;font-size:var(--fs-md);line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.ob-foot{display:flex;justify-content:flex-end;gap:var(--sp-2);padding-top:var(--sp-3);border-top:1px solid var(--line)}
+.ob-foot .button{min-height:44px}
+/* Phones: 16px inputs never trigger zoom, and anything tappable is at least 44px. */
+@media(max-width:760px){
+ input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px}
+ .td-link,.sk-link,.td-mini,.td-note-actions button,.td-readmore,.td-more>summary,.button.small,.td-seg button,.ob-steps button{min-height:44px}
+ .td-task-note,.icon-button,.sk-iconbtn{min-width:44px;min-height:44px}
+ #onboarding-dialog{width:100%;max-width:none}
+ #onboarding-dialog[open]{max-height:92dvh}
+ #onboarding-dialog .dialog-heading{padding:var(--sp-4) var(--sp-4) 0}
+ .onboarding-dialog-body{padding:var(--sp-2) var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-bottom))}
+ .ob-foot .button{flex:1}
+ .ob-summary{grid-template-columns:1fr 1fr}
+ .td-onboard-cta-group .button{flex:1}
+}

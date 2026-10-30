@@ -332,7 +332,7 @@
   }else if(a.type==='stock:alert'){
    const date=a.date||s.date,service=a.service||s.service,x=item(a.item);allowed(x,date,service);
    if(s.unavailable.some(u=>u.id!==a.id&&u.item===x.id&&u.date===date&&u.service===service&&['Reported','Approved'].includes(u.status)))throw Error(`${x.name} is already on the 86 board for this service.`);
-   s=upgrade(prev.change(s,{type:'ops:alert',id:a.id,date,service,name:x.name,reason:String(a.reason||''),area:teamFor(x,date,service)},role));
+   s=upgrade(prev.change(s,{type:'ops:alert',id:a.id,date,service,name:x.name,reason:String(a.reason||''),area:teamFor(x,date,service),sub:a.sub},role));
    s.unavailable.find(u=>u.id===a.id).item=x.id;
    if(Number(a.restock)>0){
     if(!x.vendor)throw Error(`${x.name} is made in house, so there is nothing to reorder.`);

@@ -400,7 +400,7 @@
     const av=B.menu.availability(s,it,c.date,c.service);
     if(av.status==='service')throw Error(`${it.name} is not served at ${c.service}.`);
     if(av.status==='soldout')throw Error(`${it.name} is sold out: ${av.reason}`);
-    if(B.menu.OFF.includes(av.status))throw Error(`${it.name} is 86’d${av.reason?': '+av.reason:'.'}`);
+    if(B.menu.OFF.includes(av.status))throw Error(`${it.name} is 86’d${av.reason?': '+av.reason:'.'}${av.sub?' Offer '+av.sub.name+' instead.':''}`);
     // A count set by the kitchen caps what can still be rung in for this service.
     if(av.status==='limited'&&qty>av.remaining)throw Error(`Only ${av.remaining} ${it.name} left for ${c.service}.`);
     const chosen=[].concat(a.mods||[]).map(String),mods=[];

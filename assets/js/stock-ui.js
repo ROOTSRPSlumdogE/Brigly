@@ -29,6 +29,12 @@ globalThis.createStockUI=function(api){
  const cart=new Map();
  const st=()=>s().stock,vendor=id=>st().vendors.find(v=>v.id===id),item=id=>st().items.find(i=>i.id===id);
  const myTeams=()=>B.stock.teams(s(),me()),canUse=x=>B.stock.canUse(s(),x);
+ // What to offer instead of an 86’d item. Managers and the menu or stock lead set it; the field comes from the Menu screen when a menu is loaded, otherwise it is plain text.
+ const canSub=()=>manager()||!!B.permissions?.can(s(),'menu');
+ const subField=(cur,o)=>api.subField?api.subField(cur,o):input('subText','Offer instead (optional)',cur?.name||'','text','maxlength="100" placeholder="e.g. the Pinot Grigio"');
+ const subValue=v=>api.subValue?api.subValue(v):(String(v.subText||'').trim()?{item:'',name:v.subText}:null);
+ const subOf=u=>B.menu&&s().menu?B.menu.substitute(s(),u):u.sub?{item:'',name:u.sub.name,dish:null,available:null}:null;
+ const subLine=u=>{const sb=subOf(u);return sb?`<p class="sk-86-sub">Offer instead: ${sb.dish?`<button type="button" class="sk-link" data-action="mn-open" data-id="${e(sb.item)}">${e(sb.name)}</button>`:`<b>${e(sb.name)}</b>`}${sb.available===false?' '+tag('also off','danger'):''}</p>`:'';};
  const alerts=()=>s().unavailable.filter(x=>x.date===s().date&&x.service===s().service);
  const alertFor=x=>alerts().find(u=>u.item===x.id&&['Approved','Reported'].includes(u.status));
  const below=x=>x.active&&x.onHand!==null&&x.onHand<x.par;
@@ -120,7 +126,7 @@ globalThis.createStockUI=function(api){
    fact('Vendor',e(v?.name||'Made in house'),c?e(c.label):'')+
    fact('Pack',e(x.unit+(x.pack?' · '+x.pack:'')),x.vendor&&manager()?e(money(x.cost)+' per '+x.unit):'')+
    fact('Teams',e(x.teams.join(', ')),e(x.location||''));
-  const alertBox=a?`<div class="sk-sheet-86" data-status="${e(a.status)}"><strong>${a.status==='Approved'?'86’d this service':'86 reported · waiting for a manager'}</strong><p>${e(a.reason)}</p><small>${e(name(a.author))}${a.reviewer?' · confirmed by '+e(first(a.reviewer)):''}</small>${manager()?`<div class="sk-actions">${a.status==='Reported'?opsBtn('Approve 86','approve-alert',a.id,'small')+opsBtn('Decline','decline-alert',a.id,'secondary small'):opsBtn('Back in stock','restore-alert',a.id,'secondary small')}</div>`:''}</div>`:'';
+  const alertBox=a?`<div class="sk-sheet-86" data-status="${e(a.status)}"><strong>${a.status==='Approved'?'86’d this service':'86 reported · waiting for a manager'}</strong><p>${e(a.reason)}</p>${subLine(a)}<small>${e(name(a.author))}${a.reviewer?' · confirmed by '+e(first(a.reviewer)):''}</small>${manager()?`<div class="sk-actions">${a.status==='Reported'?opsBtn('Approve 86','approve-alert',a.id,'small')+opsBtn('Decline','decline-alert',a.id,'secondary small'):opsBtn('Back in stock','restore-alert',a.id,'secondary small')}</div>`:''}</div>`:'';
   const pipe=pending.length?`<ul class="sk-sheet-pipe">${pending.map(o=>`<li>${tag(o.status==='Ordered'?'On order':o.status==='Approved'?'Order sheet':'Requested',o.status==='Ordered'?'sage':'slate')}<span>${e(amount(o.quantity,o.unit))} · ${e(first(o.author))}${o.status==='Ordered'?' · arrives '+e(dayShort(o.expected)):''}</span></li>`).join('')}</ul>`:'';
   const order=use&&x.vendor&&x.active?`<div class="sk-sheet-order"><div class="sk-stepper is-lg"><button type="button" data-action="stock-sheet-step" data-step="-1" aria-label="One less">${icon('minus')}</button><input type="number" inputmode="numeric" min="1" max="10000" step="1" value="${cart.get(x.id)||suggested(x)}" data-sheet-qty aria-label="Quantity in ${e(units(2,x.unit))}"><button type="button" data-action="stock-sheet-step" data-step="1" aria-label="One more">${icon('add')}</button></div><button type="button" class="button" data-action="stock-sheet-add" data-id="${e(x.id)}">${cart.has(x.id)?'Update':manager()?'Add to order':'Add to request'}</button></div><p class="sk-hint">${e(units(2,x.unit))}${below(x)?' · suggested from par':''}</p>`:'';
   const more=[use&&!a&&x.active?`<button type="button" class="sk-sheet-action is-danger" data-action="stock-86" data-id="${e(x.id)}">${icon('86')}<span>86 this item</span></button>`:'',use?`<button type="button" class="sk-sheet-action" data-action="stock-count-one" data-id="${e(x.id)}">${icon('count')}<span>Update count</span></button>`:'',manager()?`<button type="button" class="sk-sheet-action" data-action="stock-item" data-id="${e(x.id)}">${icon('edit')}<span>Edit item</span></button>`:''].join('');
@@ -131,8 +137,10 @@ globalThis.createStockUI=function(api){
   const x=item(u.item),pending=x?B.stock.openLines(s(),x.id):[],ord=pending.find(o=>o.status==='Ordered');
   const restock=!x?'':!x.vendor?'<small>Made in house</small>':ord?`<small class="is-good">${icon('truck')}Restock arrives ${e(dayShort(ord.expected))}</small>`:pending.length?`<small>${icon('clock')}Restock ${pending[0].status==='Approved'?'on the order sheet':'requested'}</small>`:canUse(x)&&['Approved','Reported'].includes(u.status)?`<button type="button" class="sk-link" data-action="stock-restock" data-id="${e(x.id)}">${icon('add')}Request restock</button>`:'';
   const actions=manager()?(u.status==='Reported'?opsBtn('Approve','approve-alert',u.id,'small')+opsBtn('Decline','decline-alert',u.id,'secondary small'):u.status==='Approved'?opsBtn('Back in stock','restore-alert',u.id,'secondary small'):opsBtn('86 again','approve-alert',u.id,'secondary small')):'';
+  const subBtn=canSub()&&['Approved','Reported'].includes(u.status)?btn(subOf(u)?'Change substitute':'Offer instead','sub',u.id,'quiet small'):'';
   const editable=x&&(manager()||(u.status==='Reported'&&u.author===me()));
-  return `<article class="sk-86" data-status="${e(u.status)}"><div class="sk-86-top"><strong>${e(u.name)}</strong>${tag(u.area,'slate')}</div><p>${e(u.reason)}</p><small class="sk-86-by">${e(first(u.author))}${u.reviewer&&u.status!=='Reported'?' · confirmed by '+e(first(u.reviewer)):''}${u.feedback?' · '+e(u.feedback):''}${editable?` · <button type="button" class="sk-link" data-action="stock-86-edit" data-id="${e(u.id)}">Edit</button>`:''}</small>${restock||actions?`<div class="sk-86-foot">${restock}<span class="sk-actions">${actions}</span></div>`:''}</article>`;
+  const hit=x&&B.menu&&s().menu?B.menu.usedIn(s(),x.id).map(i=>i.name).filter(n=>n.toLowerCase()!==u.name.toLowerCase()):[];
+  return `<article class="sk-86" data-status="${e(u.status)}"><div class="sk-86-top"><strong>${e(u.name)}</strong><small>${e(u.area)}</small></div><p>${e(u.reason)}</p>${hit.length?`<p>Affects ${e(hit.join(', '))}</p>`:''}${subLine(u)}<small class="sk-86-by">${e(first(u.author))}${u.reviewer&&u.status!=='Reported'?' · confirmed by '+e(first(u.reviewer)):''}${u.feedback?' · '+e(u.feedback):''}${editable?` · <button type="button" class="sk-link" data-action="stock-86-edit" data-id="${e(u.id)}">Edit</button>`:''}</small>${restock||actions||subBtn?`<div class="sk-86-foot">${restock}<span class="sk-actions">${subBtn}${actions}</span></div>`:''}</article>`;
  }
  function boardView(){
   const state=s(),a=alerts(),write=(manager()||state.shifts.some(x=>x.person===me()&&x.date===state.date&&x.service===state.service))&&(!B.permissions||B.permissions.can(state,'report86'));
@@ -247,7 +255,7 @@ globalThis.createStockUI=function(api){
  }
  function rail(){
   const a=alerts(),live=a.filter(u=>u.status==='Approved'),rep=a.filter(u=>u.status==='Reported');
-  let html=`<section class="sk-rail-card sk-rail-86"><h3>86’d · ${e(s().service)}</h3>${live.length?live.map(u=>`<button type="button" class="sk-rail-row" data-action="stock-tab" data-id="86"><span><strong>${e(u.name)}</strong><small>${e(u.area)} · ${e(u.reason)}</small></span></button>`).join(''):'<p class="sk-hint">Full menu available.</p>'}${rep.length?`<button type="button" class="sk-rail-row is-flag" data-action="stock-tab" data-id="86"><span><strong>${plural(rep.length,'report')} waiting</strong><small>${manager()?'Approve or decline':'Waiting for a manager'}</small></span>${icon('chev')}</button>`:''}</section>`;
+  let html=`<section class="sk-rail-card sk-rail-86"><h3>86’d · ${e(s().service)}</h3>${live.length?live.map(u=>`<button type="button" class="sk-rail-row" data-action="stock-tab" data-id="86"><span><strong>${e(u.name)}</strong><small>${e(u.area)} · ${e(u.reason)}${u.sub?' · offer '+e(u.sub.name):''}</small></span></button>`).join(''):'<p class="sk-hint">Full menu available.</p>'}${rep.length?`<button type="button" class="sk-rail-row is-flag" data-action="stock-tab" data-id="86"><span><strong>${plural(rep.length,'report')} waiting</strong><small>${manager()?'Approve or decline':'Waiting for a manager'}</small></span>${icon('chev')}</button>`:''}</section>`;
   if(manager()){
    const due=byKey(lines('Approved'),o=>o.vendor).map(([vid,l])=>({v:vendor(vid),l})).filter(x=>x.v).map(x=>({...x,c:cutoff(x.v)})).filter(x=>x.c).sort((a,b)=>a.c.orderBy-b.c.orderBy).slice(0,4);
    const waiting=[[lines('Requested').length,n=>plural(n,'request')+' to review','review'],[st().items.filter(x=>below(x)&&x.vendor&&!B.stock.openLines(s(),x.id).length).length,n=>plural(n,'item')+' below par','order'],[byKey(lines('Ordered'),orderKey).length,n=>n===1?'1 delivery arriving':n+' deliveries arriving','arriving']].filter(([n])=>n);
@@ -273,11 +281,26 @@ globalThis.createStockUI=function(api){
   const state=s(),old=alertId?state.unavailable.find(x=>x.id===alertId):null,fixed=item(old?.item||itemId);
   const taken=new Set(state.unavailable.filter(u=>u.date===date&&u.service===service&&['Reported','Approved'].includes(u.status)&&u.id!==alertId).map(u=>u.item));
   const pickable=st().items.filter(x=>x.active&&B.stock.canUse(state,x,state.role,date,service)&&!taken.has(x.id));
-  if(!fixed&&!pickable.length){api.notify('Everything on your team’s list is already 86’d, or you’re not on a team for this service.');return;}
+  // One picker for everything the menu and the stock list know: dishes first, then ingredients. Both come from the same records.
+  const M=B.menu,dishes=!fixed&&!old&&M&&state.menu?M.list(state,{date,service}).filter(i=>!M.OFF.includes(i.availability.status)):[];
+  if(!fixed&&!pickable.length&&!dishes.length){api.notify('Everything on your team’s list is already 86’d, or you’re not on a team for this service.');return;}
   const reasons=['Sold out','Delivery short','Quality issue','Prep not ready','Equipment down'];
-  const picker=fixed?`<div class="sk-picked"><strong>${e(fixed.name)}</strong><small>${e(fixed.category)} · ${e(fixed.teams.join(', '))}</small><input type="hidden" name="item" value="${e(fixed.id)}"></div>`:`<label class="sk-search">${icon('search')}<span class="sr-only">Find an item</span><input type="search" placeholder="Find an item" data-stock-pick autocomplete="off"></label><div class="sk-pick-list" role="radiogroup" aria-label="Item to 86">${st().categories.filter(c=>pickable.some(x=>x.category===c)).map(c=>`<p class="sk-pick-cat" data-pick-cat="${e(c)}">${e(c)}</p>`+pickable.filter(x=>x.category===c).map((x,i)=>`<label class="sk-pick" data-pick="${e((x.name+' '+c).toLowerCase())}" data-pick-group="${e(c)}"><input type="radio" name="item" value="${e(x.id)}" ${i===0&&c===pickable[0].category?'required':''}><span>${e(x.name)}</span></label>`).join('')).join('')}</div>`;
+  const groups=[];
+  for(const c of state.menu?state.menu.categories.slice().sort((a,b)=>a.order-b.order):[]){const l=dishes.filter(d=>d.category===c.id);if(l.length)groups.push(['Dishes · '+c.name,l.map(d=>['m:'+d.id,d.name,money(d.price)])]);}
+  for(const c of st().categories){const l=pickable.filter(x=>x.category===c);if(l.length)groups.push(['Ingredients · '+c,l.map(x=>['s:'+x.id,x.name,''])]);}
+  let first_=true;
+  const radio=(g,[value,label,sub])=>{const req=first_;first_=false;return `<label class="sk-pick" data-pick="${e((label+' '+g).toLowerCase())}" data-pick-group="${e(g)}"><input type="radio" name="item" value="${e(value)}" ${req?'required':''}><span>${e(label)}${sub?` <small>${e(sub)}</small>`:''}</span></label>`;};
+  const picker=fixed?`<div class="sk-picked"><strong>${e(fixed.name)}</strong><small>${e(fixed.category)} · ${e(fixed.teams.join(', '))}</small><input type="hidden" name="item" value="${e(fixed.id)}"></div>`:`<label class="sk-search">${icon('search')}<span class="sr-only">Find a dish or ingredient</span><input type="search" placeholder="Find a dish or ingredient" data-stock-pick autocomplete="off"></label><div class="sk-pick-list" role="radiogroup" aria-label="Dish or ingredient to 86">${groups.map(([g,rows])=>`<p class="sk-pick-cat" data-pick-cat="${e(g)}">${e(g)}</p>`+rows.map(r=>radio(g,r)).join('')).join('')}</div>`;
   const restock=(!fixed||fixed.vendor)&&!old?input('restock','Also request a restock (optional)','','number','min="0" max="10000" step="1" inputmode="numeric" placeholder="Quantity"'):'';
-  open(old?'Edit 86':manager()?'86 an item':'Report an 86',`<p class="sk-dialog-meta">${e(service)} · ${e(dayShort(date))} · ${manager()?'goes live for the whole team right away.':'shows as unconfirmed until a manager approves it.'}</p>${picker}<div class="sk-reasons" aria-label="Quick reasons">${reasons.map(r=>`<button type="button" class="sk-chip" data-action="stock-reason" data-text="${e(r)}">${e(r)}</button>`).join('')}</div>${textarea('reason','Reason & what to offer instead',old?.reason||'','required maxlength="500" placeholder="e.g. Sold out. Offer the sea bass instead."')}${restock}`,{type:'alert',id:old?.id||crypto.randomUUID(),date,service},true,old?'Save':manager()?'86 it':'Send report');
+  // What to offer instead: for a stock item, the dishes it goes into are left out and its first dish’s category comes first.
+  const hit=fixed&&M&&state.menu?M.usedIn(state,fixed.id):[],subBox=canSub()?subField(old?.sub||null,{cat:hit[0]?.category||'',exclude:hit.map(i=>i.id)}):'';
+  open(old?'Edit 86':manager()?'86 an item':'Report an 86',`<p class="sk-dialog-meta">${e(service)} · ${e(dayShort(date))}${manager()?'':' · unconfirmed until a manager approves it'}</p>${picker}<div class="sk-reasons" aria-label="Quick reasons">${reasons.map(r=>`<button type="button" class="sk-chip" data-action="stock-reason" data-text="${e(r)}">${e(r)}</button>`).join('')}</div>${textarea('reason',canSub()?'Reason':'Reason & what to offer instead',old?.reason||'','required maxlength="500" placeholder="e.g. Sold out for tonight."')}${subBox}${restock}`,{type:'alert',id:old?.id||crypto.randomUUID(),date,service},true,old?'Save':manager()?'86 it':'Send report');
+ }
+ // Set or change what to offer instead of a live 86, from the board, the item sheet or the Menu.
+ function subDialog(alertId){
+  const state=s(),u=state.unavailable.find(x=>x.id===alertId);if(!u||!canSub())return;
+  const M=B.menu,dishId=u.menuItem||'',hit=u.item&&M&&state.menu?M.usedIn(state,u.item):[],cat=dishId?M?.item(state,dishId)?.category||'':hit[0]?.category||'';
+  open('Offer instead',`<p class="sk-dialog-meta"><strong>${e(u.name)}</strong> · 86’d for ${e(u.service)} · ${e(dayShort(u.date))}</p>${subField(u.sub||null,{cat,exclude:[dishId,...hit.map(i=>i.id)]})}<p class="sk-hint">Shows on the 86 board, the Menu and the POS, where tapping the 86’d tile rings in the substitute.</p>`,{type:'sub',id:u.id},true,'Save');
  }
  function cartDialog(){
   const list=[...cart].map(([id,q])=>({x:item(id),q})).filter(l=>l.x);if(!list.length)return;
@@ -374,6 +397,7 @@ globalThis.createStockUI=function(api){
   if(action==='sheet-step'){const i=document.querySelector('#editor-fields [data-sheet-qty]');if(i)i.value=Math.max(1,Math.round(Number(i.value)||0)+Number(data.step));return;}
   if(action==='sheet-add'){const i=document.querySelector('#editor-fields [data-sheet-qty]'),q=Math.round(Number(i?.value));if(!(q>=1&&q<=10000)){api.notify('Enter a whole quantity from 1 to 10,000.');return;}const x=item(id);cart.set(id,q);form=null;api.close?.();if(state.view!=='stock'){api.go?.();show('items');}api.render();api.notify(`${amount(q,x.unit)} ${x.name} added · ${plural(cart.size,'item')} ready to ${manager()?'add':'send'}`);return;}
   if(action==='count-one'){countDialog(id);return;}
+  if(action==='sub'){subDialog(id);return;}
   if(action==='86'){alertDialog(state.date,state.service,id);return;}
   if(action==='86-edit'){const u=state.unavailable.find(x=>x.id===id);if(u)alertDialog(u.date,u.service,'',u.id);return;}
   if(action==='report-86'){alertDialog(state.date,state.service);return;}
@@ -399,7 +423,8 @@ globalThis.createStockUI=function(api){
  }
  function submit(v,data){
   if(!form)throw Error('Reopen the form.');
-  if(form.type==='alert')return {type:'stock:alert',id:form.id,item:v.item,date:form.date,service:form.service,reason:v.reason,restock:Number(v.restock)||0};
+  if(form.type==='alert'){const pick=String(v.item||''),sub=canSub()?{sub:subValue(v)}:{};if(pick.startsWith('m:'))return {type:'menu:86',id:form.id,item:pick.slice(2),reason:v.reason,date:form.date,service:form.service,...sub};return {type:'stock:alert',id:form.id,item:pick.startsWith('s:')?pick.slice(2):pick,date:form.date,service:form.service,reason:v.reason,restock:Number(v.restock)||0,...sub};}
+  if(form.type==='sub')return {type:'ops:sub',id:form.id,sub:subValue(v)};
   if(form.type==='request'){const list=Object.entries(v).filter(([k])=>k.startsWith('qty:')).map(([k,q])=>({item:k.slice(4),quantity:Math.round(Number(q))})).filter(l=>l.quantity>0);if(!list.length)throw Error('Set at least one quantity above 0.');return {type:'stock:request',id:form.id,lines:list,note:v.note};}
   if(form.type==='count')return {type:'stock:count',id:form.id,onHand:v.onHand===''?null:Number(v.onHand)};
   if(form.type==='decline')return {type:'stock:review',ids:[form.id],status:'Declined',feedback:v.feedback};
@@ -414,10 +439,12 @@ globalThis.createStockUI=function(api){
  }
  // Called once a dialog's change has been saved; returns the confirmation to show.
  function saved(){
-  const messages={alert:manager()?'86 is live for the whole team.':'86 report sent to your manager.',request:manager()?'Added to the order sheet.':'Request sent. Follow it under Requests.',count:'Count saved.',decline:'Declined. The crew sees your reason.',place:'Order placed. It now shows under Arriving.',receive:'Delivery checked in.',item:'Stock list updated.',vendor:'Vendor saved.','count-finish':'Count saved. On-hand is up to date.','count-discard':'Count discarded.',assign:'Count scheduled. It shows on Today for whoever counts.'};
+  const messages={alert:manager()?'86 is live for the whole team.':'86 report sent to your manager.',request:manager()?'Added to the order sheet.':'Request sent. Follow it under Requests.',count:'Count saved.',decline:'Declined. The crew sees your reason.',place:'Order placed. It now shows under Arriving.',receive:'Delivery checked in.',item:'Stock list updated.',vendor:'Vendor saved.','count-finish':'Count saved. On-hand is up to date.','count-discard':'Count discarded.',assign:'Count scheduled. It shows on Today for whoever counts.',sub:'Saved. The 86 board, the Menu and the POS show what to offer.'};
   const type=form?.type;if(type==='request')cart.clear();if(type==='place')stage='arriving';if(type==='receive')stage='received';if(type==='count-finish'){countResult=form.id;countId='';}if(type==='count-discard')countId='';form=null;return messages[type];
  }
  function onChange(t){
+  // "Something not on the menu…" reveals the free-text box in any 86 dialog (Stock or Menu).
+  if(t.dataset?.stockSub!==undefined){const box=t.form?.querySelector('[data-stock-sub-text]');if(box){box.hidden=t.value!=='text:';if(!box.hidden)box.querySelector('input')?.focus();}return;}
   if(t.name==='stockTeam'){team=t.value;api.render();return;}
   if(t.name==='stockGroup'){group=t.value;api.render();return;}
   if(t.dataset?.countEntry===undefined)return;

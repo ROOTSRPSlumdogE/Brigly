@@ -73,21 +73,23 @@
   function schedules(){return scheduleUI.render();}
   function lists(){return dutiesUI.lists();}
   function specials(){
-    const all=current('specials'),active=all.filter(x=>x.active),paused=all.filter(x=>!x.active);
-    const specCount=all.filter(x=>!x.kind||x.kind==='special').length;
-    const hhCount=all.filter(x=>x.kind==='happy_hour').length;
-    const evCount=all.filter(x=>x.kind==='event').length;
-    const totalQ=all.reduce((n,x)=>n+(x.questions||[]).length,0);
-    const allergenCount=all.filter(x=>x.allergens&&x.allergens.trim()).length;
-    const filtered=specialFilter==='active'?active:specialFilter==='paused'?paused:specialFilter==='specials'?all.filter(x=>!x.kind||x.kind==='special'):specialFilter==='happy_hour'?all.filter(x=>x.kind==='happy_hour'):specialFilter==='event'?all.filter(x=>x.kind==='event'):all;
-    const tabs=[['all','All happenings',all.length],['specials','Specials',specCount],['happy_hour','Happy Hours',hhCount],['event','Events',evCount],['active','On the menu',active.length],['paused','Paused',paused.length]];
-    const approved86=current('unavailable').filter(x=>x.status==='Approved');
-    return `<div class="specials-view"><div class="section-bar"><div><p class="eyebrow">DAILY HAPPENINGS &amp; SERVICE HIGHLIGHTS</p><h2>Happenings for ${e(state.service.toLowerCase())}</h2><p>${dateLabel(state.date,{weekday:'short',month:'short',day:'numeric'})} · Confirm ingredients, allergens, and cross-contact with the kitchen and bar before advising guests.</p></div><div class="toolbar">${manager()?button('Specials report & history ›','ops-report-tab','specials','','secondary'):''}${lead('happenings')?editButton('+ Add happening','specials','',''):''}</div></div><div class="res-kpis"><div class="res-kpi"><small>TOTAL HAPPENINGS</small><strong>${active.length} <span>active</span></strong><p>${paused.length?paused.length+' paused for this service':'All live for service'}</p></div><div class="res-kpi"><small>HAPPY HOUR &amp; EVENTS</small><strong>${hhCount+evCount} <span>scheduled</span></strong><p>${hhCount} happy hour · ${evCount} event</p></div><div class="res-kpi"><small>ALLERGY GUIDANCE</small><strong>${allergenCount}/${all.length} <span>documented</span></strong><p>Always verify cross-contact with kitchen</p></div><div class="res-kpi"><small>CREW QUESTIONS</small><strong>${totalQ} <span>asked</span></strong><p>Ask &amp; answer questions before service</p></div></div><div class="res-filter-bar" role="tablist" aria-label="Filter specials">${tabs.map(([key,label,cnt])=>`<button type="button" class="notif-tab ${specialFilter===key?'selected':''}" data-action="special-filter" data-id="${key}" aria-pressed="${specialFilter===key}"><span>${e(label)}</span><em>${cnt}</em></button>`).join('')}</div><div class="special-feature-grid">${filtered.length?filtered.map(s=>{
-      const kTag=s.kind==='happy_hour'?'Happy Hour':s.kind==='event'?'Event':'Special';
-      const priceStr=s.price>0?'$'+Number(s.price).toFixed(2):(s.kind==='event'?'Free entry':'$0.00');
-      const qs=s.questions||[];
-      return `<article class="special-feature-card ${s.active?'is-active':'is-paused'}" data-kind="${e(s.kind||'special')}"><div class="special-card-head"><div class="special-card-badges"><span class="td-tag" data-tone="${s.kind==='happy_hour'?'orange':s.kind==='event'?'sage':'amber'}">${kTag}</span>${badge(s.active?'On the menu':'Paused',s.active?'tone-sage':'tone-slate')}<span class="arrival-pill">${e(state.service)} · ${dateLabel(state.date)}</span>${s.time?`<span class="arrival-pill happening-time-badge">⏰ ${e(s.time)}</span>`:''}</div><span class="special-price-tag td-price">${priceStr}</span></div><h3>${e(s.name)}</h3><p class="special-desc">${e(s.description||'Ask the kitchen or bar for tasting notes.')}</p><div class="special-allergen-callout"><div class="special-allergen-label"><span>!</span><strong>${s.kind==='happy_hour'?'Happy hour terms & seating':s.kind==='event'?'Event staging & timetable':'Ingredient & allergy guidance'}</strong></div><p>${e(s.allergens)||'Ask the kitchen directly before advising guests on allergens.'}</p></div><div class="happening-qa-section" id="qa-sec-${s.id}"><div class="happening-qa-header"><strong>💬 Crew Q&amp;A (${qs.length})</strong><button type="button" class="button quiet small qa-ask-toggle-btn" data-action="qa-toggle-ask" data-id="${s.id}">+ Ask a question</button></div><form class="happening-qa-form is-hidden" id="qa-form-${s.id}" data-action="qa-submit-question" data-id="${s.id}"><div class="qa-form-row"><input type="text" name="qaText" placeholder="Ask about ingredients, timing, tables..." required maxlength="500"><button type="submit" class="button small">Ask</button><button type="button" class="button secondary small" data-action="qa-toggle-ask" data-id="${s.id}">Cancel</button></div></form><div class="happening-qa-list">${qs.length?qs.map(q=>`<div class="qa-item"><div class="qa-q-row"><span class="avatar">${e(B.person(q.author)?.initials||'TM')}</span><div class="qa-q-content"><div class="qa-author-stamp"><strong>${e(B.person(q.author)?.name||'Team member')}</strong><small>${q.at?new Date(q.at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):''}</small></div><p>${e(q.text)}</p></div></div>${q.answer?`<div class="qa-a-row"><span class="avatar is-mgr">${e(B.person(q.answer.author)?.initials||'M')}</span><div class="qa-a-content"><div class="qa-author-stamp"><strong>${e(B.person(q.answer.author)?.name||'Manager / Chef')}</strong><span class="badge tone-sage">✓ Answer</span><small>${q.answer.at?new Date(q.answer.at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):''}</small></div><p>${e(q.answer.text)}</p></div></div>`:`<div class="qa-reply-row"><span class="badge orange">Awaiting answer</span><button type="button" class="button quiet small" data-action="qa-toggle-reply" data-special-id="${s.id}" data-id="${q.id}">Reply / Answer</button></div><form class="qa-reply-form is-hidden" id="qa-reply-${s.id}-${q.id}" data-action="qa-submit-reply" data-special-id="${s.id}" data-id="${q.id}"><div class="qa-form-row"><input type="text" name="replyText" placeholder="Write answer for the team..." required maxlength="500"><button type="submit" class="button small">Answer</button><button type="button" class="button secondary small" data-action="qa-toggle-reply" data-special-id="${s.id}" data-id="${q.id}">Cancel</button></div></form>`}</div>`).join(''):'<p class="qa-empty">No questions yet. Any team member can ask about ingredients, prep, or table policies.</p>'}</div></div>${lead('happenings')?`<div class="card-actions special-card-actions">${editButton('Edit happening','specials',s.id)}${button(s.active?'Pause happening':'Put on menu','toggle',s.id,'data-collection="specials"',s.active?'quiet':'')}</div>`:''}</article>`;
-    }).join(''):`<div class="panel full-width">${empty('No specials in this view','Switch filter tabs above or add a dish or drink for the team to share.')}</div>`}</div></div>`;
+    const all=current('specials'),paused=all.filter(x=>!x.active);
+    const kinds={specials:x=>!x.kind||x.kind==='special',happy_hour:x=>x.kind==='happy_hour',event:x=>x.kind==='event',active:x=>x.active,paused:x=>!x.active};
+    const filtered=kinds[specialFilter]?all.filter(kinds[specialFilter]):all;
+    const tabs=[['all','All',all.length],['specials','Specials',all.filter(kinds.specials).length],['happy_hour','Happy hours',all.filter(kinds.happy_hour).length],['event','Events',all.filter(kinds.event).length],['paused','Paused',paused.length]];
+    const head=`<div class="page-head"><div class="page-tabs" role="tablist" aria-label="Filter happenings">${tabs.map(([key,label,cnt])=>`<button type="button" role="tab" class="${specialFilter===key?'selected':''}" data-action="special-filter" data-id="${key}" aria-selected="${specialFilter===key}">${label}<em>${cnt}</em></button>`).join('')}</div><div class="toolbar">${manager()?button('Reports','ops-report-tab','specials','','quiet'):''}${lead('happenings')?editButton('Add happening','specials','',''):''}</div></div>`;
+    const kindLabel=s=>s.kind==='happy_hour'?'Happy hour':s.kind==='event'?'Event':'Special';
+    const noteLabel=s=>s.kind==='happy_hour'?'Terms':s.kind==='event'?'Staging':'Allergens';
+    const when=x=>x.at?new Date(x.at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
+    const person=id=>B.person(id)?.name||'Team member',initials=id=>B.person(id)?.initials||'TM';
+    const card=s=>{
+      const qs=s.questions||[],price=s.price>0?'$'+Number(s.price).toFixed(2):(s.kind==='event'?'Free':'');
+      const meta=[kindLabel(s),s.time,s.active?'':'Paused'].filter(Boolean).join(' · ');
+      const qa=qs.map(q=>`<div class="qa-item"><div class="qa-q-row"><span class="avatar">${e(initials(q.author))}</span><div class="qa-q-content"><div class="qa-author-stamp"><strong>${e(person(q.author))}</strong><small>${when(q)}</small></div><p>${e(q.text)}</p></div></div>${q.answer?`<div class="qa-a-row"><span class="avatar is-mgr">${e(initials(q.answer.author))}</span><div class="qa-a-content"><div class="qa-author-stamp"><strong>${e(person(q.answer.author))}</strong><small>${when(q.answer)}</small></div><p>${e(q.answer.text)}</p></div></div>`:`<div class="qa-reply-row"><small>No answer yet</small><button type="button" class="button quiet small" data-action="qa-toggle-reply" data-special-id="${s.id}" data-id="${q.id}">Answer</button></div><form class="qa-reply-form is-hidden" id="qa-reply-${s.id}-${q.id}" data-action="qa-submit-reply" data-special-id="${s.id}" data-id="${q.id}"><div class="qa-form-row"><input type="text" name="replyText" placeholder="Answer for the team" required maxlength="500"><button type="submit" class="button small">Answer</button></div></form>`}</div>`).join('');
+      const ask=`<form class="happening-qa-form" data-action="qa-submit-question" data-id="${s.id}"><div class="qa-form-row"><input type="text" name="qaText" placeholder="Ask about ingredients, timing or tables" required maxlength="500"><button type="submit" class="button small">Ask</button></div></form>`;
+      return `<article class="hp-card${s.active?'':' is-paused'}" data-kind="${e(s.kind||'special')}"><div class="hp-head"><div><h3>${e(s.name)}</h3><small>${e(meta)}</small></div>${price?`<b class="hp-price">${price}</b>`:''}</div>${s.description?`<p class="hp-desc">${e(s.description)}</p>`:''}${s.allergens?`<p class="hp-note"><b>${noteLabel(s)}</b> ${e(s.allergens)}</p>`:''}<details class="hp-qa" data-key="hp-qa-${e(s.id)}"><summary>${qs.length?qs.length+(qs.length===1?' question':' questions'):'Ask a question'}</summary><div class="happening-qa-list">${qa}</div>${ask}</details>${lead('happenings')?`<div class="hp-actions">${editButton('Edit','specials',s.id,'quiet small')}${button(s.active?'Pause':'Put on menu','toggle',s.id,'data-collection="specials"','quiet small')}</div>`:''}</article>`;
+    };
+    return `<div class="specials-view">${head}<div class="hp-grid">${filtered.length?filtered.map(card).join(''):empty('Nothing here','Add a special, happy hour or event for this service.')}</div></div>`;
   }
   // The reservations screen (floor map, bookings, guests, layout editor) lives in floor-ui.js; the list below stays as a fallback when it is not loaded.
   function reservations(){
@@ -139,323 +141,6 @@
     $('ctx-shifts').innerHTML=mode!=='service'?'':(list.length?`<p class="ctx-label">${manager()?'Coming up':'Your shifts'}</p>`+list.map(x=>{const cur=x.date===state.date&&x.service===state.service,live=liveNow(x.date,x.service),v=serviceOf(x.service);return `<button type="button" class="ctx-shift" data-action="ctx-pick" data-date="${e(x.date)}" data-service="${e(x.service)}" aria-current="${cur}"><span class="ctx-shift-day"><strong>${e(dateLabel(x.date,{day:'numeric'}))}</strong><small>${e(dateLabel(x.date,{weekday:'short'}))}</small></span><span class="ctx-shift-text"><strong>${e(dayWord(x.date)||dateLabel(x.date,{weekday:'long'}))} · ${e(x.service)}</strong><small>${manager()?e((v?.start||x.start)+'–'+(v?.end||x.end)):e(x.start+'–'+x.end+' · '+x.area)}</small></span>${live?'<em class="ctx-live">Live</em>':cur?'<em>Selected</em>':''}</button>`;}).join(''):'')+`<button type="button" class="ctx-more" data-action="app-screen" data-id="shifts">${manager()?'Open the roster':'Open my full schedule'}<span aria-hidden="true">›</span></button>`;
   }
   function openShiftPicker(){paintShiftPicker();if(!$('ctx-dialog').open)$('ctx-dialog').showModal();($('ctx-services').querySelector('[aria-pressed="true"]')||$('service-date')).focus({preventScroll:true});}
-  function openOnboardingModal(briefId){
-    const b=state.briefings.find(x=>x.id===briefId)||state.briefings.find(x=>x.date===state.date&&x.service===state.service);
-    const team=state.shifts.filter(x=>x.date===state.date&&x.service===state.service);
-    const shift=team.find(x=>x.person===me());
-    const isMgr=manager();
-    const ackedByMe=b?(b.acks.includes(me())||b.author===me()):false;
-    const happenings=state.specials.filter(x=>x.date===state.date&&x.service===state.service&&x.active);
-    const alerts=state.unavailable.filter(x=>x.date===state.date&&x.service===state.service&&x.status==='Approved');
-
-    // Approval status calculation
-    const authorIsMgr=state.team.find(p=>p.id===b?.author)?.access==='manager';
-    const appStatus=b?.approvalStatus||(authorIsMgr?'Approved':'Pending');
-    const approverName=b?.approvedBy?(state.team.find(p=>p.id===b.approvedBy)?.name||'Manager'):(authorIsMgr?(state.team.find(p=>p.id===b.author)?.name||'Manager'):'');
-    const appTime=b?.approvedAt?new Date(b.approvedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'15:30';
-    const appTone=appStatus==='Approved'?'sage':appStatus==='Late approved'?'amber':'orange';
-    const appBadge=appStatus==='Approved'?'✓ Manager Approved · On-Time':appStatus==='Late approved'?'⚠️ Late Approved':'⏳ Awaiting Manager Approval';
-
-    // 1. Identify previous shift
-    const activeServices=state.setup.services.filter(x=>x.active);
-    const sIdx=activeServices.findIndex(x=>x.name===state.service);
-    let prevDate=state.date,prevService='';
-    if(sIdx>0){
-      prevService=activeServices[sIdx-1].name;
-    }else if(activeServices.length){
-      prevService=activeServices[activeServices.length-1].name;
-      prevDate=B.addDays(state.date,-1);
-    }
-
-    // Previous shift tasks, checks, notes & alerts
-    const prevTasks=(B.work&&prevService)?B.work.tasks(state,prevDate,prevService):[];
-    const prevChecks=state.checks[`${prevDate}|${prevService}`]||{};
-    const uncompletedRolloverTasks=prevTasks.filter(t=>t.rollover&&!prevChecks[t.id]);
-    const uncompletedNonRolloverTasks=prevTasks.filter(t=>!t.rollover&&!prevChecks[t.id]);
-    const uncompletedPrevTasks=uncompletedRolloverTasks;
-    const prevNotes=(state.shiftNotes||[]).filter(n=>n.date===prevDate&&n.service===prevService&&!n.archived);
-    const prevAlerts=(state.unavailable||[]).filter(a=>a.date===prevDate&&a.service===prevService&&a.active);
-
-    // Current shift directives, notes & to-dos
-    const curNotes=(state.shiftNotes||[]).filter(n=>n.date===state.date&&n.service===state.service&&!n.archived);
-    const allTodos=B.chat?B.chat.todos(state):[];
-    const myTodos=allTodos.filter(t=>isMgr||t.todo.for===me()||!t.todo.for);
-
-    // Current shift reservations
-    const allRes=(state.reservations||[]).filter(r=>r.date===state.date&&r.service===state.service);
-    const activeRes=allRes.filter(r=>!['Cancelled','No-show'].includes(r.status));
-    const totalCovers=activeRes.reduce((sum,r)=>sum+(r.guests||0),0);
-
-    let html=`<div class="onboard-modal-shell">`;
-
-    // 1. Hero banner with shift assignment & team
-    html+=`<div class="onboard-hero-banner ${ackedByMe?'is-complete':'is-action-needed'}">
-      <div class="onboard-hero-text">
-        <div class="onboard-hero-badges">
-          <span class="eyebrow">${ackedByMe?'✓ SHIFT ONBOARDED':'⚠️ ONBOARDING REQUIRED BEFORE SERVICE'}</span>
-          <span class="badge tone-${appTone}">${appBadge}</span>
-        </div>
-        <h3>${dateLabel(state.date,{weekday:'long',month:'short',day:'numeric'})} · ${e(state.service)}</h3>
-        <p>${shift?`You are assigned to <strong>${e(shift.area)}</strong> (${e(shift.start)}–${e(shift.end)})`:`Manager overview · ${team.length} scheduled on shift`}</p>
-        <div class="onboard-team-strip">
-          <small>Team on shift (${team.length}):</small>
-          ${team.map(m=>`<span class="onboard-team-pill" title="${e(B.person(m.person)?.name||'Teammate')} · ${e(m.area)}">${e(B.person(m.person)?.initials||'TM')} <small>${e(m.area)}</small></span>`).join('')}
-        </div>
-      </div>
-      <span class="badge ${ackedByMe?'tone-sage':'orange'}">${ackedByMe?'Ready for Service':'Needs Acknowledgment'}</span>
-    </div>`;
-
-    // 2. Manager Pre-Approval Shortcuts & Controls (Manager view) OR Approval Callout (Crew view)
-    if(isMgr){
-      html+=`<section class="onboard-section onboard-mgr-box">
-        <div class="onboard-sec-head">
-          <div class="onboard-sec-split">
-            <div>
-              <span class="eyebrow">MANAGER PRE-APPROVAL SHORTCUTS &amp; STATUS</span>
-              <h4>Service Sign-Off &amp; Quick Adjustments</h4>
-            </div>
-            <span class="badge tone-${appTone}">${appBadge}</span>
-          </div>
-        </div>
-        <div class="onboard-mgr-content">
-          <p class="onboard-mgr-desc">Quickly adjust any part of tonight’s service plan before giving official approval to the crew:</p>
-          <div class="onboard-mgr-shortcuts">
-            <span class="onboard-sub-title">⚡ Quick Edit Shortcuts:</span>
-            <div class="onboard-mgr-btns">
-              <button type="button" class="button secondary small" data-action="edit" data-collection="briefings" data-id="${e(b?.id)}">✏️ Edit Briefing</button>
-              <button type="button" class="button secondary small" data-action="ops-note" data-date="${state.date}" data-service="${state.service}">📌 Add Priority Note</button>
-              <button type="button" class="button secondary small" data-action="edit" data-collection="specials">🌟 Add Happening</button>
-              <button type="button" class="button secondary small" data-action="ops-alert">🛑 Report 86</button>
-              <button type="button" class="button secondary small" data-action="chat-new">📋 Assign To-Do</button>
-              <button type="button" class="button secondary small" data-action="manage-rollovers">🔄 Define Rollover Tasks</button>
-            </div>
-          </div>
-          <div class="onboard-approval-actions-bar">
-            <div class="onboard-approval-current">
-              <small>Manager Approval Status:</small>
-              <strong>${appStatus==='Approved'?`✓ Approved on-time by ${approverName} (${appTime})`:appStatus==='Late approved'?`⚠️ Late approved by ${approverName} (${appTime} · after service start)`:'⏳ Pending review · Crew has not received official manager sign-off'}</strong>
-            </div>
-            <div class="onboard-approval-ctas">
-              ${appStatus !== 'Approved' ? `<button type="button" class="button small onboarding-approve-btn" data-action="ops-approve-briefing" data-id="${e(b?.id)}" data-status="Approved">✓ Approve Onboarding (On-Time)</button>` : ''}
-              ${appStatus !== 'Late approved' ? `<button type="button" class="button secondary small onboarding-late-btn" data-action="ops-approve-briefing" data-id="${e(b?.id)}" data-status="Late approved">Mark Late Approved</button>` : ''}
-              ${appStatus !== 'Pending' ? `<button type="button" class="button quiet small" data-action="ops-approve-briefing" data-id="${e(b?.id)}" data-status="Pending">Hold / Set Pending</button>` : ''}
-            </div>
-          </div>
-        </div>
-      </section>`;
-    }else{
-      html+=`<div class="onboard-crew-approval-callout ${appStatus==='Approved'?'is-approved':appStatus==='Late approved'?'is-late':'is-pending'}">
-        <div class="onboard-callout-icon">${appStatus==='Approved'?'✓':appStatus==='Late approved'?'⚠️':'⏳'}</div>
-        <div class="onboard-callout-text">
-          <strong>${appStatus==='Approved'?'Manager Approved Service Plan':appStatus==='Late approved'?'Late Approved Service Plan':'Awaiting Manager Approval'}</strong>
-          <p>${appStatus==='Approved'?`Officially approved by ${approverName} (${appTime}) · Service ready`:appStatus==='Late approved'?`Approved after service start by ${approverName} (${appTime})`:'This onboarding is in draft / pending review and has not yet received manager sign-off.'}</p>
-        </div>
-        <span class="badge tone-${appTone}">${appBadge}</span>
-      </div>`;
-    }
-
-    // 3. Handover from Last Shift
-    html+=`<section class="onboard-section">
-      <div class="onboard-sec-head">
-        <span class="eyebrow">SHIFT HANDOVER</span>
-        <h4>Handover from ${e(prevService)} (${dateLabel(prevDate,{weekday:'short',month:'short',day:'numeric'})})</h4>
-      </div>`;
-
-    if(uncompletedRolloverTasks.length){
-      html+=`<div class="onboard-handover-alert warn">
-        <div class="onboard-alert-head">
-          <span class="badge danger">⚠️ Rollover Tasks</span>
-          <strong>${uncompletedRolloverTasks.length} manager-designated rollover ${uncompletedRolloverTasks.length===1?'task requires':'tasks require'} completion:</strong>
-        </div>
-        <p class="onboard-rollover-desc">These critical duties were designated by management to roll over if incomplete from ${e(prevService)}:</p>
-        <ul class="onboard-rollover-list">
-          ${uncompletedRolloverTasks.slice(0,6).map(t=>`<li><span class="td-tag" data-tone="${t.area==='Bar'?'orange':t.area==='Kitchen'?'slate':'sage'}">${e(t.area)}</span> <strong>${e(t.title)}</strong> <span class="badge tone-amber">Rollover Duty</span> <small>(${e(t.list)})</small></li>`).join('')}
-        </ul>
-        ${uncompletedNonRolloverTasks.length?`<p class="onboard-non-rollover-note"><small>ℹ️ ${uncompletedNonRolloverTasks.length} standard shift-specific ${uncompletedNonRolloverTasks.length===1?'duty was':'duties were'} not completed but not designated for handover rollover.</small></p>`:''}
-      </div>`;
-    }else if(prevTasks.length){
-      html+=`<div class="onboard-handover-alert ok">
-        <span class="badge tone-sage">✓ Rollover Tasks Clear</span>
-        <span>All manager-designated rollover tasks from ${e(prevService)} were completed before handover.${uncompletedNonRolloverTasks.length?' ('+uncompletedNonRolloverTasks.length+' non-rollover duties expired)':''}</span>
-      </div>`;
-    }
-
-    if(prevNotes.length){
-      html+=`<div class="onboard-notes-sub">
-        <span class="onboard-sub-title">📝 Handover Notes from ${e(prevService)}:</span>
-        <div class="onboard-notes-list">
-          ${prevNotes.map(n=>`<div class="onboard-note-bubble ${n.priority==='manager'?'is-mgr':'is-crew'}">
-            <div class="onboard-note-meta">
-              <strong>${e(B.person(n.author)?.name||'Team member')}</strong>
-              <span class="td-tag" data-tone="${n.priority==='manager'?'orange':'slate'}">${n.priority==='manager'?'Manager Directives':'Crew Handover'}</span>
-            </div>
-            <p>${e(n.body)}</p>
-          </div>`).join('')}
-        </div>
-      </div>`;
-    }else{
-      html+=`<p class="onboard-empty-sub">No handover notes left from ${e(prevService)}.</p>`;
-    }
-
-    if(prevAlerts.length){
-      html+=`<div class="onboard-prev-86">
-        <span class="badge orange">Rollover 86</span>
-        <span>Items marked 86 during ${e(prevService)}: <b>${prevAlerts.map(a=>e(a.name)).join(', ')}</b></span>
-      </div>`;
-    }
-    html+=`</section>`;
-
-    // 4. Manager Pre-Shift Briefing & Current Shift Notes
-    if(b||curNotes.length){
-      html+=`<section class="onboard-section">
-        <div class="onboard-sec-head">
-          <span class="eyebrow">THIS SHIFT’S DIRECTIVES</span>
-          <h4>Briefing &amp; Manager Notes for ${e(state.service)}</h4>
-        </div>`;
-      if(b){
-        html+=`<div class="onboard-briefing-card">
-          <div class="onboard-briefing-head">
-            <strong>📢 ${e(b.title)}</strong>
-            <small>Posted by ${e(B.person(b.author)?.name||'Manager')} · Rev ${b.revision}</small>
-          </div>
-          <div class="onboard-briefing-text">${e(b.body)}</div>
-        </div>`;
-      }
-      if(curNotes.length){
-        html+=`<div class="onboard-notes-sub">
-          <span class="onboard-sub-title">📌 Shift Priority Notes:</span>
-          <div class="onboard-notes-list">
-            ${curNotes.map(n=>`<div class="onboard-note-bubble ${n.priority==='manager'?'is-mgr':'is-crew'}">
-              <div class="onboard-note-meta">
-                <strong>${e(B.person(n.author)?.name||'Team member')}</strong>
-                <span class="td-tag" data-tone="${n.priority==='manager'?'orange':'slate'}">${n.priority==='manager'?'Manager Note':'Crew Note'}</span>
-              </div>
-              <p>${e(n.body)}</p>
-            </div>`).join('')}
-          </div>
-        </div>`;
-      }
-      html+=`</section>`;
-    }
-
-    // 5. Manager To-Dos
-    if(myTodos.length){
-      html+=`<section class="onboard-section">
-        <div class="onboard-sec-head">
-          <span class="eyebrow">ACTION TO-DOS</span>
-          <h4>${isMgr?'Open Manager To-Dos':'Your To-Dos from Manager'} (${myTodos.length})</h4>
-        </div>
-        <div class="onboard-todos-list">
-          ${myTodos.map(t=>`<div class="onboard-todo-card">
-            <div class="onboard-todo-left">
-              <span class="todo-check-icon">☐</span>
-              <div class="onboard-todo-main">
-                <strong>${e(t.body)}</strong>
-                <div class="onboard-todo-meta">
-                  <span>From <b>${e(B.person(t.author)?.name||'Manager')}</b></span>
-                  ${t.todo.for?`<span>For <b>${e(B.person(t.todo.for)?.name||'You')}</b></span>`:''}
-                  ${t.todo.due?`<span class="arrival-pill">Due ${dateLabel(t.todo.due,{month:'short',day:'numeric'})}</span>`:''}
-                </div>
-              </div>
-            </div>
-          </div>`).join('')}
-        </div>
-      </section>`;
-    }
-
-    // 6. Reservations & Key Guest Alerts for Tonight
-    html+=`<section class="onboard-section">
-      <div class="onboard-sec-head">
-        <div class="onboard-sec-split">
-          <div>
-            <span class="eyebrow">RESERVATIONS &amp; GUEST FLOW</span>
-            <h4>Tonight’s Bookings &amp; VIP Notes</h4>
-          </div>
-          <span class="badge tone-sage">${totalCovers} guests · ${activeRes.length} tables</span>
-        </div>
-      </div>`;
-
-    if(activeRes.length){
-      html+=`<div class="onboard-res-list">
-        ${activeRes.map(r=>{
-          const hasNote=r.note&&r.note.trim();
-          const isLarge=r.guests>=4;
-          return `<div class="onboard-res-card ${hasNote||isLarge?'is-highlight':''}">
-            <div class="onboard-res-main">
-              <div class="onboard-res-time-col">
-                <strong>${e(r.time)}</strong>
-                <span class="arrival-pill table-pill">${e(r.table?'Table '+r.table:'Unassigned')}</span>
-              </div>
-              <div class="onboard-res-party-col">
-                <div class="onboard-res-name-row">
-                  <strong>${e(r.name)}</strong>
-                  <span class="arrival-pill">${r.guests} ${r.guests===1?'guest':'guests'}</span>
-                  ${isLarge?'<span class="td-tag" data-tone="orange">Large Party</span>':''}
-                </div>
-                ${hasNote?`<div class="onboard-res-guest-note">⭐ <b>Guest Note:</b> ${e(r.note)}</div>`:'<small class="onboard-res-standard">Standard reservation · no special requests</small>'}
-              </div>
-            </div>
-            <span class="badge ${r.status==='Seated'?'tone-sage':r.status==='Confirmed'?'tone-amber':'tone-slate'}">${e(r.status)}</span>
-          </div>`;
-        }).join('')}
-      </div>`;
-    }else{
-      html+=`<p class="td-empty">No reservations booked for ${e(state.service)} yet.</p>`;
-    }
-    html+=`</section>`;
-
-    // 7. Happenings (Specials, Happy Hours & Events)
-    html+=`<section class="onboard-section">
-      <div class="onboard-sec-head">
-        <span class="eyebrow">TODAY’S HAPPENINGS</span>
-        <h4>Specials, Happy Hours &amp; Events (${happenings.length})</h4>
-      </div>
-      ${happenings.length?`<div class="onboard-happenings-list">${happenings.map(h=>{
-        const kTag=h.kind==='happy_hour'?'Happy Hour':h.kind==='event'?'Event':'Special';
-        const kTone=h.kind==='happy_hour'?'orange':h.kind==='event'?'sage':'amber';
-        const priceStr=h.price>0?'$'+Number(h.price).toFixed(2):(h.kind==='event'?'Free entry':'');
-        return `<div class="onboard-happening-item">
-          <div class="onboard-h-top">
-            <span class="td-tag" data-tone="${kTone}">${kTag}</span>
-            <strong>${e(h.name)}</strong>
-            ${priceStr?`<span class="special-price-tag">${priceStr}</span>`:''}
-            ${h.time?`<span class="arrival-pill">⏰ ${e(h.time)}</span>`:''}
-          </div>
-          ${h.description?`<p>${e(h.description)}</p>`:''}
-          <small class="onboard-h-guidance"><b>${h.kind==='happy_hour'?'Rules:':h.kind==='event'?'Staging:':'Allergens:'}</b> ${e(h.allergens||'Verify with kitchen/bar')}</small>
-        </div>`;
-      }).join('')}</div>`:'<p class="td-empty">No happenings posted for tonight yet.</p>'}
-    </section>`;
-
-    // 8. Confirmed 86 Board
-    html+=`<section class="onboard-section">
-      <div class="onboard-sec-head">
-        <span class="eyebrow">CONFIRMED 86 LIST</span>
-        <h4>Sold-Out Items (${alerts.length})</h4>
-      </div>
-      ${alerts.length?`<div class="onboard-alerts-list">${alerts.map(a=>`<div class="onboard-alert-chip">
-        <span class="badge danger">86’d</span>
-        <strong>${e(a.name)}</strong>
-        <span class="td-tag" data-tone="${a.area==='Bar'?'orange':a.area==='Kitchen'?'slate':'sage'}">${e(a.area)}</span>
-        <small>${e(a.reason)}</small>
-      </div>`).join('')}</div>`:'<p class="td-empty">Full regular menu available. Nothing is 86’d.</p>'}
-    </section>`;
-
-    // 9. Footer CTA
-    html+=`<div class="onboard-modal-footer">`;
-    if(!ackedByMe&&b&&(shift||!isMgr)){
-      html+=`<button type="button" class="button large td-onboard-sheet-ack" data-action="ack" data-id="${e(b.id)}">✓ I’ve read it · Confirm Shift Onboarding</button>`;
-    }else if(ackedByMe){
-      html+=`<div class="onboard-ack-badge">✓ Acknowledged for this shift</div><button type="button" class="button secondary" data-action="onboarding-close">Close</button>`;
-    }else{
-      html+=`<button type="button" class="button secondary" data-action="onboarding-close">Close</button>`;
-    }
-    html+=`</div></div>`;
-
-    const body=$('onboarding-dialog-body');
-    if(body)body.innerHTML=html;
-    $('onboarding-dialog')?.showModal();
-  }
   function closeOverlays(){for(const id of ['notif-dialog','app-menu','ctx-dialog','quick-dialog','onboarding-dialog'])$(id)?.open&&$(id).close();}
   function render(){
     // The shift briefing lives on Today; old links, hashes and saved views land on its card there.
@@ -495,10 +180,7 @@
     for(const detail of $('view').querySelectorAll('details[data-key]'))if(expanded.includes(detail.dataset.key))detail.open=true;
     chatUI.paint();
     if(focusBriefing){focusBriefing=false;requestAnimationFrame(()=>$('view').querySelector('.td-brief, .td-notes')?.scrollIntoView({behavior:'smooth',block:'start'}));}
-    if($('onboarding-dialog')?.open){
-      const curB=state.briefings.find(x=>x.date===state.date&&x.service===state.service);
-      if(curB)openOnboardingModal(curB.id);
-    }
+    onboardingUI.refresh();
   }
   const input=(name,label,value='',type='text',attrs='')=>`<label>${label}<input name="${name}" type="${type}" value="${e(value)}" ${attrs}></label>`;
   const textarea=(name,label,value='',attrs='')=>`<label>${label}<textarea name="${name}" ${attrs.includes('maxlength=')?'':'maxlength="2000"'} ${attrs}>${e(value)}</textarea></label>`;
@@ -509,39 +191,6 @@
   // Forms from Manage, Finance and Write-ups share the wide dialog; each keeps its own submit label.
   const formDialog=type=>(title,fields,label='Save changes')=>{editing={type};showDialog(title,fields);$('editor').classList.add('is-wide');$('editor-form').querySelector('[type=submit]').textContent=label;};
   function infoDialog(title,html){editing={type:'manage'};showDialog(title,html);const f=$('editor-form');f.querySelector('[type=submit]').hidden=true;f.querySelector('.dialog-actions [data-action=close]').textContent='Close';$('editor').classList.add('is-wide');}
-  function openRolloverManager(){
-    editing=null;
-    const c=dutiesUI.listContext();
-    const allTasks=B.work.tasks?B.work.tasks(state,state.date,state.service):state.tasks;
-    const matched=allTasks.filter(t=>(!c.area||t.area===c.area)&&(!c.list||t.list===c.list));
-    const tasksToShow=matched.length?matched:(B.work.defaultTasks?B.work.defaultTasks(state,state.service):state.tasks.filter(t=>!t.date&&(!t.service||t.service===state.service)));
-    const content=`<div class="rollover-manager-box">
-      <div class="rollover-manager-banner">
-        <span class="badge tone-amber">⟲ Shift Handover Rollover Duties</span>
-        <p>Designate which duties automatically roll over into the next shift’s onboarding briefing if incomplete. Tap any item to toggle:</p>
-      </div>
-      <div class="rollover-manager-list">
-        ${tasksToShow.map(t=>`
-          <div class="rollover-task-card ${t.rollover?'is-rollover':''}">
-            <div class="rollover-task-info">
-              <div class="rollover-task-badges">
-                <span class="td-tag" data-tone="${t.area==='Bar'?'orange':t.area==='Kitchen'?'slate':'sage'}">${e(t.area)}</span>
-                <span class="td-tag" data-tone="slate">${e(t.list)}</span>
-                ${t.rollover?'<span class="cl-tag" data-tone="amber">Rollover</span>':''}
-              </div>
-              <strong>${e(t.title)}</strong>
-            </div>
-            <button type="button" class="button small ${t.rollover?'tone-amber':'secondary'}" data-action="task-toggle-rollover" data-id="${e(t.id)}" data-default="${Boolean(!t.date)}">
-              ${t.rollover?'✓ Rollover Duty':'Shift-only'}
-            </button>
-          </div>
-        `).join('')}
-      </div>
-    </div>`;
-    showDialog('Manage Handover Rollover Duties ('+e(c.area||state.service)+' · '+e(c.list||'Checklists')+')', content);
-    $('editor-form').querySelector('[type=submit]').hidden=true;
-    $('editor-form').querySelector('.dialog-actions [data-action=close]').textContent='Done';
-  }
   function edit(collection,id,list,station,isDefAttr){
     const old=state[collection]?.find(x=>x.id===id),item=old||(collection==='tasks'?{list:list||dutiesUI.listContext().list,area:station||dutiesUI.listContext().area}:{});
     const defaultPerson=state.team.find(p=>p.active&&p.access==='crew')?.id||me();
@@ -567,8 +216,8 @@
                 <input type="checkbox" name="rollover" value="true" ${item.rollover ? 'checked' : ''}>
                 <span class="setting-toggle-switch" aria-hidden="true"></span>
                 <span class="setting-toggle-text">
-                  <strong>Handover Rollover Duty</strong>
-                  <small>If uncompleted, automatically roll over into the next shift’s onboarding briefing.</small>
+                  <strong>Carry over if not done</strong>
+                  <small>Shows in the next shift’s handover until it is finished.</small>
                 </span>
               </label>
             </div>`
@@ -651,7 +300,8 @@
     }
     if(action.startsWith('chat-')){chatUI.handle(action.slice(5),id,target);return;}
     if(action.startsWith('home-')){homeUI.handle(action.slice(5),id);return;}
-    if(action==='onboarding-open'){openOnboardingModal(id);return;}
+    if(action==='onboarding-open'){onboardingUI.open(id);return;}
+    if(action.startsWith('ob-')){onboardingUI.handle(action.slice(3),id);return;}
     if(action==='onboarding-close'){$('onboarding-dialog')?.close();return;}
     if(action==='swap-select-person'){
       const person=target.dataset.person;
@@ -676,11 +326,6 @@
       });
       return;
     }
-    if(action==='qa-toggle-ask'){
-      const form=$('qa-form-'+id);
-      if(form){form.classList.toggle('is-hidden');if(!form.classList.contains('is-hidden'))form.querySelector('input')?.focus();}
-      return;
-    }
     if(action==='qa-toggle-reply'){
       const form=$('qa-reply-'+target.dataset.specialId+'-'+id);
       if(form){form.classList.toggle('is-hidden');if(!form.classList.contains('is-hidden'))form.querySelector('input')?.focus();}
@@ -702,15 +347,6 @@
     if(action==='navigate'){state.view=id;$('notif-dialog')?.close();persist();render();}
     else if(action==='week-prev'||action==='week-next'){const offset=action==='week-prev'?-7:7;week=B.addDays(week,offset);state.date=B.addDays(state.date,offset);persist();render();}
     else if(action==='edit')edit(collection,id,target.dataset.list,target.dataset.station,target.dataset.default==='true');
-    else if(action==='manage-rollovers'){openRolloverManager();return;}
-    else if(action==='task-toggle-rollover'){
-      const task=state.tasks.find(t=>t.id===id);
-      if(!task)return;
-      const isDef=Boolean(target.dataset.default==='true'||!task.date);
-      commit({type:'put',collection:'tasks',item:{...task,rollover:!task.rollover},target:isDef?'default':undefined,isDefault:isDef},task.rollover?'Duty set to shift-only (no rollover).':'Duty marked as handover rollover task.');
-      if($('editor')?.open&&$('editor-title')?.textContent?.includes('Configure Handover'))openRolloverManager();
-      return;
-    }
     else if(action==='work-create')commit({type:'checklist:create'},'Lists created for this shift.');
     else if(action==='work-empty'){
       const c=dutiesUI.listContext();
@@ -868,7 +504,7 @@
   const operationsUI=createShiftOperationsUI({view:infoDialog,createInContext:(collection,date,service)=>{state.date=date;state.service=service;week=B.monday(date);persist();render();edit(collection);},reportScreen:()=>{if($('editor').open)$('editor').close();reportsUI.show('executive');state.view='schedules';scheduleUI.show('reports');persist();render();window.scrollTo({top:0,behavior:'instant'});},state:()=>state,e,button,badge,input,textarea,select,dateLabel,render,commit,stockAlert:(date,service,id)=>stockUI.alert(date,service,'',id||''),open:(title,fields)=>{editing={type:'operations'};showDialog(title,fields);},navigate:(view,date,service)=>{scheduleUI.show('briefing');state.view=view;state.date=date;state.service=service;week=B.monday(date);persist();render();}});
   const plannerUI=createPlannerUI({close:()=>$('editor').close(),state:()=>state,week:()=>week,e,button,input,select,dateLabel,render,commit,notify,context:()=>'<div class="home-service-links"><button data-action="navigate" data-id="onboarding"><strong>Service details</strong><span>Briefing and notes on Today</span><b>›</b></button></div>',serviceForm:()=>operationsUI.handle('service','',{}),open:(title,fields,save=true)=>{editing={type:'planner'};showDialog(title,fields);$('editor-form').querySelector('[type=submit]').hidden=!save;}});
   const dutiesUI=createDutiesUI({focusShift:(date,service)=>{state.date=date;state.service=service;week=B.monday(date);persist();},openTasks:(title,fields,c)=>{editing={type:c.type||'checklist:add',area:c.area,list:c.list,task:c.task,date:c.date,service:c.service,target:c.target,isDefault:c.isDefault};showDialog(title,fields);if(c.readOnly)$('editor-form').querySelector('[type=submit]').hidden=true;},state:()=>state,e,button,input,textarea,select,render,commit});
-  const stockUI=createStockUI({state:()=>state,e,input,textarea,select,dateLabel,commit,notify,render,go:()=>{state.view='stock';$('notif-dialog')?.close();persist();},close:()=>{if($('editor').open)$('editor').close();},report:tab=>manager()?(reportsUI.show(tab),openReports()):notify('Reports need manager access.'),open:(title,fields,save=true,label='')=>{editing={type:'stock'};showDialog(title,fields);const submit=$('editor-form').querySelector('[type=submit]');submit.hidden=!save;if(label)submit.textContent=label;$('editor-form').querySelector('.dialog-actions [data-action=close]').textContent=save?'Cancel':'Close';}});
+  const stockUI=createStockUI({state:()=>state,e,input,textarea,select,dateLabel,commit,notify,render,subField:(cur,o)=>menuUI.subField(cur,o),subValue:v=>menuUI.subValue(v),go:()=>{state.view='stock';$('notif-dialog')?.close();persist();},close:()=>{if($('editor').open)$('editor').close();},report:tab=>manager()?(reportsUI.show(tab),openReports()):notify('Reports need manager access.'),open:(title,fields,save=true,label='')=>{editing={type:'stock'};showDialog(title,fields);const submit=$('editor-form').querySelector('[type=submit]');submit.hidden=!save;if(label)submit.textContent=label;$('editor-form').querySelector('.dialog-actions [data-action=close]').textContent=save?'Cancel':'Close';}});
   const chatUI=createTeamChatUI({state:()=>state,e,dateLabel,commit,notify,render});
   const homeUI=createShiftHome({pos:()=>posUI.todayCard(),clock:()=>financeUI.clockState(),payroll:()=>manager()?[...financeUI.attention(),...hrUI.attention()]:[],openContext:openShiftPicker,notify,commit,showHome:()=>{state.view='schedules';scheduleUI.show('home');},state:()=>state,e,dateLabel,render,focus:(date,service)=>{state.date=date;state.service=service;week=B.monday(date);},close:()=>$('editor').close(),open:(title,fields)=>{editing={type:'home'};showDialog(title,fields);$('editor-form').querySelector('[type=submit]').hidden=true;}});
   const meUI=createMeUI({state:()=>state,week:()=>week,e,button,badge,dateLabel,schedule:()=>scheduleUI,training:()=>trainingUI,hr:()=>hrUI,finance:()=>financeUI});
@@ -883,6 +519,7 @@
   const trainingUI=createTrainingUI({state:()=>state,e,button,badge,dateLabel,commit,render,notify,open:infoDialog,form:formDialog('training'),close:()=>{if($('editor').open)$('editor').close();},go:()=>{closeOverlays();if($('editor').open)$('editor').close();state.view='schedules';scheduleUI.show('training');persist();}});
   const manageUI=createManageUI({openReport:board=>{reportsUI.show(board);openReports();},finance:financeUI,writeups:writeupsUI,hr:hrUI,training:trainingUI,state:()=>state,e,button,badge,dateLabel,commit,render,reports:()=>reportsUI.render(),setup:()=>operationsUI.section('setup'),close:()=>{if($('editor').open)$('editor').close();},open:infoDialog,form:(title,fields)=>formDialog('manage-form')(title,fields,'Save HR file')});
   const quickUI=createQuickUI({state:()=>state,e,dateLabel});
+  const onboardingUI=createOnboardingUI({state:()=>state,e,dateLabel});
   const floorUI=createFloorUI({state:()=>state,e,button,badge,input,textarea,select,dateLabel,render,commit,notify,serviceFields,open:infoDialog,form:formDialog('floor'),close:()=>{if($('editor').open)$('editor').close();},edit:id=>edit('reservations',id),go:()=>{closeOverlays();state.view='reservations';persist();render();window.scrollTo({top:0,behavior:'instant'});}});
   // Menu and POS share one dialog opener: a save button when the form saves, a wide dialog for the long forms.
   const uiOpen=type=>(title,fields,save=true,label='',wide=false)=>{editing={type};showDialog(title,fields);const submit=$('editor-form').querySelector('[type=submit]');submit.hidden=!save;if(label)submit.textContent=label;$('editor-form').querySelector('.dialog-actions [data-action=close]').textContent=save?'Cancel':'Close';if(wide)$('editor').classList.add('is-wide');};

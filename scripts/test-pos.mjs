@@ -45,6 +45,8 @@ a=B.change(a,{type:'pos:add',id:'chk1',item:'mi-fries',qty:1,seat:1});
 ck=P.check(a,'chk1');assert.equal(ck.lines.length,2);assert.equal(ck.lines[0].qty,3,'the same held item merges');assert.equal(ck.lines[1].price,42);assert.equal(ck.lines[1].mods.length,2);assert.equal(ck.lines[0].tax,8.75);
 let m=as(a,'manager','jamie');m=B.change(m,{type:'menu:86',id:'p86',item:'mi-latte',reason:'Machine down.',date,service});a=as(m,'crew','alex');
 fails(()=>B.change(a,{type:'pos:add',id:'chk1',item:'mi-latte'}),/86/);
+// With a substitute set, the refusal names it.
+m=B.change(m,{type:'ops:sub',id:'p86',sub:{item:'mi-pot-of-tea'}});a=as(m,'crew','alex');fails(()=>B.change(a,{type:'pos:add',id:'chk1',item:'mi-latte'}),/Offer Pot of tea instead/);
 let t=P.totals(a,ck);assert.equal(t.gross,60);assert.equal(t.tax,5.25);assert.equal(t.total,65.25);assert.equal(t.due,t.total);assert.equal(t.sc,0,'no service charge under the party size');
 // A cocktail carries the alcohol rate; the tax lands per line.
 a=B.change(a,{type:'pos:add',id:'chk1',item:s.menu.items.find(i=>i.category==='cocktails'&&i.active&&!i.modifiers.length).id,seat:2});
@@ -270,6 +272,10 @@ pos.handle('table',free4.label);assert.equal(opened.at(-1)[0],'New check');asser
 const act=pos.submit({type_:'dine',table:free4.label,guests:'2',name:'',server:'alex',allergy:'Nut allergy'},{getAll:()=>[]});assert.equal(act.type,'pos:open');assert.equal(act.allergy,'Nut allergy');ui=B.change(ui,act);pos.saved();
 html=pos.render();assert(html.includes('ps-item')&&html.includes('data-ps-search')&&html.includes('Top sellers')&&html.includes('ps-allergy')&&!html.includes('<b>Alex</b>')&&html.includes('&lt;b&gt;Alex'));
 pos.handle('add','mi-fries');assert.equal(commits.at(-1),'pos:add');
+// An 86’d tile with a sellable substitute stays tappable and rings in the substitute; without one it is disabled.
+html=pos.render();assert(html.includes('data-action="ps-sub" data-id="mi-latte"')&&html.includes('→ Pot of tea')&&html.includes('offer Pot of tea instead'),'substitute on the tile');
+pos.handle('sub','mi-latte');assert.equal(commits.at(-1),'pos:add');assert(P.openChecks(ui,date,service).some(ch=>ch.lines.some(l=>l.item==='mi-pot-of-tea')),'the substitute was rung in');
+ui=B.change(ui,{type:'ops:sub',id:'p86',sub:null});html=pos.render();assert(html.includes('data-action="ps-add" data-id="mi-latte" disabled')&&!html.includes('ps-sub'),'no substitute, no tap');
 pos.handle('add','mi-rib-eye-steak');assert.equal(opened.at(-1)[0],'Rib-eye steak');assert(opened.at(-1)[1].includes('Allergy on this check'));
 const addAct=pos.submit({qty:'1',seat:'1',course:'2',note:''},{getAll:kk=>kk==='mod_temp'?['Medium']:kk==='mod_side'?['Greens']:[]});same(addAct.mods,['Medium','Greens']);ui=B.change(ui,addAct);
 pos.handle('send',act.id);assert.equal(commits.at(-1),'pos:send');html=pos.render();assert(html.includes('Holding')||html.includes('Fire')||true);
@@ -297,7 +303,7 @@ pos.handle('pin','');assert.equal(pos.submit({person:'jamie',pin:'1111'},{getAll
 const card_=pos.todayCard();assert(card_&&card_.title==='Sales'&&card_.body.includes('Paid checks')&&card_.body.includes('pickups'));
 const d={R:{from:B.addDays(today,-28),to:B.addDays(today,-1)},Q:{from:B.addDays(today,-56),to:B.addDays(today,-29)}};
 const report=pos.report(d);assert(report.includes('rp-kpi')&&report.includes('Menu mix')&&report.includes('Servers')&&report.includes('Order types')&&report.includes('LABOR')&&report.includes('CASH OVER'));assert(pos.csvRows(d).length>10&&pos.csvRows(d).some(r=>r[0]==='Order type'));
-ui=as(ui,'crew','alex');const cardC=pos.todayCard();assert(!cardC||['My tables','Kitchen tickets','Bar tickets'].includes(cardC.title));
+ui=as(ui,'crew','alex');const cardC=pos.todayCard();assert.equal(cardC,null,'servers get no tables card on Today');ui=as(ui,'crew','sam');const cardK=pos.todayCard();assert(!cardK||cardK.title==='Kitchen tickets');ui=as(ui,'crew','alex');
 pos.show('tables');html=pos.render();assert(!html.includes('data-id="sections"'),'crew have no sections tab');assert(html.includes('ps-who'));
 pos.show('close');html=pos.render();assert(html.includes('Cash to hand in')&&html.includes('Change my PIN'));
 const floor=c.createFloorUI({...api,badge:(l,tn)=>`<span class="badge ${tn}">${e(l)}</span>`,button:(label,action,id='',extra='')=>`<button data-action="${action}" data-id="${e(id)}" ${extra}>${e(label)}</button>`,serviceFields:()=>'',edit(){},form(){}});

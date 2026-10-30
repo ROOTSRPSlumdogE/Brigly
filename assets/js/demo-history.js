@@ -70,7 +70,7 @@
         s.shiftNotes.push({id:`history-note-${n}`,date,service,author:manager,priority:'manager',body:pick(noteBodies,key),updated:date+'T13:00:00.000Z',archived:false,demo:true});
         if(n%3===0&&members.length)s.shiftNotes.push({id:`history-crew-note-${n}`,date,service,author:members[0].person,priority:'crew',body:'Station checked and restocked. Spare glassware is ready for the next seating.',updated:date+'T14:00:00.000Z',archived:false,demo:true});
       }
-      if(!s.briefings.some(x=>x.date===date&&x.service===service))s.briefings.push({id:`history-brief-${n}`,date,service,title:pick(['A steady start to service','The weekend, together','Ready for the first guests','Today’s service plan'],key),body:pick(noteBodies,key+'brief')+'\n\nCheck the shift notes, reservations and approved 86 items before service.',author:manager,revision:1,acks:past?[...new Set(members.map(x=>x.person))]:[],demo:true});
+      if(!s.briefings.some(x=>x.date===date&&x.service===service))s.briefings.push({id:`history-brief-${n}`,date,service,title:pick(['A steady start to service','The weekend, together','Ready for the first guests','Today’s service plan'],key),body:pick(noteBodies,key+'brief')+'\n\nCheck the shift notes, reservations and approved 86 items before service.',author:manager,approved:true,revision:1,acks:past?[...new Set(members.map(x=>x.person))]:[],demo:true});
       if(past&&!s.checks[key])s.checks[key]=Object.fromEntries(s.tasks.slice(0,8).filter((t,i)=>hash(key+t.id)%25!==0).map(t=>[t.id,{by:members.find(x=>x.area===t.area)?.person||manager,at:date+'T22:30:00.000Z'}]));
       if(!s.reservations.some(x=>x.date===date&&x.service===service)){
         const count=service===event?2:service===late?3:4+n%5;

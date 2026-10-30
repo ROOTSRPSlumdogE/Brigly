@@ -54,6 +54,16 @@ change({type:'ops:member',id:'alex',name:'=Sample Name',role:'Server',area:'Floo
 const csv=B.ops.reportCSV(s,'alex',s.date,s.date);assert.ok(csv.includes("'=Sample Name"));assert.ok(csv.includes('Estimated wage cost'));
 let persisted=JSON.stringify(s);const storage={getItem:()=>persisted,setItem:(k,v)=>persisted=v};
 const restored=B.load(storage);assert.equal(B.validState(restored),true);assert.equal(restored.team.find(p=>p.id==='taylor').active,false);assert.equal(restored.shiftNotes.length,3);assert.equal(restored.setup.services.at(-1).name,'Weekend brunch');
+// Briefing approval is one switch. Crew briefings start unapproved; a manager approves or withdraws; a crew revision needs approval again.
+change({type:'put',collection:'briefings',item:{id:'crew-brief',date:s.date,service:'Dinner',title:'Floor notes',body:'Patio open.'}},'crew');
+assert.equal(s.briefings.at(-1).approved,false);assert.equal(s.briefings[0].approved,true,'manager briefings are approved');
+assert.throws(()=>change({type:'ops:approve-briefing',id:'crew-brief'},'crew'),/Only managers/);
+change({type:'ops:approve-briefing',id:'crew-brief'});assert.equal(s.briefings.at(-1).approved,true);assert.equal(s.briefings.at(-1).approvedBy,'jamie');
+change({type:'ops:approve-briefing',id:'crew-brief',approved:false});assert.equal(s.briefings.at(-1).approved,false);assert.equal(s.briefings.at(-1).approvedBy,undefined);
+change({type:'ops:approve-briefing',id:'crew-brief'});change({type:'put',collection:'briefings',item:{...s.briefings.at(-1),body:'Patio closed.'}},'crew');assert.equal(s.briefings.at(-1).approved,false,'a crew revision needs approval again');
+const legacyB=JSON.parse(JSON.stringify(s));legacyB.briefings[0].approvalStatus='Late approved';delete legacyB.briefings[0].approved;legacyB.briefings.at(-1).approvalStatus='Pending';
+persisted=JSON.stringify(legacyB);const mig=B.load(storage);assert.equal(mig.briefings[0].approved,true);assert.equal(mig.briefings.at(-1).approved,false);assert.equal(mig.briefings[0].approvalStatus,undefined);
+console.log('PASS: binary briefing approval with migration from the earlier sub-states.');
 const legacy=copyLegacy(B.starter('2026-10-25'));persisted=JSON.stringify(legacy);const migrated=B.load(storage);assert.equal(B.validState(migrated),true);assert.equal(migrated.unavailable[0].status,'Approved');
 function copyLegacy(x){const c=JSON.parse(JSON.stringify(x));delete c.setup;delete c.team;delete c.managerId;delete c.shiftNotes;c.unavailable.forEach(a=>{delete a.status;delete a.date;delete a.service;delete a.reviewer;delete a.feedback;});return c;}
 console.log('PASS: factual reports, tips excluded from labor cost, manager-only export, CSV formula protection and data migration.');

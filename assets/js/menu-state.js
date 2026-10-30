@@ -3,7 +3,34 @@
  'use strict';
  const B=Brigly,prev={starter:B.starter,load:B.load,valid:B.validState,change:B.change};
  const copy=x=>globalThis.Brigly.clone(x);
- const slug=t=>String(t).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+ const slug=t=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+ const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ const ING_CATEGORY='Ingredients';
+ // The menu is the source of truth for ingredients. A recipe row points at a stock item by id, or names one: a name that
+ // matches an existing stock item (ignoring case, accents and punctuation) reuses it, anything else becomes a new stock item.
+ function ingredient(s,ref,station){
+  const st=s.stock,items=st.items;
+  if(ref?.item){const x=items.find(i=>i.id===ref.item);if(x)return x;}
+  const name=String(ref?.name||'').trim().slice(0,100);if(!name)return null;
+  const key=norm(name),found=items.find(i=>norm(i.name)===key)||(B.stock?.byName?B.stock.byName(s,name):null);
+  if(found)return found;
+  const base='st-'+(slug(name).slice(0,60)||'ingredient');let id=base,n=2;while(items.some(i=>i.id===id))id=base+'-'+n++;
+  if(!st.categories.some(c=>c.toLowerCase()===ING_CATEGORY.toLowerCase()))st.categories.push(ING_CATEGORY);
+  const category=st.categories.find(c=>c.toLowerCase()===ING_CATEGORY.toLowerCase());
+  const made={id,name,category,vendor:'',teams:[s.setup.areas.includes(station)?station:s.setup.areas[0]],unit:'portion',pack:'',cost:0,par:0,onHand:null,countedAt:'',countedBy:'',location:'',sku:'',active:true,source:'menu'};
+  items.push(made);return made;
+ }
+ // Ingredients the menu created follow the dishes: used by a dish on the menu they stay active; used by none they are archived
+ // (never deleted, so counts, orders and 86 history keep their item). Anything counted, on order or 86'd is left alone.
+ function sweep(s){
+  const used=new Set();for(const i of s.menu.items)if(i.active)for(const r of i.recipe||[])used.add(r.item);
+  for(const x of s.stock.items){
+   if(x.source!=='menu')continue;
+   if(used.has(x.id)){x.active=true;continue;}
+   const busy=(s.orders||[]).some(o=>o.item===x.id&&['Requested','Approved','Ordered'].includes(o.status))||(s.unavailable||[]).some(u=>u.item===x.id&&['Reported','Approved'].includes(u.status));
+   if(!busy&&x.onHand===null)x.active=false;
+  }
+ }
  const txt=(x,max)=>typeof x==='string'&&x.length<=max;
  const label=(x,max=80)=>txt(x,max)&&x.trim().length>0;
  const num=(x,max=100000)=>typeof x==='number'&&Number.isFinite(x)&&x>=0&&x<=max;
@@ -108,7 +135,9 @@
    // A count set for a service is forgotten a week later so old limits never hide a dish.
    if(it.limit&&(!B.isDate(it.limit.date)||it.limit.date<keep||!svc.has(it.limit.service)))delete it.limit;}
   for(const k of Object.keys(s.menu.allergens||{}))if(!stockIds.has(k))delete s.menu.allergens[k];
-  for(const u of s.unavailable)if(u.menuItem&&!s.menu.items.some(i=>i.id===u.menuItem))u.menuItem='';
+  for(const u of s.unavailable){if(u.menuItem&&!s.menu.items.some(i=>i.id===u.menuItem))u.menuItem='';
+   // A substitute whose dish was removed keeps its name as plain text.
+   if(u.sub&&u.sub.item&&!s.menu.items.some(i=>i.id===u.sub.item))u.sub.item='';}
   return s;
  }
  function validMenu(s){
@@ -124,7 +153,7 @@
    &&Array.isArray(i.dietary)&&i.dietary.every(d=>DIETARY.includes(d))&&Array.isArray(i.allergens)&&i.allergens.every(a=>ALLERGENS.includes(a))&&Array.isArray(i.mayContain)&&i.mayContain.every(a=>ALLERGENS.includes(a))
    &&Array.isArray(i.modifiers)&&i.modifiers.every(x=>modIds.has(x))&&txt(i.prep,1000)&&txt(i.plating,500)&&Array.isArray(i.tags)&&i.tags.every(t=>label(t,30))&&Number.isInteger(i.order)&&typeof i.active==='boolean'))return false;
   if(!Object.entries(m.allergens).every(([k,v])=>stockIds.has(k)&&Array.isArray(v)&&v.every(a=>ALLERGENS.includes(a))))return false;
-  return s.unavailable.every(u=>u.menuItem===undefined||u.menuItem===''||m.items.some(i=>i.id===u.menuItem));
+  return s.unavailable.every(u=>(u.menuItem===undefined||u.menuItem===''||m.items.some(i=>i.id===u.menuItem))&&(!u.sub||!u.sub.item||m.items.some(i=>i.id===u.sub.item)));
  }
  function valid(s){try{s=upgrade(s);return prev.valid(s)&&validMenu(s);}catch{return false;}}
 
@@ -162,20 +191,36 @@
   for(const c of P.openChecks(s,date,service)){const ls=c.lines.filter(l=>l.item===it.id&&l.status!=='void');if(!ls.length)continue;out.checks++;out.list.push(c);for(const l of ls){out.qty+=l.qty;if(l.status==='held')out.held+=l.qty;else out.sent+=l.qty;}}
   return out;
  }
- // Can this be sold right now? Archived, 86’d on the board, an ingredient 86’d, not served at this service, sold out by count, counting down, or running low.
- function availability(s,it,date=s.date,service=s.service){
+ // What the manager set to offer instead of an 86’d item: the dish (with whether it can be sold right now) or plain text.
+ function substitute(s,u,date=s.date,service=s.service){
+  const sb=u?.sub;if(!sb||!sb.name)return null;
+  const dish=sb.item?item(s,sb.item):null;
+  if(!dish)return {item:'',name:sb.name,dish:null,available:null};
+  const av=availability(s,dish,date,service,false);
+  return {item:dish.id,name:dish.name,dish,price:dish.price,available:!OFF.includes(av.status),availability:av};
+ }
+ // Dishes a manager can offer instead: everything sellable right now, the 86’d item’s own category first, then the rest of the menu by category.
+ function subOptions(s,{date=s.date,service=s.service,exclude=[],cat=''}={}){
+  const all=list(s,{date,service}).filter(i=>!OFF.includes(i.availability.status)&&!exclude.includes(i.id)),row=i=>({id:i.id,name:i.name,price:i.price,category:i.category});
+  const groups=[],same=cat?all.filter(i=>i.category===cat):[];
+  if(same.length)groups.push({label:'Same category · '+(category(s,cat)?.name||''),items:same.map(row)});
+  for(const c of menu(s).categories.slice().sort((a,b)=>a.order-b.order)){if(c.id===cat)continue;const l=all.filter(i=>i.category===c.id);if(l.length)groups.push({label:c.name,items:l.map(row)});}
+  return groups;
+ }
+ // Can this be sold right now? Archived, 86’d on the board, an ingredient 86’d, not served at this service, sold out by count, counting down, or running low. deep=false skips the substitute lookup (a substitute’s own availability never chains).
+ function availability(s,it,date=s.date,service=s.service,deep=true){
   if(!it.active)return {status:'archived',label:'Off the menu',reason:'Archived'};
-  const list=alerts(s,date,service);
+  const list=alerts(s,date,service),subOf=u=>deep?substitute(s,u,date,service):null;
   const own=list.find(u=>u.menuItem===it.id);
-  if(own)return {status:'86',label:own.status==='Approved'?'86’d':'86 reported',reason:own.reason,alert:own,pending:own.status==='Reported'};
+  if(own)return {status:'86',label:own.status==='Approved'?'86’d':'86 reported',reason:own.reason,alert:own,pending:own.status==='Reported',sub:subOf(own)};
   const outs=[];for(const r of it.recipe||[]){const u=list.find(x=>x.item===r.item);if(u)outs.push({ingredient:stockItem(s,r.item)?.name||r.item,alert:u});}
   const approvedOut=outs.find(o=>o.alert.status==='Approved');
-  if(approvedOut)return {status:'ingredient',label:'Out · '+approvedOut.ingredient,reason:approvedOut.alert.reason,alert:approvedOut.alert,ingredient:approvedOut.ingredient};
+  if(approvedOut)return {status:'ingredient',label:'Out · '+approvedOut.ingredient,reason:approvedOut.alert.reason,alert:approvedOut.alert,ingredient:approvedOut.ingredient,sub:subOf(approvedOut.alert)};
   const cat=category(s,it.category);
   if(!servedAt(cat,service))return {status:'service',label:'Not at '+service,reason:cat.name+' is served at '+cat.services.join(' and ')+' only.',services:cat.services};
   const left=remaining(s,it,date,service);
   if(left===0)return {status:'soldout',label:'Sold out',reason:'All '+it.limit.qty+' sold.',remaining:0,limit:it.limit.qty};
-  if(outs.length)return {status:'ingredient-reported',label:outs[0].ingredient+' reported out',reason:outs[0].alert.reason,alert:outs[0].alert,ingredient:outs[0].ingredient,pending:true};
+  if(outs.length)return {status:'ingredient-reported',label:outs[0].ingredient+' reported out',reason:outs[0].alert.reason,alert:outs[0].alert,ingredient:outs[0].ingredient,pending:true,sub:subOf(outs[0].alert)};
   if(left!==null)return {status:'limited',label:left+' left',reason:left+' of '+it.limit.qty+' left to sell.',remaining:left,limit:it.limit.qty};
   const low=(it.recipe||[]).map(r=>stockItem(s,r.item)).filter(x=>x&&x.onHand!==null&&x.onHand<x.par&&!(s.orders||[]).some(o=>o.item===x.id&&['Approved','Ordered'].includes(o.status)));
   if(low.length)return {status:'low',label:'Low · '+low[0].name,reason:low.map(x=>x.name).join(', ')+' below par',low:low.map(x=>x.name)};
@@ -249,7 +294,7 @@
    const price=Number(a.price);if(!num(price,10000))throw Error('Enter a price.');
    const station=s.setup.areas.includes(a.station)?a.station:cat.station;
    if(m.items.some(i=>i.id!==a.id&&i.name.toLowerCase()===name.toLowerCase()))throw Error('Another menu item already has that name.');
-   const recipe=[];for(const r of Array.isArray(a.recipe)?a.recipe:[]){if(!r||!r.item)continue;const st=s.stock.items.find(i=>i.id===r.item);if(!st)throw Error('An ingredient is not on the stock list.');const units=Number(r.units);if(!num(units,1000))throw Error('Check the portion for '+st.name+'.');if(recipe.some(x=>x.item===st.id))continue;recipe.push({item:st.id,amount:clean(r.amount,40),units:round(units*10000)/10000});}
+   const recipe=[];for(const r of Array.isArray(a.recipe)?a.recipe:[]){if(!r||(!r.item&&!String(r.name||'').trim()))continue;const st=ingredient(s,r,station);if(!st)throw Error('An ingredient is not on the stock list.');const units=Number(r.units);if(!num(units,1000))throw Error('Check the portion for '+st.name+'.');if(recipe.some(x=>x.item===st.id))continue;recipe.push({item:st.id,amount:clean(r.amount,40),units:round(units*10000)/10000});}
    if(recipe.length>LIMITS.recipe)throw Error('Up to 30 ingredients per dish.');
    const pick=(listIn,allowed)=>[...new Set([].concat(listIn||[]).filter(x=>allowed.includes(x)))];
    const modifiers=[...new Set([].concat(a.modifiers||[]).filter(id=>m.modifiers.some(x=>x.id===id)))];
@@ -302,12 +347,14 @@
    const x=get(a.item),date=a.date||s.date,service=a.service||s.service;
    if(alerts(s,date,service).some(u=>u.menuItem===x.id&&u.id!==a.id))throw Error(`${x.name} is already on the 86 board for this service.`);
    const reason=clean(a.reason,500)||'Sold out.';
-   s=upgrade(prev.change(s,{type:'ops:alert',id:a.id,date,service,name:x.name,reason,area:x.station},role));
+   if(a.sub&&a.sub.item===x.id)throw Error('Pick a different dish to offer instead.');
+   s=upgrade(prev.change(s,{type:'ops:alert',id:a.id,date,service,name:x.name,reason,area:x.station,sub:a.sub},role));
    const u=s.unavailable.find(y=>y.id===a.id);if(u)u.menuItem=x.id;
   }else throw Error('Unknown menu action.');
+  sweep(s);
   if(!valid(s))throw Error('Check the menu details.');return s;
  }
- B.menu={ALLERGENS,CODES,DIETARY,COURSES,LIMITS,OFF,upgrade,seed:seedMenu,item,category,courseOf,hue,servedAt,cost,margin,allergens,ingredientAllergens,availability,sellable,sold,remaining,openOn,counts,list,byCategory,safeFor,matrix,outs,usedIn,modifierGroups,priceWith,alerts};
+ B.menu={ALLERGENS,CODES,DIETARY,COURSES,LIMITS,OFF,upgrade,seed:seedMenu,item,category,courseOf,hue,servedAt,cost,margin,allergens,ingredientAllergens,availability,sellable,sold,remaining,openOn,counts,list,byCategory,safeFor,matrix,outs,usedIn,modifierGroups,priceWith,alerts,substitute,subOptions};
  B.starter=(...args)=>upgrade(prev.starter(...args));B.validState=valid;B.change=change;
  B.load=storage=>{try{
   const s=upgrade(prev.load(storage));if(valid(s))return s;

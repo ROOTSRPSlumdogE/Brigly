@@ -37,7 +37,7 @@ const crew=[...new Set(s.shifts.filter(x=>x.date===s.date&&x.service==='Dinner')
 brief.acks=[crew[0]];
 html=ops.hub(s.date,'Dinner');
 assert(/class="button onboarding-ack-cta"[^>]*data-action="ack"/.test(html),'single class attribute on the confirm CTA');
-assert(html.includes('Team read confirmations (1 of'));assert(html.includes('Pressed “I’ve read this”'));
+assert(html.includes(' of ')&&html.includes('confirmed</strong>'));assert(html.includes('ack-state-pill">Read'));
 const home=c.createShiftHome({state:()=>s,e,dateLabel:x=>x,render(){},focus(){},close(){},open(){}});
 html=home.render();
 assert(html.includes('td-brief')&&html.includes('td-receipts'),'managers see the briefing with who has read it');
@@ -45,7 +45,7 @@ assert(html.includes('td-specials'));assert(html.includes('td-price'));
 assert(!/Before taking orders[\s\S]*?Special · \$/.test(html),'specials no longer mixed into the 86 card');
 s.role='crew';s.crewId=crew.find(id=>B.person(id)?.access==='crew'&&id!==crew[0]);html=home.render();
 assert(html.includes('I’ve read it'));assert(html.includes('needs-ack'));assert(html.indexOf('td-brief')<html.indexOf('td-queue'),'an unread briefing sits above everything else for crew');
-brief.acks.push(s.crewId);html=home.render();assert(html.includes('You confirmed reading this briefing'));
+brief.acks.push(s.crewId);html=home.render();assert(html.includes('You confirmed reading this'));
 console.log('PASS: prominent onboarding confirmation, manager read-receipt tracker and dedicated specials card.');
 
 // Arrivals rows: time · details · one action, with any status inside the details.

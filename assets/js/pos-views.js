@@ -185,15 +185,13 @@ globalThis.BriglyPosViews=function(ctx){
    const top=sales.items.slice(0,3),tk=P().tickets(st,date,service),late=tk.filter(t=>t.late).length,d=P().drawer(st,date,service);
    return {title:'Sales',meta:`<span class="td-tag" data-tone="sage">${money(sales.net)} net</span>`,body:`<dl class="sk-facts ps-facts"><div><dt>Paid checks</dt><dd>${sales.checks}</dd><small>${plural(sales.covers,'cover')} · ${money(sales.avgCheck)} avg</small></div><div><dt>Open</dt><dd>${o.length}</dd><small>${money(o.reduce((n,c)=>n+P().totals(st,c).total,0))} on the floor${pickups.length?' · '+pickups.length+' pickups'+(due?' ('+due+' due)':''):''}</small></div><div><dt>Tips</dt><dd>${money(sales.tips)}</dd><small>${pct(sales.tipPct)} of net</small></div><div><dt>Tickets</dt><dd>${tk.length}</dd><small>${late?late+' late':'none late'}${d?' · drawer open':liveNow()?' · no drawer':''}</small></div></dl>${top.length?`<p class="sk-hint">Top sellers: ${e(top.map(x=>x.name+' ×'+x.qty).join(', '))}</p>`:''}`,foot:link('Open the POS')+link('Close-out','close')};
   }
-  const mineT=P().myTables(st,date,service,me()),myOpen=o.filter(c=>c.server===me()),rep=P().serverReport(st,me(),date,service);
-  if(p?.area==='Kitchen'||(p?.area==='Bar'&&!mineT.length&&!myOpen.length)){
+  if(p?.area==='Kitchen'||p?.area==='Bar'){
    const tk=P().tickets(st,date,service,p.area),late=tk.filter(t=>t.late).length;
    if(!tk.length&&!sales.checks)return null;
    return {title:p.area+' tickets',meta:tk.length?`<span class="td-tag" data-tone="${late?'danger':'amber'}">${tk.length} waiting</span>`:'',body:tk.length?`<div class="ps-tlist">${tk.slice(0,4).map(t=>`<div class="ps-trow"><span class="ps-trow-main"><strong>#${t.check.number} · ${e(ctx.where(t.check))}</strong><small>${e(t.lines.map(l=>l.qty+'× '+l.name).join(', '))} · ${mins(t.minutes)}${t.staged.length?' · '+t.staged.length+' holding':''}</small></span></div>`).join('')}</div>`:'<p class="td-empty">Nothing waiting on the pass.</p>',foot:link('Open tickets','tickets')};
   }
-  if(!mineT.length&&!myOpen.length&&!rep.checks)return null;
-  const rows=mineT.map(l=>{const T=P().tableState(st,date,service,l);return `<button type="button" class="ps-trow ps-today-table" data-action="ps-table" data-id="${e(l)}"><span class="ps-trow-main"><strong>Table ${e(l)}</strong><small>${T.check?money(T.totals.total)+' · '+stageWord(T.stage)+' · '+mins(T.minutes):'Open'}</small></span>${T.check?`<span class="td-tag" data-tone="${stageTone(T.stage)}">${e(stageWord(T.stage))}</span>`:''}</button>`;}).join('');
-  return {title:'My tables',meta:`<span class="td-tag" data-tone="sage">${money(rep.net)} · ${money(rep.tips)} tips</span>`,body:(rows?`<div class="ps-tlist">${rows}</div>`:`<p class="td-empty">No section yet. ${plural(myOpen.length,'open check')}.</p>`),foot:link('Open the POS')+link('My close-out','close')};
+  // Servers have no POS card on Today: their tables live on the POS itself.
+  return null;
  }
  // ---------- Reports board ----------
  function report(d){
