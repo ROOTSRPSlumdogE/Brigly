@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1F2B27">
+  <meta name="theme-color" content="#F4EFE3">
   <title>Brigly — Run your whole restaurant from one app</title>
   <meta name="description" content="One workspace for restaurants and bars: scheduling, checklists, stock, POS and staff training on one record. Try the live demo, no sign-up.">
   <meta property="og:type" content="website">
@@ -12,11 +12,11 @@
   <meta property="og:image" content="assets/images/social-preview.png">
   <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="site.webmanifest">
-  <script src="assets/js/site-theme.js?v=2026.10.30.19"></script>
+  <script src="assets/js/site-theme.js?v=2026.10.30.21"></script>
   <link rel="preload" href="assets/fonts/plus-jakarta-sans.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="assets/images/screens/today-desktop-dark.webp" as="image" type="image/webp">
-  <link rel="stylesheet" href="assets/css/site.css?v=2026.10.30.19">
-  <script src="assets/js/site.js?v=2026.10.30.19" defer></script>
+  <link rel="stylesheet" href="assets/css/site.css?v=2026.10.30.21">
+  <script src="assets/js/site.js?v=2026.10.30.21" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -29,8 +29,8 @@
         <img class="logo-on-light" src="assets/logos/brigly-on-light.svg" alt="Brigly" width="136" height="33">
       </a>
       <nav class="nav-links" aria-label="Main navigation">
-        <a href="#how">How it works</a>
         <a href="#team">For your team</a>
+        <a href="#how">How it works</a>
         <a href="#features">Features</a>
         <a href="#about">About</a>
         <a href="#faq">FAQ</a>
@@ -45,8 +45,8 @@
       </div>
     </div>
     <nav id="mobile-menu" class="mobile-menu" aria-label="Mobile navigation" hidden>
-      <a href="#how">How it works</a>
       <a href="#team">For your team</a>
+      <a href="#how">How it works</a>
       <a href="#features">Features</a>
       <a href="#about">About</a>
       <a href="#faq">FAQ</a>
@@ -62,6 +62,7 @@
         <div class="hero-grid">
           <div class="hero-copy">
             <h1 id="hero-heading" class="display" data-write>Run your whole restaurant <em>from one app.</em></h1>
+            <svg class="draw chalk-flourish" data-after="hero-heading" viewBox="0 0 300 24" aria-hidden="true"><path pathLength="1" d="M4 13Q100 3 292 9"/><path pathLength="1" style="--d:.35s" d="M18 20Q140 11 266 16"/></svg>
             <p class="lede">Brigly replaces the scheduling app, the clipboards, the inventory spreadsheet, the training binder and the staff group text with one workspace, so every screen agrees. Built for independent restaurants and bars.</p>
             <div class="hero-cta">
               <a class="btn btn-orange btn-lg" href="demo.html" data-cta="hero-primary">Try the live demo <span class="arrow" aria-hidden="true">→</span></a>
@@ -89,7 +90,7 @@
 
         <div class="hero-stage" data-stage>
           <div class="stage-tabs" role="tablist" aria-label="Screens in the live demo">
-            <button type="button" role="tab" aria-selected="true" data-tint="orange" data-light="assets/images/screens/today-desktop-light.webp" data-dark="assets/images/screens/today-desktop-dark.webp" data-alt="The Brigly Today screen for a manager: the live dinner shift, sales so far, items 86'd and the pre-shift briefing."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Today</button>
+            <button type="button" role="tab" aria-selected="true" data-tint="orange" data-light="assets/images/screens/today-desktop-light.webp" data-dark="assets/images/screens/today-desktop-dark.webp" data-alt="The Brigly Today screen for a manager: the shift overview, service updates, quick actions and the pre-shift briefing."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Today</button>
             <button type="button" role="tab" aria-selected="false" data-tint="sage" data-light="assets/images/screens/schedule-desktop-light.webp" data-dark="assets/images/screens/schedule-desktop-dark.webp" data-alt="The weekly schedule in Brigly: shift templates for lunch, dinner and brunch, and the team grid by day."><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>Scheduling</button>
             <button type="button" role="tab" aria-selected="false" data-tint="sand" data-light="assets/images/screens/checklists-desktop-light.webp" data-dark="assets/images/screens/checklists-desktop-dark.webp" data-alt="Opening checklists in Brigly for the floor, bar and kitchen, with an overdue stock count flagged."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Checklists</button>
             <button type="button" role="tab" aria-selected="false" data-tint="slate" data-light="assets/images/screens/stock-desktop-light.webp" data-dark="assets/images/screens/stock-desktop-dark.webp" data-alt="The Stock screen: items by category with counts against par, tonight’s 86 board and the next vendor cut-offs."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>Stock &amp; 86s</button>
@@ -97,7 +98,7 @@
           </div>
           <div class="stage" data-tint="orange">
             <div class="shot-frame">
-              <img class="shot" id="hero-shot" src="assets/images/screens/today-desktop-dark.webp" data-light="assets/images/screens/today-desktop-light.webp" alt="The Brigly Today screen for a manager: the live dinner shift, sales so far, items 86'd and the pre-shift briefing." width="1200" height="750" fetchpriority="high" decoding="async">
+              <img class="shot" id="hero-shot" src="assets/images/screens/today-desktop-dark.webp" data-light="assets/images/screens/today-desktop-light.webp" alt="The Brigly Today screen for a manager: the shift overview, service updates, quick actions and the pre-shift briefing." width="1200" height="750" fetchpriority="high" decoding="async">
             </div>
             <div class="hero-phone" aria-hidden="true">
               <img class="shot" src="assets/images/screens/today-phone-dark.webp" data-light="assets/images/screens/today-phone-light.webp" alt="" width="390" height="780" decoding="async">
@@ -108,65 +109,13 @@
       </div>
     </section>
 
-    <!-- 2 · WHAT IT REPLACES -->
-    <section class="replaces" id="replaces" aria-label="What Brigly replaces">
-      <div class="container">
-        <ul class="replaces-row reveal">
-          <li class="label">Replaces</li>
-          <li><s>Clipboard checklists</s></li>
-          <li><s>The staff group text</s></li>
-          <li><s>A scheduling app</s></li>
-          <li><s>The inventory sheet</s></li>
-          <li><s>A separate POS</s></li>
-          <li><s>The training binder</s></li>
-          <li class="one"><svg class="draw mini-arrow" viewBox="0 0 40 20" aria-hidden="true"><path pathLength="1" d="M3 10C12 5 26 5 35 10"/><path pathLength="1" style="--d:0.6s" d="M27 4L36 10L27 16"/></svg><img class="logo-on-dark" src="assets/logos/brigly-on-dark.svg" alt="" width="136" height="33" aria-hidden="true"><img class="logo-on-light" src="assets/logos/brigly-on-light.svg" alt="Brigly" width="136" height="33"></li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- 3 · HOW IT WORKS: ONE RECORD, EVERYWHERE -->
-    <section class="section aha" id="how" aria-labelledby="how-heading">
-      <div class="container">
-        <div class="section-head reveal">
-          <p class="eyebrow">How it works</p>
-          <h2 id="how-heading" class="title" data-write>86 it once. Everyone knows.</h2>
-          <p class="lede">The kitchen runs out of sea bass. One tap in Stock, the manager names what to offer instead, and every screen that matters updates at the same moment.</p>
-        </div>
-
-        <div class="flow86 reveal" id="flow86" data-flow>
-          <div class="chalk-note flow-note"><b id="note-86" data-write style="--w-speed:40ms">one tap</b><svg class="draw" data-after="note-86" viewBox="0 0 120 40" aria-hidden="true"><path pathLength="1" d="M4 30C30 8 80 6 112 22"/><path pathLength="1" style="--d:0.8s" d="M100 9L112 22L97 29"/></svg></div>
-          <div class="flow-record" data-node="center">
-            <div class="flow-record-top">
-              <span class="k">Stock &amp; 86s · Kitchen</span>
-              <p class="name">Sea bass</p>
-              <p class="status"><i aria-hidden="true"></i>86’d at 8:42 PM · one tap by the kitchen</p>
-            </div>
-            <div class="sub"><small>Offer instead</small><strong>Pan-roasted halibut</strong></div>
-          </div>
-          <ol class="flow-nodes">
-            <li data-node="1"><span class="k">Stock</span><strong>Sea bass · 0 of par 5 · reorder</strong><span>Already on the next vendor order.</span></li>
-            <li data-node="2"><span class="k">Menu &amp; allergens</span><strong><s>Pan-roasted sea bass</s> · off now</strong><span>Off for dinner, the halibut instead.</span></li>
-            <li data-node="3"><span class="k">POS</span><strong>Sea bass tile → rings in halibut</strong><span>One tap on the greyed tile does it.</span></li>
-            <li data-node="4"><span class="k">Pre-shift briefing</span><strong>“Sea bass out. Offer halibut.”</strong><span>Every server reads it and confirms.</span></li>
-            <li data-node="5"><span class="k">Today</span><strong>1 item 86’d · a reorder waiting</strong><span>On the manager’s screen, no text.</span></li>
-          </ol>
-        </div>
-        <div class="flow-foot reveal">
-          <p>No re-entering. No “did anyone tell the bar?”. The record changed, so everything that reads it changed.</p>
-          <button type="button" class="replay" data-flow-replay aria-label="Replay the 86 animation">Replay <span aria-hidden="true">↻</span></button>
-        </div>
-        <div class="section-cta reveal">
-          <a class="btn btn-ink" href="demo.html#stock" data-cta="aha-86">Try it yourself: 86 a dish in the demo <span class="arrow" aria-hidden="true">→</span></a>
-        </div>
-      </div>
-    </section>
-
     <!-- 4 · FOR YOUR TEAM -->
     <section class="section team" id="team" aria-labelledby="team-heading">
       <div class="container">
         <div class="section-head reveal">
           <p class="eyebrow">For your team</p>
           <h2 id="team-heading" class="title" data-write>Where a POS stops, Brigly starts.</h2>
+            <svg class="draw chalk-flourish" data-after="team-heading" viewBox="0 0 300 24" aria-hidden="true"><path pathLength="1" d="M4 13Q100 3 292 9"/><path pathLength="1" style="--d:.35s" d="M18 20Q140 11 266 16"/></svg>
           <p class="lede">A POS takes the order. Brigly runs the people too: onboarding, training, lists, schedules, chat and pay, on one record.</p>
         </div>
 
@@ -188,7 +137,7 @@
               <div class="chalk-note"><b id="note-1" data-write style="--w-speed:40ms">everyone briefed</b><svg class="draw note-arrow" data-after="note-1" viewBox="0 0 84 44" aria-hidden="true"><path pathLength="1" d="M6 4C30 6 56 16 70 38"/><path pathLength="1" style="--d:0.8s" d="M58 34L70 38L72 26"/></svg></div>
               <div class="stage" data-tint="sage">
                 <div class="shot-frame">
-                  <img class="shot" src="assets/images/screens/briefing-desktop-dark.webp" data-light="assets/images/screens/briefing-desktop-light.webp" alt="Shift onboarding in Brigly, opened from a server’s Today screen: the dinner shift approved by the manager, the people on shift by station, the handover from lunch and the manager’s notes, waiting for the server’s confirmation." width="1200" height="750" loading="lazy" decoding="async">
+                  <img class="shot" src="assets/images/screens/briefing-desktop-dark.webp" data-light="assets/images/screens/briefing-desktop-light.webp" alt="The single-page shift briefing in Brigly: shift details, the approved service plan, unavailable items, specials and expected guests, with confirmation controls at the bottom." width="1200" height="750" loading="lazy" decoding="async">
                 </div>
               </div>
             </div>
@@ -209,7 +158,7 @@
             <div class="story-visual">
               <div class="chalk-note"><b id="note-2" data-write style="--w-speed:40ms">a few minutes each</b><svg class="draw note-arrow" data-after="note-2" viewBox="0 0 84 44" aria-hidden="true"><path pathLength="1" d="M6 4C30 6 56 16 70 38"/><path pathLength="1" style="--d:0.8s" d="M58 34L70 38L72 26"/></svg></div>
               <div class="stage is-phones" data-tint="orange">
-                <div class="phone-frame"><img class="shot" src="assets/images/screens/training-crew-phone-dark.webp" data-light="assets/images/screens/training-crew-phone-light.webp" alt="A server’s Training screen on a phone: level and XP, a streak, the course to continue, a duel from a teammate and badges." width="390" height="780" loading="lazy" decoding="async"></div>
+                <div class="phone-frame"><img class="shot" src="assets/images/screens/training-crew-phone-dark.webp" data-light="assets/images/screens/training-crew-phone-light.webp" alt="A server’s Training screen on a phone: a focused learning path, the next lesson and course progress." width="390" height="780" loading="lazy" decoding="async"></div>
                 <div class="phone-frame"><img class="shot" src="assets/images/screens/checklists-crew-phone-dark.webp" data-light="assets/images/screens/checklists-crew-phone-light.webp" alt="" width="390" height="780" loading="lazy" decoding="async" aria-hidden="true"></div>
               </div>
             </div>
@@ -334,17 +283,57 @@
       </div>
     </section>
 
+    <!-- 3 · HOW IT WORKS: ONE RECORD, EVERYWHERE -->
+    <section class="section aha" id="how" aria-labelledby="how-heading">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="eyebrow">How it works</p>
+          <h2 id="how-heading" class="title" data-write>86 it once. Everyone knows.</h2>
+            <svg class="draw chalk-flourish" data-after="how-heading" viewBox="0 0 300 24" aria-hidden="true"><path pathLength="1" d="M4 13Q100 3 292 9"/><path pathLength="1" style="--d:.35s" d="M18 20Q140 11 266 16"/></svg>
+          <p class="lede">The kitchen runs out of sea bass. One tap in Stock, the manager names what to offer instead, and every screen that matters updates at the same moment.</p>
+        </div>
+
+        <div class="flow86 reveal" id="flow86" data-flow>
+          <div class="chalk-note flow-note"><b id="note-86" data-write style="--w-speed:40ms">one tap</b><svg class="draw" data-after="note-86" viewBox="0 0 120 40" aria-hidden="true"><path pathLength="1" d="M4 30C30 8 80 6 112 22"/><path pathLength="1" style="--d:0.8s" d="M100 9L112 22L97 29"/></svg></div>
+          <div class="flow-record" data-node="center">
+            <div class="flow-record-top">
+              <span class="k">Stock &amp; 86s · Kitchen</span>
+              <p class="name">Sea bass</p>
+              <p class="status"><i aria-hidden="true"></i>86’d at 8:42 PM · one tap by the kitchen</p>
+            </div>
+            <div class="sub"><small>Offer instead</small><strong>Pan-roasted halibut</strong></div>
+          </div>
+          <ol class="flow-nodes">
+            <li data-node="1"><span class="k">Stock</span><strong>Sea bass · 0 of par 5 · reorder</strong><span>Already on the next vendor order.</span></li>
+            <li data-node="2"><span class="k">Menu &amp; allergens</span><strong><s>Pan-roasted sea bass</s> · off now</strong><span>Off for dinner, the halibut instead.</span></li>
+            <li data-node="3"><span class="k">POS</span><strong>Sea bass tile → rings in halibut</strong><span>One tap on the greyed tile does it.</span></li>
+            <li data-node="4"><span class="k">Pre-shift briefing</span><strong>“Sea bass out. Offer halibut.”</strong><span>Every server reads it and confirms.</span></li>
+            <li data-node="5"><span class="k">Today</span><strong>1 item 86’d · a reorder waiting</strong><span>On the manager’s screen, no text.</span></li>
+          </ol>
+        </div>
+        <div class="flow-foot reveal">
+          <p>No re-entering. No “did anyone tell the bar?”. The record changed, so everything that reads it changed.</p>
+          <button type="button" class="replay" data-flow-replay aria-label="Replay the 86 animation">Replay <span aria-hidden="true">↻</span></button>
+        </div>
+        <div class="section-cta reveal">
+          <a class="btn btn-ink" href="demo.html#stock" data-cta="aha-86">Try it yourself: 86 a dish in the demo <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </section>
+
     <!-- 5 · A SHIFT, START TO FINISH -->
     <section class="section chapters" id="features" aria-labelledby="features-heading">
       <div class="container">
         <div class="section-head reveal">
           <p class="eyebrow">Features</p>
           <h2 id="features-heading" class="title" data-write>A shift, start to finish.</h2>
+            <svg class="draw chalk-flourish" data-after="features-heading" viewBox="0 0 300 24" aria-hidden="true"><path pathLength="1" d="M4 13Q100 3 292 9"/><path pathLength="1" style="--d:.35s" d="M18 20Q140 11 266 16"/></svg>
           <p class="lede">Every feature in Brigly sits where a restaurant day actually puts it.</p>
         </div>
 
         <div class="day-grid stagger">
           <article class="day-card" data-tint="sage" aria-labelledby="day-plan">
+            <svg class="draw day-doodle" viewBox="0 0 56 56" aria-hidden="true"><path pathLength="1" d="M12 17H44V47H12ZM20 10V22M36 10V22M12 27H44"/><path class="accent" pathLength="1" style="--d:.5s" d="M20 36l5 5 11-10"/></svg>
             <p class="n">01 · Plan the week</p>
             <h3 id="day-plan">Plan the week in minutes, not Sunday night.</h3>
             <dl class="feats">
@@ -357,6 +346,7 @@
           </article>
 
           <article class="day-card" data-tint="sand" aria-labelledby="day-before">
+            <svg class="draw day-doodle" viewBox="0 0 56 56" aria-hidden="true"><path pathLength="1" d="M17 11H41V48H11V17H17M17 9H35V19H17Z"/><path class="accent" pathLength="1" style="--d:.5s" d="M19 31l4 4 9-10M19 42H33"/></svg>
             <p class="n">02 · Before service</p>
             <h3 id="day-before">Walk in knowing what tonight needs.</h3>
             <dl class="feats">
@@ -370,6 +360,7 @@
           </article>
 
           <article class="day-card" data-tint="orange" aria-labelledby="day-during">
+            <svg class="draw day-doodle" viewBox="0 0 56 56" aria-hidden="true"><path pathLength="1" d="M8 38H48M13 35a15 15 0 0 1 30 0M28 16V12"/><path class="accent" pathLength="1" style="--d:.5s" d="M20 7l-3-4M37 8l4-4M28 44v5"/></svg>
             <p class="n">03 · During service</p>
             <h3 id="day-during">Service runs on the same record as everything else.</h3>
             <dl class="feats">
@@ -383,6 +374,7 @@
           </article>
 
           <article class="day-card" data-tint="slate" aria-labelledby="day-after">
+            <svg class="draw day-doodle" viewBox="0 0 56 56" aria-hidden="true"><path pathLength="1" d="M10 45H48M15 38V28M27 38V19M39 38V10"/><path class="accent" pathLength="1" style="--d:.5s" d="M9 17l12-7 10 3 14-9"/></svg>
             <p class="n">04 · After service</p>
             <h3 id="day-after">Close out, and the numbers are already done.</h3>
             <dl class="feats">
@@ -397,22 +389,23 @@
 
         <div class="all-features reveal">
           <div class="all-head">
-            <h3>Twelve parts, one app.</h3>
+            <svg class="draw parts-sketch" viewBox="0 0 200 136" aria-hidden="true"><path pathLength="1" style="--d:0.00s" d="M170.0 68.0L100 68"/><circle pathLength="1" style="--d:0.40s" cx="170.0" cy="68.0" r="4"/><path pathLength="1" style="--d:0.07s" d="M160.6 92.0L100 68"/><circle pathLength="1" style="--d:0.47s" cx="160.6" cy="92.0" r="4"/><path pathLength="1" style="--d:0.13s" d="M135.0 109.6L100 68"/><circle pathLength="1" style="--d:0.53s" cx="135.0" cy="109.6" r="4"/><path pathLength="1" style="--d:0.20s" d="M100.0 116.0L100 68"/><circle pathLength="1" style="--d:0.59s" cx="100.0" cy="116.0" r="4"/><path pathLength="1" style="--d:0.26s" d="M65.0 109.6L100 68"/><circle pathLength="1" style="--d:0.66s" cx="65.0" cy="109.6" r="4"/><path pathLength="1" style="--d:0.33s" d="M39.4 92.0L100 68"/><circle pathLength="1" style="--d:0.73s" cx="39.4" cy="92.0" r="4"/><path pathLength="1" style="--d:0.39s" d="M30.0 68.0L100 68"/><circle pathLength="1" style="--d:0.79s" cx="30.0" cy="68.0" r="4"/><path pathLength="1" style="--d:0.46s" d="M39.4 44.0L100 68"/><circle pathLength="1" style="--d:0.85s" cx="39.4" cy="44.0" r="4"/><path pathLength="1" style="--d:0.52s" d="M65.0 26.4L100 68"/><circle pathLength="1" style="--d:0.92s" cx="65.0" cy="26.4" r="4"/><path pathLength="1" style="--d:0.58s" d="M100.0 20.0L100 68"/><circle pathLength="1" style="--d:0.98s" cx="100.0" cy="20.0" r="4"/><path pathLength="1" style="--d:0.65s" d="M135.0 26.4L100 68"/><circle pathLength="1" style="--d:1.05s" cx="135.0" cy="26.4" r="4"/><path pathLength="1" style="--d:0.72s" d="M160.6 44.0L100 68"/><circle pathLength="1" style="--d:1.12s" cx="160.6" cy="44.0" r="4"/><path class="accent" pathLength="1" style="--d:1.2s" d="M83 68a17 17 0 1 0 34 0a17 17 0 1 0-34 0"/><path class="accent" pathLength="1" style="--d:1.6s" d="M92 68l6 6 11-13"/></svg>
+            <h3 id="all-heading" data-write>Twelve parts, <span class="chalk-one">one app.<svg class="draw chalk-circle" data-after="all-heading" viewBox="0 0 150 66" aria-hidden="true"><path pathLength="1" d="M139 19C122 0 25 1 9 22C-10 48 38 63 94 57C140 53 154 32 138 16"/></svg></span></h3>
             <p>Each one reads what the others write. Pick one to see it up close.</p>
           </div>
           <div class="all-grid">
-            <a href="demo.html" data-cta="all-today" data-feature="today"><strong>Today <span aria-hidden="true">→</span></strong><small>The live shift: who is on and what needs you.</small></a>
-            <a href="demo.html?screen=shifts" data-cta="all-scheduling" data-feature="scheduling"><strong>Scheduling <span aria-hidden="true">→</span></strong><small>Templates, swaps, time off and labor cost.</small></a>
-            <a href="demo.html#lists" data-cta="all-checklists" data-feature="checklists"><strong>Checklists <span aria-hidden="true">→</span></strong><small>Station lists with due times and their history.</small></a>
-            <a href="demo.html#stock" data-cta="all-stock" data-feature="stock"><strong>Stock &amp; 86s <span aria-hidden="true">→</span></strong><small>Counts, par levels, orders and the 86 board.</small></a>
-            <a href="demo.html#menu" data-cta="all-menu" data-feature="menu"><strong>Menu &amp; allergens <span aria-hidden="true">→</span></strong><small>Recipes with live cost, margin and allergens.</small></a>
-            <a href="demo.html#pos" data-cta="all-pos" data-feature="pos"><strong>POS <span aria-hidden="true">→</span></strong><small>Checks, courses, splits, tips and close-out.</small></a>
-            <a href="demo.html#reservations" data-cta="all-reservations" data-feature="reservations"><strong>Reservations <span aria-hidden="true">→</span></strong><small>A drawn floor plan, bookings, guest notes.</small></a>
-            <a href="demo.html#specials" data-cta="all-specials" data-feature="specials"><strong>Specials &amp; events <span aria-hidden="true">→</span></strong><small>Published once, then in briefing, menu, POS.</small></a>
-            <a href="demo.html?screen=manage" data-cta="all-payroll" data-feature="payroll"><strong>Team &amp; payroll <span aria-hidden="true">→</span></strong><small>Time clock, timesheets, pay runs and HR files.</small></a>
-            <a href="demo.html?screen=training" data-cta="all-training" data-feature="training"><strong>Training <span aria-hidden="true">→</span></strong><small>Role courses, quizzes and on-shift sign-offs.</small></a>
-            <a href="demo.html?screen=reports" data-cta="all-reports" data-feature="reports"><strong>Reports <span aria-hidden="true">→</span></strong><small>Sales, labor, stock and people, compared.</small></a>
-            <a href="demo.html" data-cta="all-chat" data-feature="chat"><strong>Team chat <span aria-hidden="true">→</span></strong><small>Station channels, with photos and to-dos.</small></a>
+            <a href="demo.html" data-cta="all-today" data-feature="today"><strong>Today <span aria-hidden="true">→</span></strong><small>The live shift: who is on and what needs you.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
+            <a href="demo.html?screen=shifts" data-cta="all-scheduling" data-feature="scheduling"><strong>Scheduling <span aria-hidden="true">→</span></strong><small>Templates, swaps, time off and labor cost.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
+            <a href="demo.html#lists" data-cta="all-checklists" data-feature="checklists"><strong>Checklists <span aria-hidden="true">→</span></strong><small>Station lists with due times and their history.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
+            <a href="demo.html#stock" data-cta="all-stock" data-feature="stock"><strong>Stock &amp; 86s <span aria-hidden="true">→</span></strong><small>Counts, par levels, orders and the 86 board.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
+            <a href="demo.html#menu" data-cta="all-menu" data-feature="menu"><strong>Menu &amp; allergens <span aria-hidden="true">→</span></strong><small>Recipes with live cost, margin and allergens.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
+            <a href="demo.html#pos" data-cta="all-pos" data-feature="pos"><strong>POS <span aria-hidden="true">→</span></strong><small>Checks, courses, splits, tips and close-out.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
+            <a href="demo.html#reservations" data-cta="all-reservations" data-feature="reservations"><strong>Reservations <span aria-hidden="true">→</span></strong><small>A drawn floor plan, bookings, guest notes.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
+            <a href="demo.html#specials" data-cta="all-specials" data-feature="specials"><strong>Specials &amp; events <span aria-hidden="true">→</span></strong><small>Published once, then in briefing, menu, POS.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
+            <a href="demo.html?screen=manage" data-cta="all-payroll" data-feature="payroll"><strong>Team &amp; payroll <span aria-hidden="true">→</span></strong><small>Time clock, timesheets, pay runs and HR files.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
+            <a href="demo.html?screen=training" data-cta="all-training" data-feature="training"><strong>Training <span aria-hidden="true">→</span></strong><small>Role courses, quizzes and on-shift sign-offs.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
+            <a href="demo.html?screen=reports" data-cta="all-reports" data-feature="reports"><strong>Reports <span aria-hidden="true">→</span></strong><small>Sales, labor, stock and people, compared.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
+            <a href="demo.html" data-cta="all-chat" data-feature="chat"><strong>Team chat <span aria-hidden="true">→</span></strong><small>Station channels, with photos and to-dos.</small><svg class="draw feature-rule" viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 4Q95 2 181 4T358 3"/></svg></a>
           </div>
         </div>
       </div>

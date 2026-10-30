@@ -68,3 +68,21 @@ s.briefings.push({id:'home-brief',date:s.date,service:s.service,title:'Tonight',
 s.unavailable=[];assert.equal(N.badges(s).home?.tone,'amber');
 s.role='crew';html=home.render();assert(html.includes('data-collection="briefings" data-id="home-brief"'),'briefing authors edit from Today');
 console.log('PASS: shift briefing merged into Today with in-place notes, posting, author edits and Today badge.');
+
+// The single-page briefing preserves role-specific confirmation and approval actions.
+vm.runInContext(readFileSync(new URL('../assets/js/onboarding-ui.js',import.meta.url),'utf8'),c);
+const onboarding=c.createOnboardingUI({state:()=>s,e:escape,dateLabel:x=>x});
+const briefing=s.briefings.find(x=>x.id==='home-brief');
+briefing.author='jamie';briefing.approved=true;
+s.shifts.push({person:'alex',date:s.date,service:s.service,area:'Floor',start:'16:00',end:'23:00'});
+html=onboarding.render();
+assert(html.includes('data-action="ack"'));
+assert(html.includes('Expected guests')&&html.includes('From the previous shift'));
+assert(!html.includes('ob-next')&&!html.includes('ob-back'));
+briefing.acks.push('alex');html=onboarding.render();
+assert(!html.includes('data-action="ack"'));assert(html.includes('Briefing read'));
+s.role='manager';briefing.approved=false;html=onboarding.render();
+assert(html.includes('data-approved="true"'));assert(!html.includes('data-action="ack"'));
+briefing.approved=true;html=onboarding.render();assert(html.includes('Withdraw approval'));
+briefing.body='<img src=x onerror=alert(1)>';html=onboarding.render();assert(!html.includes('<img src=x'));assert(html.includes('&lt;img'));
+console.log('PASS: one-page onboarding, crew acknowledgement, manager approvals and escaped briefing content.');

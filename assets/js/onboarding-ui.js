@@ -1,5 +1,4 @@
-/* Shift onboarding: three short steps before service. 1 Handover (what the last shift left open), 2 Tonight (briefing, 86s,
-   specials, bookings, to-dos), 3 Confirm (crew confirm they read it; managers approve). Rendered into #onboarding-dialog. */
+/* One-page shift briefing: read the service plan, handover and guest notes together. */
 globalThis.createOnboardingUI=function(api){
  'use strict';
  const B=Brigly,{e,dateLabel}=api,s=()=>api.state(),manager=()=>s().role==='manager',me=()=>B.actor(s().role,s().crewId,s().managerId);
@@ -7,9 +6,7 @@ globalThis.createOnboardingUI=function(api){
  const name=id=>B.person(id)?.name||'Team member';
  const plural=(n,w,ws=w+'s')=>n+' '+(n===1?w:ws);
  const money=n=>'$'+Number(n||0).toFixed(2);
- const clock=iso=>{const d=new Date(iso);return Number.isNaN(d.getTime())?'':d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});};
- const STEPS=[['handover','Handover'],['plan','Tonight'],['confirm','Confirm']];
- let step='handover',briefId='';
+ let briefId='';
 
  // The service before this one: the last service of the day before when this is the first one today.
  function previous(st){
@@ -36,7 +33,7 @@ globalThis.createOnboardingUI=function(api){
   return {st,date,service,prev,brief,team,shift,carried,prevNotes,prevOut,notes,out,specials,bookings,todos,read,affected};
  }
 
- const section=(title,body)=>`<section class="ob-section"><h3>${title}</h3>${body}</section>`;
+ const section=(title,body,kind='')=>`<section class="ob-section ${kind?'ob-'+kind:''}"><h3>${title}</h3>${body}</section>`;
  const empty=text=>`<p class="ob-empty">${text}</p>`;
  const noteRow=n=>`<div class="ob-note${n.priority==='manager'?' is-priority':''}"><small>${e(name(n.author))}${n.priority==='manager'?' · manager':''}</small><p>${e(n.body)}</p></div>`;
 
@@ -56,41 +53,31 @@ globalThis.createOnboardingUI=function(api){
   const out=f.out.length?`<ul class="ob-list">${f.out.map(a=>{const hit=f.affected(a);return `<li><span><b class="ob-status">86’d</b>${e(a.name)}</span><small>${e(a.reason)}${hit.length?' · affects '+e(hit.join(', ')):''}${a.sub?' · offer '+e(a.sub.name)+' instead':''}</small></li>`;}).join('')}</ul>`:empty('Full menu. Nothing is 86’d.');
   const specials=f.specials.length?`<ul class="ob-list">${f.specials.map(x=>`<li><span>${e(x.name)}<em>${x.price>0?money(x.price):''}</em></span><small>${e([x.time,x.description].filter(Boolean).join(' · '))}</small></li>`).join('')}</ul>`:empty('No specials or events.');
   const guests=f.bookings.reduce((n,r)=>n+(r.guests||0),0);
-  const bookings=f.bookings.length?`<p class="ob-lead">${plural(f.bookings.length,'booking')} · ${plural(guests,'guest')}</p><ul class="ob-list">${f.bookings.map(r=>`<li><span><b class="ob-time">${e(r.time)}</b>${e(r.name)} · ${plural(r.guests,'guest')}${r.table?' · table '+e(r.table):''}</span>${r.note?`<small>${e(r.note)}</small>`:''}</li>`).join('')}</ul>`:empty('No bookings yet.');
+  const bookings=f.bookings.length?`<p class="ob-lead">${plural(f.bookings.length,'booking')} · ${plural(guests,'guest')}</p><ul class="ob-list">${f.bookings.map(r=>`<li><span><b class="ob-time">${e(r.time)}</b><span class="ob-guest"><strong>${e(r.name)}</strong><small>${plural(r.guests,'guest')}${r.table?' · Table '+e(r.table):''}</small></span></span>${r.note?`<small>${e(r.note)}</small>`:''}</li>`).join('')}</ul>`:empty('No bookings yet.');
   const todos=f.todos.length?section('To-dos',`<ul class="ob-list">${f.todos.map(t=>`<li><span>${e(t.body)}</span><small>From ${e(name(t.author))}${t.todo.due?' · due '+e(dateLabel(t.todo.due,{month:'short',day:'numeric'})):''}</small></li>`).join('')}</ul>`):'';
-  return section('Briefing',brief+notes)+section('86 list',out)+section('Specials',specials)+section('Bookings',bookings)+todos;
- }
- function confirm(f){
-  const b=f.brief,status=b?.approved?`Approved by ${e(name(b.approvedBy||b.author))}${b.approvedAt?' at '+e(clock(b.approvedAt)):''}`:'Not approved';
-  const summary=`<ul class="ob-list ob-summary"><li><span>${plural(f.carried.length,'task')} carried over</span></li><li><span>${f.out.length?plural(f.out.length,'item')+' 86’d':'Full menu'}</span></li><li><span>${plural(f.specials.length,'special')}</span></li><li><span>${plural(f.bookings.length,'booking')}</span></li></ul>`;
-  const reads=b?`<p class="ob-lead">${b.acks.length?plural(b.acks.length,'person','people')+' confirmed reading the briefing':'Nobody has confirmed the briefing yet'} · <span class="${b.approved?'ob-status is-ok':'ob-muted'}">${status}</span></p>`:'';
-  return section('Tonight at a glance',summary)+reads;
+  return section('The service plan',brief+notes,'plan')+section('Unavailable today',out,'unavailable')+section('Specials & happenings',specials,'specials')+section('Expected guests',bookings,'bookings')+todos;
  }
  function footer(f){
-  const b=f.brief,i=STEPS.findIndex(x=>x[0]===step),back=i>0?`<button type="button" class="button secondary" data-action="ob-step" data-id="${STEPS[i-1][0]}">Back</button>`:'';
-  if(step!=='confirm')return back+`<button type="button" class="button" data-action="ob-step" data-id="${STEPS[i+1][0]}">Next</button>`;
-  if(manager())return back+(b?(b.approved?`<button type="button" class="button quiet" data-action="ops-approve-briefing" data-id="${e(b.id)}" data-approved="false">Withdraw approval</button><button type="button" class="button" data-action="onboarding-close">Done</button>`:`<button type="button" class="button" data-action="ops-approve-briefing" data-id="${e(b.id)}" data-approved="true">Approve</button>`):`<button type="button" class="button" data-action="onboarding-close">Done</button>`);
-  if(b&&f.shift&&!f.read)return back+`<button type="button" class="button" data-action="ack" data-id="${e(b.id)}">I’ve read it</button>`;
-  return back+`<button type="button" class="button" data-action="onboarding-close">Done</button>`;
+  const b=f.brief;
+  if(manager())return b&&!b.approved?`<button type="button" class="button" data-action="ops-approve-briefing" data-id="${e(b.id)}" data-approved="true">Approve briefing</button>`:`<button type="button" class="button" data-action="onboarding-close">Done</button>`;
+  if(b&&f.shift&&!f.read)return `<button type="button" class="button" data-action="ack" data-id="${e(b.id)}">I’ve read the briefing</button>`;
+  return `<button type="button" class="button" data-action="onboarding-close">Done</button>`;
  }
  function render(){
-  const f=facts();
-  const tabs=`<div class="ob-steps" role="group" aria-label="Steps">${STEPS.map(([k,l],i)=>`<button type="button" data-action="ob-step" data-id="${k}" aria-current="${step===k?'step':'false'}"><i>${i+1}</i>${l}</button>`).join('')}</div>`;
-  const body=step==='handover'?handover(f):step==='plan'?plan(f):confirm(f);
-  const sub=`${e(f.service)} · ${e(dateLabel(f.date,{weekday:'long',month:'short',day:'numeric'}))}${f.shift?' · '+e(f.shift.area)+' '+e(f.shift.start)+'–'+e(f.shift.end):''}`;
-  return `<p class="ob-sub">${sub}</p>${tabs}<div class="ob-body">${body}</div><div class="ob-foot">${footer(f)}</div>`;
+  const f=facts(),b=f.brief,guests=f.bookings.reduce((n,r)=>n+(r.guests||0),0);
+  const status=b?(b.approved?'Approved briefing':'Awaiting approval'):'No briefing posted';
+  const confirmation=manager()?(b?.approved?'Your team can read the approved briefing.':'Review the service plan before approving it.'):(f.read?'You’re up to date with this briefing.':b&&f.shift?'Confirm once you’ve read the service plan.':'Review the details for this service.');
+  const carry=f.carried.length+f.prevNotes.length+f.prevOut.length;
+  const handoff=`<details class="ob-handover" ${f.carried.length?'open':''}><summary><span>From the previous shift</span><small>${f.carried.length?plural(f.carried.length,'open task'):carry?'Notes & handover':'Nothing outstanding'}</small></summary><div class="ob-handover-content">${handover(f)}</div></details>`;
+  return `<div class="ob-scroll"><header class="ob-page-intro"><div><p class="ob-eyebrow">Your shift, at a glance</p><h2>${e(f.service)} briefing</h2><p class="ob-sub">${e(dateLabel(f.date,{weekday:'long',month:'long',day:'numeric'}))}${f.shift?' · '+e(f.shift.area)+' · '+e(f.shift.start)+'–'+e(f.shift.end):''}</p></div><span class="ob-approval ${b?.approved?'is-approved':''}">${status}</span></header><div class="ob-overview"><div><strong>${f.team.length}</strong><span>on the team</span></div><div><strong>${guests}</strong><span>guests expected</span></div><div><strong>${f.bookings.length}</strong><span>bookings</span></div><div class="${f.out.length?'has-alert':''}"><strong>${f.out.length}</strong><span>items unavailable</span></div></div><div class="ob-page-grid">${plan(f)}</div>${handoff}</div><footer class="ob-foot"><div class="ob-confirm-copy"><strong>${f.read&&!manager()?'Briefing read':status}</strong><p>${confirmation}</p></div><div class="ob-confirm-actions">${manager()&&b?.approved?`<button type="button" class="button quiet" data-action="ops-approve-briefing" data-id="${e(b.id)}" data-approved="false">Withdraw approval</button>`:''}${footer(f)}</div></footer>`;
  }
- function paint(){const box=$('onboarding-dialog-body');if(box){box.innerHTML=render();box.scrollTop=0;}}
+ function paint(){const box=$('onboarding-dialog-body');if(box){const scroll=box.querySelector('.ob-scroll')?.scrollTop||0;const expanded=box.querySelector('.ob-handover')?.open;box.innerHTML=render();box.querySelector('.ob-scroll').scrollTop=scroll;if(expanded)box.querySelector('.ob-handover').open=true;}}
  function open(id){
-  briefId=id||'';const f=facts();
-  step=f.read||manager()?'plan':'handover';
-  paint();const d=$('onboarding-dialog');if(d&&!d.open)d.showModal();
+  briefId=id||'';
+  paint();$('onboarding-dialog-body')?.querySelector('.ob-scroll')?.scrollTo(0,0);const d=$('onboarding-dialog');if(d&&!d.open)d.showModal();
  }
  // Re-render in place while the dialog is open (after an ack, an approval or an edit).
  function refresh(){const d=$('onboarding-dialog');if(d?.open)paint();}
- function handle(action,id){
-  if(action==='step'){if(STEPS.some(x=>x[0]===id))step=id;paint();return true;}
-  return false;
- }
- return {open,refresh,handle,render,step:()=>step};
+ function handle(){return false;}
+ return {open,refresh,handle,render};
 };

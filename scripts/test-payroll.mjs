@@ -96,3 +96,25 @@ const o1=loaded.writeups.find(w=>w.id==='o1'),o2=loaded.writeups.find(w=>w.id===
 assert(o1&&o2,"older records survive loading");{assert.equal(o1.kind,'warning');assert.equal(o1.category,'Punctuality');assert.equal(o1.details,'Late three times.');assert(!('level' in o1));}
 {assert.equal(o2.kind,'writeup');assert(o2.final);}
 console.log('PASS: manual warnings and write-ups, templates, final write-ups, acknowledgment and migration.');
+
+// Clock status must not turn a forgotten punch into hundreds of worked hours,
+// or label an unrelated future shift as currently on the clock.
+{
+ vm.runInContext(readFileSync(new URL('../assets/js/finance-ui.js',import.meta.url),'utf8'),c);
+ let v=as(B.starter('2026-10-30'),'alex');
+ v.date='2026-10-30';v.service='Dinner';
+ v.shifts=[{id:'clock-ui',person:'alex',date:'2026-10-29',service:'Dinner',start:'16:00',end:'23:00',area:'Floor',payRate:18,breakMinutes:0}];
+ v.timeclock.entries=[{id:'punch-ui',person:'alex',date:'2026-10-29',shiftId:'clock-ui',in:'2026-10-29T16:00',out:'',breaks:[]}];
+ B.configure(v);
+ const originalStamp=P.stamp;P.stamp=()=> '2026-10-29T18:00';
+ const ui=c.createFinanceUI({state:()=>v,e:x=>String(x??''),dateLabel:x=>x,button:(label,action)=>`<button data-action="${action}">${label}</button>`});
+ try {
+  let clock=ui.clockState();assert.equal(clock.state,'on');assert.equal(clock.matchesShift,false);assert(clock.detail.includes('2 h worked'));
+  v.date='2026-10-29';assert.equal(ui.clockState().matchesShift,true);
+  v.timeclock.entries[0].in='2026-10-12T16:00';v.timeclock.entries[0].date='2026-10-12';v.timeclock.entries[0].shiftId='';
+  clock=ui.clockState();assert.equal(clock.state,'review');assert(!clock.detail.includes('worked'));assert(!clock.acts.includes('tc-out'));assert(clock.detail.includes('Ask your manager'));
+  v.role='manager';v.timeclock.entries[0].person=v.managerId;
+  assert(ui.clockState().acts.includes('fin-edit'),'manager can correct the original time');
+ } finally {P.stamp=originalStamp;}
+ console.log('PASS: missing punch recovery and active clock isolated from the selected shift.');
+}

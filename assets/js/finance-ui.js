@@ -174,9 +174,12 @@ globalThis.createFinanceUI=function(api){
  function clockState(){
   const st=s(),id=me(),now=P.stamp(),day=now.slice(0,10);
   const open=st.timeclock.entries.find(x=>x.person===id&&!x.out),done=st.timeclock.entries.filter(x=>x.person===id&&x.date===day&&x.out);
-  const shift=st.shifts.filter(x=>x.person===id&&x.date>=B.addDays(day,-1)&&x.date<=B.addDays(day,1)&&!S.absence(st,x)&&!st.timeclock.entries.some(y=>y.shiftId===x.id)&&P.shiftTimes(x).end>now&&P.between(now,P.shiftTimes(x).start)<=720).sort((a,b)=>a.start.localeCompare(b.start))[0];
-  const row=(state,label,detail,acts)=>({state,label,detail,acts});
-  if(open){const br=P.onBreak(open);return row(br?'break':'on',br?'On break':'On the clock',`${span(P.worked(open,now))} worked · in at ${clock(open.in)}`,button(br?'End break':'Start break','tc-break','','','secondary')+button('Clock out','tc-out','','',''));}
+  const shift=st.shifts.filter(x=>x.person===id&&x.date>=B.addDays(day,-1)&&x.date<=B.addDays(day,1)&&!S.absence(st,x)&&!st.timeclock.entries.some(y=>y.shiftId===x.id)&&P.shiftTimes(x).end>now&&P.between(now,P.shiftTimes(x).start)<=720).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start))[0];
+  const row=(state,label,detail,acts)=>({state,label,detail,acts,matchesShift:!!open&&st.shifts.some(x=>x.id===open.shiftId&&x.date===st.date&&x.service===st.service)});
+  if(open){
+   if(P.flags(st,open,now).some(f=>f.kind==='noout'))return row('review','Missing clock-out',`Started ${e(dateLabel(open.date))} at ${clock(open.in)} · ${manager()?'Correct the end time before continuing.':'Ask your manager to correct the end time.'}`,manager()?act('Fix time','edit',open.id):'');
+   const br=P.onBreak(open);return row(br?'break':'on',br?'On break now':'On the clock now',`${span(P.worked(open,now))} worked · in at ${clock(open.in)}`,button(br?'End break':'Start break','tc-break','','','secondary')+button('Clock out','tc-out','','',''));
+  }
   if(shift){const mins=P.between(now,P.shiftTimes(shift).start);return row('ready','Not clocked in',mins>0?'Clock in when you arrive · '+e(shift.service)+' at '+e(shift.start):'Your shift started '+span(-mins)+' ago',button('Clock in','tc-in','','',''));}
   if(done.length)return row('done','Clocked today',`${span(done.reduce((n,x)=>n+P.worked(x),0))} · ${done.map(x=>clock(x.in)+'–'+clock(x.out)).join(' · ')}`,button('Clock in again','tc-in','','','secondary'));
   return row('idle','Not clocked in','No shift right now · clocked time goes to your manager to approve',button('Clock in','tc-in','','','secondary'));

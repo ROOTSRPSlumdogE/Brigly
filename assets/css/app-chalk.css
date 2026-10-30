@@ -1,0 +1,15 @@
+/* A few handwritten accents; controls and supporting copy keep the app font. */
+.sidebar .nav-group button.active .nav-icon svg,
+#bottom-nav button[aria-current="page"] svg{filter:url(#brigly-chalk-ink)}
+.topbar .tb-heading.tb-heading{font-family:var(--hand);font-size:27px;font-weight:700;letter-spacing:0;line-height:1.15}
+.chalk-title{position:relative;display:inline-block;padding:0 0 3px}
+.chalk-title::after{content:"";display:block;position:absolute;left:1px;bottom:0;width:28px;height:2px;background:var(--accent);opacity:.5;clip-path:polygon(0 35%,35% 0,100% 30%,95% 75%,42% 65%,4% 100%);animation:none;transform:rotate(-2deg)}
+.td-hero-time{position:relative;width:fit-content;max-width:100%;font-family:var(--hand);font-size:56px;font-weight:700;letter-spacing:-1px;line-height:1.08;padding-bottom:8px}
+.td-hero-time::after{content:"";position:absolute;left:2px;bottom:0;width:64px;height:3px;background:var(--accent);opacity:.45;clip-path:polygon(0 45%,23% 15%,62% 25%,100% 0,98% 55%,58% 65%,17% 100%,2% 80%);transform:rotate(-1deg)}
+.td-hero-time small{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px}
+.td-hero-time.is-text{font-size:36px;letter-spacing:0}
+@media(max-width:760px){
+ .topbar .tb-heading.tb-heading{font-size:25px}
+ .td-hero-time{font-size:48px}
+ .td-hero-time.is-text{font-size:32px}
+}

@@ -54,7 +54,7 @@ globalThis.createTeamChatUI=function(api){
   const teamChannels=list.filter(t=>t.id==='team'||t.id.startsWith('station:'));
   const roleChannels=list.filter(t=>t.id.startsWith('role:'));
   const dms=list.filter(t=>t.id.startsWith('dm:'));
-  return `<p class="chat-list-label">Station &amp; Team Channels</p>${teamChannels.map(row).join('')}${roleChannels.length?`<p class="chat-list-label">Role Channels (Strictly Specific)</p>${roleChannels.map(row).join('')}`:''}<p class="chat-list-label">Direct messages</p>${dms.map(row).join('')||'<p class="chat-list-empty">Message anyone on the team privately.</p>'}<button type="button" class="chat-new-link" data-action="chat-new">+ New message</button>`;
+  return `<p class="chat-list-label">Team &amp; station channels</p>${teamChannels.map(row).join('')}${roleChannels.length?`<p class="chat-list-label">Role channels</p>${roleChannels.map(row).join('')}`:''}<p class="chat-list-label">Direct messages</p>${dms.map(row).join('')||'<p class="chat-list-empty">Message anyone on the team privately.</p>'}<button type="button" class="chat-new-link" data-action="chat-new">+ New message</button>`;
  }
  function head(){
   const x=meta(active),people=B.chat.members(s(),active);

@@ -48,7 +48,7 @@ globalThis.createPosUI=function(api){
   const who=`<div class="ps-who-wrap"><button type="button" class="ps-who" data-action="ps-menu" data-id="who" aria-haspopup="menu" aria-expanded="${ui.menu==='who'}">${srv(me())}<span><strong>${e(first(me()))}</strong><small>${liveNow()?`<i class="ps-live-dot"></i>${e(st.service)} live`:e(st.service)}${d?' · drawer open':liveNow()?' · <b>no drawer</b>':''}${on?' · on the clock':''}</small></span>${icon('down')}</button>${whoMenu}</div>`;
   const types=Object.entries(P().TYPE_LABEL).filter(([k])=>st.pos.settings.orderTypes[k]);
   const newMenu=menuBox('new',[...types.map(([k,l])=>[icon(typeIcon(k))+`<span>${l}</span>`,'new',k]),lead()?[icon('star')+'<span>Training check</span>','new','training']:null]);
-  const newBtn=use()?`<div class="ps-new"><button type="button" class="button fl-icon-btn" data-action="ps-new" data-id="dine">${icon('add')}<span>New check</span></button><button type="button" class="button fl-icon-only ps-new-more" data-action="ps-menu" data-id="new" aria-haspopup="menu" aria-expanded="${ui.menu==='new'}" aria-label="Other order types">${icon('down')}</button>${newMenu}</div>`:'';
+  const newBtn=use()?`<div class="ps-new"><button type="button" class="button fl-icon-btn" aria-label="New check" data-action="ps-new" data-id="dine">${icon('add')}<span>New check</span></button><button type="button" class="button fl-icon-only ps-new-more" data-action="ps-menu" data-id="new" aria-haspopup="menu" aria-expanded="${ui.menu==='new'}" aria-label="Other order types">${icon('down')}</button>${newMenu}</div>`:'';
   return `<div class="ps-bar">${tabs}<div class="ps-bar-acts">${who}${newBtn}</div></div>`;
  }
  // ---------- Floor ----------

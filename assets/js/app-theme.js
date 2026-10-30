@@ -1,1 +1,8 @@
-(function(){let theme='dark';try{theme=localStorage.getItem('brigly-theme')==='light'?'light':'dark';}catch{}document.documentElement.dataset.theme=theme;})();
+/* Shared preference: light on first visit; preserve an explicit dark choice. */
+(function(){
+  var theme='light';
+  try{if(localStorage.getItem('brigly-theme')==='dark')theme='dark';}catch(e){}
+  document.documentElement.dataset.theme=theme;
+  var meta=document.querySelector('meta[name="theme-color"]');
+  if(meta)meta.content=theme==='light'?'#F4EFE3':'#121413';
+})();

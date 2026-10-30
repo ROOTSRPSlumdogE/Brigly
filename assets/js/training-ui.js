@@ -50,7 +50,7 @@ globalThis.createTrainingUI=function(api){
  // ----- Tabs
  function tabsFor(){
   const st=s(),pend=T.pending(st,me()).length,approver=T.published(st).some(c=>c.practical&&T.canApprove(st,c,me()));
-  return lead()?[['overview','Overview'],['home','For you'],['courses','Courses'],['team','Team'],['arena','Arena'],['signoffs','Sign-offs',pend],['settings','Settings']]:[['home','For you'],['library','Library'],['arena','Arena'],...(approver||pend?[['signoffs','Sign-offs',pend]]:[])];
+  return lead()?[['overview','Overview'],['home','For you'],['courses','Courses'],['team','Team'],['arena','Practice'],['signoffs','Sign-offs',pend],['settings','Settings']]:[['home','For you'],['library','Library'],['arena','Practice'],...(approver||pend?[['signoffs','Sign-offs',pend]]:[])];
  }
  function render(){
   const tabs=tabsFor();if(!tabs.some(x=>x[0]===tab))tab=tabs[0][0];
@@ -58,7 +58,7 @@ globalThis.createTrainingUI=function(api){
   const v=view();let body;
   if(v==='player')body=player();else if(v==='detail')body=detail();else if(v==='editor')body=courseEditor();
   else body=({home,library,arena,signoffs,overview,courses,team,settings})[tab]();
-  const nav=v==='player'||v==='detail'||v==='editor'?'':`<div class="res-filter-bar tr-tabs" role="tablist" aria-label="Training sections">${tabs.map(([id,label,n])=>`<button type="button" class="notif-tab ${tab===id?'selected':''}" data-action="tr-tab" data-id="${id}" aria-pressed="${tab===id}"><span>${label}</span>${n?`<em data-tone="orange">${n}</em>`:''}</button>`).join('')}</div>`;
+  const nav=v==='player'||v==='detail'||v==='editor'?'':`<div class="res-filter-bar tr-tabs" role="group" aria-label="Training sections">${tabs.map(([id,label,n])=>`<button type="button" class="notif-tab ${tab===id?'selected':''}" data-action="tr-tab" data-id="${id}" aria-pressed="${tab===id}"><span>${label}</span>${n?`<em data-tone="orange">${n}</em>`:''}</button>`).join('')}</div>`;
   return `<div class="tr-view" data-view="${e(v)}">${nav}${body}</div>`;
  }
 
@@ -104,11 +104,11 @@ globalThis.createTrainingUI=function(api){
   const p=B.person(pid),earned=T.earned(st,pid),certs=T.certificates(st,pid).slice(0,3),waiting=rows.filter(([,p])=>p.status==='Awaiting sign-off');
   const preview=lead()&&st.team.filter(x=>x.active).length>1?`<label class="tr-preview">Viewing as<select data-tr-preview><option value="">Me</option>${st.team.filter(x=>x.active&&x.id!==me()).map(x=>`<option value="${e(x.id)}" ${previewAs===x.id?'selected':''}>${e(x.name)} · ${e(x.role)}</option>`).join('')}</select></label>`:'';
   const dls=duelsFor(pid,true);
-  const main=hero(pid)+(next?`<section class="tr-section"><h3 class="tr-section-title">${next[1].status==='Returned'?'Try again':next[1].status==='In progress'?'Continue learning':'Up next'}</h3>${continueCard(next[0],next[1])}</section>`:'')
+  const main=(next?`<section class="tr-section"><h3 class="tr-section-title">${next[1].status==='Returned'?'Try again':next[1].status==='In progress'?'Continue learning':'Up next'}</h3>${continueCard(next[0],next[1])}</section>`:'')
    +`<section class="tr-section"><div class="tr-section-head"><h3 class="tr-section-title">${e(p?.role||'Your')} journey</h3><small>${rows.filter(([,p])=>p.status==='Completed').length}/${path.length} done</small></div>${journey(pid)}</section>`
    +(waiting.length?`<p class="tr-note">${waiting.map(([c])=>e(c.title)).join(', ')} · waiting for a manager or trainer to check your practical on shift.</p>`:'');
-  const side=dailyCard(pid)+(dls?`<section class="tr-section"><h3 class="tr-section-title">Duels</h3>${dls}</section>`:'')
-   +`<section class="tr-section"><div class="tr-section-head"><h3 class="tr-section-title">Badges</h3><small>${earned.filter(b=>b.earned).length}/${earned.length}</small></div><div class="tr-badges is-row">${earned.map(b=>badgeTile(b)).join('')}</div></section>`
+  const side=`<details class="tr-progress-disclosure" data-key="training-progress"><summary>Your learning progress</summary>${hero(pid)}</details>`+dailyCard(pid)+(dls?`<section class="tr-section"><h3 class="tr-section-title">Duels</h3>${dls}</section>`:'')
+   +`<details class="tr-progress-disclosure" data-key="training-badges"><summary>Badges · ${earned.filter(b=>b.earned).length} earned</summary><div class="tr-badges is-row">${earned.map(b=>badgeTile(b)).join('')}</div></details>`
    +(certs.length?`<section class="tr-section"><div class="tr-section-head"><h3 class="tr-section-title">Certificates</h3>${act('All','certs','','quiet small')}</div><div class="tr-cert-list">${certs.map(c=>certMini(c)).join('')}</div></section>`:'');
   return preview+`<div class="tr-home"><div class="tr-home-main">${main}</div><aside class="tr-home-side">${side}</aside></div>`;
  }

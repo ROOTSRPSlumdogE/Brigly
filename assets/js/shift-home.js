@@ -60,7 +60,7 @@ globalThis.createShiftHome=function(api){
   const people=[...new Set(team.map(x=>x.person))],others=people.filter(id=>id!==me());
   const absent=team.filter(x=>B.schedule.metrics(st,x).absence).length,late=team.filter(x=>!B.schedule.metrics(st,x).absence&&B.schedule.metrics(st,x).late).length;
   const status=manager()?(absent?[plural(absent,'person','people')+' out','danger']:late?[late+' running late','amber']:people.length?['Full team','sage']:['No one scheduled','slate'])
-   :m.absence?['Absent','danger']:tc?.state==='break'?['On break','amber']:tc?.state==='on'?['On the clock','sage']:m.late?['Late · '+m.late.minutes+' min','amber']:live?['On shift','sage']:past?['Done','slate']:['Scheduled','slate'];
+   :m.absence?['Absent','danger']:tc?.state==='break'&&tc.matchesShift!==false?['On break','amber']:tc?.state==='on'&&tc.matchesShift!==false?['On the clock','sage']:m.late?['Late · '+m.late.minutes+' min','amber']:live?['On shift','sage']:past?['Done','slate']:['Scheduled','slate'];
   const guests=ctx.reservations.filter(r=>!['Cancelled','No-show'].includes(r.status)).reduce((n,r)=>n+r.guests,0),out86=ctx.alerts.filter(x=>x.status==='Approved').length;
   const posNet=B.pos&&st.pos?B.pos.sales(st,{from:st.date,to:st.date,service:st.service}).net:0;
   const sub=manager()?[plural(people.length,'person','people')+' on shift',plural(guests,'guest')+' booked',out86?plural(out86,'item')+' 86’d':'Full menu',...(posNet?[money(posNet)+' net so far']:[])].join(' · '):[shift.area,(m.workMinutes/60).toLocaleString('en-US',{maximumFractionDigits:1})+' h',money(m.wages)+' est.'].join(' · ');
@@ -85,7 +85,9 @@ globalThis.createShiftHome=function(api){
     +act(m.late?'Late reported':'Running late','late','amber','schedule-report-late',shift.id,m.absence||m.late?'disabled':'')+act(m.absence?'Absence reported':'I’m sick','sick','danger','schedule-report-sick',shift.id,m.absence?'disabled':'')
     +(may('swaps')?act('Swap shift','swap','slate','schedule-swap',shift.id,m.absence||m.late?'disabled':''):'')+(may('timeoff')?act('Time off','off','slate','schedule-timeoff',shift.id):'');
   }else html=act('My schedule','roster','slate','app-screen','shifts')+(may('timeoff')?act('Time off','off','slate','schedule-timeoff',''):'')+(may('stockRequests')?act('Request stock','cart','amber','stock-go','items'):'')+act('Earnings','earn','sage','app-screen','earnings');
-  return `<nav class="td-actions" aria-label="${manager()?'Manager quick actions':'Shift actions'}">${html}</nav>`;
+  const items=html.match(/<button\b[\s\S]*?<\/button>/g)||[];
+  const secondary=items.slice(4).join('');
+  return `<nav class="td-actions" aria-label="${manager()?'Manager quick actions':'Shift actions'}">${items.slice(0,4).join('')}</nav>${secondary?`<details class="td-more-actions" data-key="shift-actions"><summary>${manager()?'More shift actions':'Attendance & time off'}</summary><nav class="td-actions" aria-label="More shift actions">${secondary}</nav></details>`:''}`;
  }
 
  // One prioritised list of what needs you: approvals, cut-offs, deliveries, counts, coverage, late lists, swaps and to-dos.
@@ -238,7 +240,7 @@ globalThis.createShiftHome=function(api){
   const start=svcOf(service)?.start||'00:00',key=x=>(x.time<start?'1':'0')+x.time;
   const list=ctx.reservations.filter(x=>['Confirmed','Seated'].includes(x.status)).sort((a,b)=>key(a).localeCompare(key(b)));
   const table=t=>{const v=String(t||'').trim();return !v?'No table':/^\d+$/.test(v)?'Table '+v:v;};
-  const rows=list.slice(0,5).map(x=>`<div class="td-arrival"><span class="td-arrival-time">${e(x.time)}</span><div class="td-arrival-info"><strong>${e(x.name)}</strong><small>${plural(x.guests,'guest')} · ${e(table(x.table))}${x.status==='Seated'?' · Seated':''}</small>${x.note?`<p>${e(x.note)}</p>`:''}</div>${btn(x.status==='Confirmed'?'Seat':'Done','reservation-status',x.id,'secondary','data-status="'+(x.status==='Confirmed'?'Seated':'Completed')+'"')}</div>`).join('');
+  const rows=list.slice(0,5).map(x=>`<div class="td-arrival" data-status="${e(x.status)}"><span class="td-arrival-time">${e(x.time)}<small>${x.status==='Seated'?'Seated':'Arrival'}</small></span><div class="td-arrival-info"><strong>${e(x.name)}</strong><small><span class="td-guest-count">${plural(x.guests,'guest')}</span><span class="td-table-label">${e(table(x.table))}</span></small>${x.note?`<p>${e(x.note)}</p>`:''}</div>${btn(x.status==='Confirmed'?'Seat':'Done','reservation-status',x.id,'secondary','data-status="'+(x.status==='Confirmed'?'Seated':'Completed')+'"')}</div>`).join('');
   const guests=list.reduce((n,x)=>n+x.guests,0);
   return card('td-arrivals','Arrivals',list.length?rows+(list.length>5?`<p class="td-more-note">+${list.length-5} more bookings</p>`:''):`<p class="td-empty">No upcoming arrivals for ${e(service)}.</p>`,{meta:list.length?`<span class="td-card-sub">${plural(guests,'guest')} · ${plural(list.length,'booking')}</span>`:'',foot:link('All reservations','navigate','reservations')+link('Add booking','edit','','data-collection="reservations"')});
  }

@@ -23,9 +23,9 @@
   const checks=()=>state.checks[`${state.date}|${state.service}`]||{};
   // Toasts can carry one Undo so a mis-tap on the floor costs a second, not a correction.
   let toastUndo=null;
-  function notify(text,undo){$('toast-text').textContent=text;toastUndo=typeof undo==='function'?undo:null;$('toast-action').hidden=!toastUndo;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{$('toast').hidden=true;toastUndo=null;},toastUndo?6000:4000);}
+  function notify(text,undo){$('toast').classList.remove('just-completed');$('toast-text').textContent=text;toastUndo=typeof undo==='function'?undo:null;$('toast-action').hidden=!toastUndo;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{$('toast').hidden=true;toastUndo=null;},toastUndo?6000:4000);}
   $('toast-action').addEventListener('click',()=>{const undo=toastUndo;toastUndo=null;$('toast').hidden=true;undo?.();});
-  function persist(){const ok=B.save(storage,state);$('save-status').textContent=ok?'Saved on this browser.':'Storage unavailable. Changes last only while this page is open.';return ok;}
+  function persist(){const ok=B.save(storage,state);$('save-status').textContent=ok?'Saved on this browser.':'Storage unavailable. Changes last only while this page is open.';document.body.dataset.storage=ok?'saved':'unavailable';return ok;}
   function commit(action,message='Changes saved.'){try{state=B.change(state,action);const saved=persist();render();if(message!==null||!saved)notify(saved?message:'Updated in memory. Browser storage is unavailable.');return true;}catch(err){notify(err.message);return false;}}
   function renderNotifAction(a,notifId){
     const extra=[`data-notif-id="${e(notifId)}"`,a.view?`data-view="${e(a.view)}"`:'',a.screen?`data-screen="${e(a.screen)}"`:'',a.area?`data-area="${e(a.area)}"`:'',a.list?`data-list="${e(a.list)}"`:'',a.task?`data-task="${e(a.task)}"`:'',a.tab?`data-tab="${e(a.tab)}"`:''].filter(Boolean).join(' ');
@@ -156,14 +156,13 @@
     state.role=viewer.access;if(viewer.access==='manager')state.managerId=viewer.id;else state.crewId=viewer.id;
     $('role').innerHTML=state.team.filter(p=>p.active).map(p=>`<option value="${e(p.id)}">${e(p.name)} · ${e(p.role||(p.access==='manager'?'Manager':'Crew'))}${p.access==='manager'&&p.role!=='Manager'?' (manager)':''}</option>`).join('');
     $('role').value=me();$('service-date').value=state.date;
-    $('user-avatar').textContent=B.person(me()).initials;
     renderNotifications();
     summary();$('view').innerHTML=renderers[state.view]();
     const screen=state.view==='schedules'?scheduleUI.screen():state.view;
     paintContext(screen);if($('ctx-dialog').open)paintShiftPicker();
     const N=BriglyNavigation,groups=N.groups(manager()),serviceMode=N.service(screen),navBadges=N.badges?N.badges(state):{};
     const renderPill=id=>{const b=navBadges[id];return b?`<em class="nav-pill" data-tone="${e(b.tone)}">${e(b.text)}</em>`:'';};
-    const navButton=([action,id,label,glyph,tone='slate'],kind='')=>`<button class="${kind} ${N.active(screen,id)?'active':''}" data-tone="${e(tone)}" data-action="${action}" data-id="${id}" ${N.active(screen,id)?'aria-current="page"':''}><span class="nav-icon">${icon(glyph)}</span><span class="nav-label">${e(label)}</span>${renderPill(id)}</button>`;
+    const navButton=([action,id,label,glyph,tone='slate'],kind='')=>`<button class="${kind} ${N.active(screen,id)?'active':''}" aria-label="${e(label)}" title="${e(label)}" data-tone="${e(tone)}" data-action="${action}" data-id="${id}" ${N.active(screen,id)?'aria-current="page"':''}><span class="nav-icon">${icon(glyph)}</span><span class="nav-label">${e(label)}</span>${renderPill(id)}</button>`;
     $('app-nav').innerHTML=groups.map(group=>'<div class="nav-group"><p>'+group.label+'</p>'+group.items.map(item=>navButton(item)).join('')+'</div>').join('');
     $('bottom-nav').innerHTML=N.primary(manager()).map(([action,id,label,glyph,tone='slate'])=>'<button data-tone="'+e(tone)+'" data-action="'+action+'" data-id="'+id+'" '+(N.active(screen,id)?'aria-current="page"':'')+'>'+icon(glyph)+'<span>'+label+'</span>'+renderPill(id)+'</button>').join('')+'<button data-tone="slate" data-action="app-menu" '+((manager()?['earnings','manage','reports','requests','myfile','specials','reservations','training','menu','pos']:['specials','reservations','training','menu','pos']).includes(screen)?'aria-current="page"':'')+'><span class="more-icon" aria-hidden="true">•••</span><span>More</span></button>';
     $('more-links').innerHTML=groups.map(group=>'<section class="explore-group"><h3>'+group.label+'</h3><div>'+group.items.map(item=>navButton(item,'menu-link')).join('')+'</div></section>').join('');
@@ -173,7 +172,8 @@
     document.body.dataset.role=state.role;document.body.dataset.section=screen;document.body.dataset.view=state.view;applyNav();
     // Dock screens are one tap away on phones; everything else gets a way back to Today.
     document.body.dataset.dock=['home','lists','stock',manager()?'shifts':'me'].includes(screen)||(!manager()&&N.hub.includes(screen))?'true':'false';
-    $('breadcrumb').textContent=screen==='home'?'Today':!manager()&&N.hub.includes(screen)?'My space':screen==='shifts'?'Roster':screen==='earnings'?'Earnings':screen==='requests'?'Requests':screen==='manage'?'Manage':screen==='reports'?'Reports':screen==='myfile'?'My file':screen==='briefing'?'Shift briefing':screen==='training'?'Training':titles[state.view];
+    const heading=screen==='home'?'Today':!manager()&&N.hub.includes(screen)?'My space':screen==='shifts'?'Roster':screen==='earnings'?'Earnings':screen==='requests'?'Requests':screen==='manage'?'Manage':screen==='reports'?'Reports':screen==='myfile'?'My file':screen==='briefing'?'Shift briefing':screen==='training'?'Training':titles[state.view];
+    if($('breadcrumb').textContent!==heading||!$('breadcrumb').firstElementChild)$('breadcrumb').innerHTML='<span class="chalk-title">'+e(heading)+'</span>';
     document.title=$('breadcrumb').textContent+' · Brigly';
     if(serviceMode)document.body.dataset.service='true';else delete document.body.dataset.service;
     updateThemeLabels();
@@ -389,6 +389,13 @@
       const id=t.dataset.task,done=t.checked,title=B.work.tasks(state).find(x=>x.id===id)?.title||'Task';
       if(commit({type:'check',id,done,at:new Date().toISOString()},null))notify((done?'Done: ':'Reopened: ')+title,()=>commit({type:'check',id,done:!done,at:new Date().toISOString()},done?'Task reopened.':'Task marked done again.'));
       else render();
+      const replacement=[...$('view').querySelectorAll('input[data-task]')].find(x=>x.dataset.task===id);
+      if(replacement){
+        const folded=replacement.closest('details:not([open])');
+        const focus=folded?$('view').querySelector('input[data-task]:not(:checked):not(:disabled)')||folded.querySelector('summary'):replacement;
+        focus?.focus({preventScroll:true});
+        if(done&&replacement.checked){replacement.closest('.td-task,.cl-task')?.classList.add('just-completed');$('toast').classList.add('just-completed');}
+      }
     }
     if(t.name==='targetId'){
       t.closest('.swap-shifts-container')?.querySelectorAll('.swap-shift-option').forEach(opt=>{
@@ -475,7 +482,7 @@
   // Sidebar layout on desktop: full, compact rail (icons only) or hidden. The POS starts compact unless the person chose a layout.
   const NAV_KEY='brigly-nav',NAV_MODES=['full','rail','hidden'];
   function navPref(){try{const v=localStorage.getItem(NAV_KEY);return NAV_MODES.includes(v)?v:'';}catch{return '';}}
-  function navMode(){if(/[?&]embed=/.test(location.search))return state.view==='pos'?'rail':'full';return navPref()||(state.view==='pos'?'rail':'full');}
+  function navMode(){if(/[?&]embed=/.test(location.search))return state.view==='pos'?'rail':'full';return navPref()||(state.view==='pos'||matchMedia('(min-width:761px) and (max-width:1100px)').matches?'rail':'full');}
   function applyNav(){
     const mode=navMode();document.body.dataset.nav=mode;
     const next={full:'Menu shown in full. Switch to compact',rail:'Compact menu. Hide the menu',hidden:'Menu hidden. Show the menu'};
@@ -484,6 +491,7 @@
     for(const b of document.querySelectorAll('#nav-pref button'))b.setAttribute('aria-pressed',String(b.dataset.id===mode));
   }
   function setNav(mode){try{localStorage.setItem(NAV_KEY,mode);}catch{}applyNav();}
+  matchMedia('(min-width:761px) and (max-width:1100px)').addEventListener('change',applyNav);
   function updateThemeLabels(){const dark=document.documentElement.dataset.theme!=='light';for(const b of document.querySelectorAll('.theme-toggle')){b.setAttribute('aria-label','Switch to '+(dark?'light':'dark')+' mode');if(b.closest('dialog'))b.textContent='Switch to '+(dark?'light':'dark')+' mode';}document.querySelector('meta[name="theme-color"]').content=dark?'#0F1412':'#F6F4EF';}
   document.addEventListener('click',ev=>{const b=ev.target.closest('[data-action]');if(!b)return;
     if(b.dataset.action==='theme'){const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;try{localStorage.setItem('brigly-theme',next);}catch{}updateThemeLabels();}
@@ -498,8 +506,7 @@
   });
   const account=$('role').parentElement;
   $('mobile-account').append(account);
-  $('editor')?.addEventListener('click',ev=>{if(ev.target===$('editor'))$('editor').close();});
-  $('onboarding-dialog')?.addEventListener('click',ev=>{if(ev.target===$('onboarding-dialog'))$('onboarding-dialog').close();});
+  for(const id of ['editor','onboarding-dialog'])$(id)?.addEventListener('click',ev=>{const d=$(id),r=d.getBoundingClientRect();if(ev.target===d&&(ev.clientX<r.left||ev.clientX>r.right||ev.clientY<r.top||ev.clientY>r.bottom))d.close();});
   matchMedia('(max-width:760px)').addEventListener('change',()=>{$('app-menu-title').textContent=matchMedia('(max-width:760px)').matches?'Explore Brigly':'Profile & preferences';});
   const operationsUI=createShiftOperationsUI({view:infoDialog,createInContext:(collection,date,service)=>{state.date=date;state.service=service;week=B.monday(date);persist();render();edit(collection);},reportScreen:()=>{if($('editor').open)$('editor').close();reportsUI.show('executive');state.view='schedules';scheduleUI.show('reports');persist();render();window.scrollTo({top:0,behavior:'instant'});},state:()=>state,e,button,badge,input,textarea,select,dateLabel,render,commit,stockAlert:(date,service,id)=>stockUI.alert(date,service,'',id||''),open:(title,fields)=>{editing={type:'operations'};showDialog(title,fields);},navigate:(view,date,service)=>{scheduleUI.show('briefing');state.view=view;state.date=date;state.service=service;week=B.monday(date);persist();render();}});
   const plannerUI=createPlannerUI({close:()=>$('editor').close(),state:()=>state,week:()=>week,e,button,input,select,dateLabel,render,commit,notify,context:()=>'<div class="home-service-links"><button data-action="navigate" data-id="onboarding"><strong>Service details</strong><span>Briefing and notes on Today</span><b>›</b></button></div>',serviceForm:()=>operationsUI.handle('service','',{}),open:(title,fields,save=true)=>{editing={type:'planner'};showDialog(title,fields);$('editor-form').querySelector('[type=submit]').hidden=!save;}});

@@ -65,7 +65,7 @@ globalThis.createFloorUI=function(api){
   if(r.status==='Seated')return btn('Done','complete',r.id,'quiet small');
   return '';
  };
- const bookingRow=r=>{const late=r.status==='Confirmed'&&mins(r.time)+15<=at()&&r.date<=today();return `<div class="fl-row" data-status="${e(r.status)}" ${late?'data-late="true"':''}><button type="button" class="fl-row-open" data-action="fl-booking" data-id="${e(r.id)}" aria-label="Open booking for ${e(r.name)}"><strong class="fl-row-time">${e(r.time)}</strong><span class="fl-row-main"><b>${e(r.name)}${r.tags.includes('VIP')?' <i class="fl-tag" data-tone="orange">VIP</i>':''}</b><small>${r.guests} · ${e(tableWord(r.tables))}${late?' · <span class="fl-warn">'+(at()-mins(r.time))+' min late</span>':r.status==='Seated'&&r.seatedAt&&r.date===today()?' · '+minutesSince(r.seatedAt)+' min in':''}${r.note?' · '+e(r.note):''}</small></span></button><div class="fl-row-actions">${rowAction(r)}</div></div>`;};
+ const bookingRow=r=>{const late=r.status==='Confirmed'&&mins(r.time)+15<=at()&&r.date<=today();return `<div class="fl-row" data-status="${e(r.status)}" ${late?'data-late="true"':''}><button type="button" class="fl-row-open" data-action="fl-booking" data-id="${e(r.id)}" aria-label="Open booking for ${e(r.name)}"><strong class="fl-row-time">${e(r.time)}</strong><span class="fl-row-main"><b>${e(r.name)}${r.tags.includes('VIP')?' <i class="fl-tag" data-tone="orange">VIP</i>':''}</b><small>${plural(r.guests,'guest')} · ${e(tableWord(r.tables))}${late?' · <span class="fl-warn">'+(at()-mins(r.time))+' min late</span>':r.status==='Seated'&&r.seatedAt&&r.date===today()?' · '+minutesSince(r.seatedAt)+' min in':''}</small>${r.note?`<span class="fl-row-note">${e(r.note)}</span>`:''}</span></button><div class="fl-row-actions">${rowAction(r)}</div></div>`;};
  function arrivalsBody(){
   const list=current(),A=at(),open=list.filter(r=>!F().CLOSED.includes(r.status));
   const attention=open.filter(r=>r.status==='Confirmed'&&(!r.tables.length||(mins(r.time)+15<=A&&s().date<=today())));
@@ -116,7 +116,7 @@ globalThis.createFloorUI=function(api){
  }
 
  // ---------- Sheets ----------
- const sheetRow=(r,extra='')=>`<div class="fl-row" data-status="${e(r.status)}"><button type="button" class="fl-row-open" data-action="fl-booking" data-id="${e(r.id)}"><strong class="fl-row-time">${e(r.time)}<small>–${clock(mins(r.time)+r.duration)}</small></strong><span class="fl-row-main"><b>${e(r.name)}</b><small>${r.guests} · ${e(tableWord(r.tables))}${r.note?' · '+e(r.note):''}</small></span></button><div class="fl-row-actions">${badge(r.status,statusTone(r.status))}${extra}</div></div>`;
+ const sheetRow=(r,extra='')=>`<div class="fl-row" data-status="${e(r.status)}"><button type="button" class="fl-row-open" data-action="fl-booking" data-id="${e(r.id)}"><strong class="fl-row-time">${e(r.time)}<small>–${clock(mins(r.time)+r.duration)}</small></strong><span class="fl-row-main"><b>${e(r.name)}</b><small>${plural(r.guests,'guest')} · ${e(tableWord(r.tables))}</small>${r.note?`<span class="fl-row-note">${e(r.note)}</span>`:''}</span></button><div class="fl-row-actions">${badge(r.status,statusTone(r.status))}${extra}</div></div>`;
  function tableSheet(id){
   const st=s(),t=F().tableOf(st,id);if(!t)return;
   const A=at(),occ=F().occupancy(st,st.date,st.service,A).find(o=>o.table.id===id),b=occ.booking;

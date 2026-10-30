@@ -214,6 +214,7 @@ console.log('PASS: Menu screen for managers and crew, dish sheet, forms, allerge
  ui2.show('allergens');ui2.handle('diet','Vegan');h=ui2.render();assert(h.includes('Vegan')&&h.includes('mn-finder'));
  ui2.show('setup');ui2.handle('pane','ingredients');ui2.onInput({dataset:{mnIngSearch:''},value:'oyster'});h=ui2.render();assert(h.includes('Oysters')&&!h.includes('Fryer oil'),'ingredient search');
  v=as(v,'crew','alex');ui2.show('menu');h=ui2.render();assert(!h.includes('data-id="performance"')&&!h.includes('mn-cost')&&h.includes('data-action="mn-view"'),'crew keep the view toggle but see no costs');
- assert(h.includes('Set a count'),'crew who report 86s can set counts');
+ ui2.show('86');assert(ui2.render().includes('Set a count'),'crew who report 86s can set counts from the 86 tab');
+ ui2.handle('count','mi-fries');assert.equal(opened.at(-1)[0],'Set a count','the crew count action opens its form');
  console.log('PASS: redesigned Menu screen, list view and sort, till panel, counts board, Performance and crew view.');
 }
