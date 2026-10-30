@@ -4,12 +4,13 @@
   let storage;try{storage=localStorage;}catch{}
   let state=B.withSharedClones(()=>B.load(storage)),week=B.monday(state.date),editing=null,toastTimer,externalDirty=false;
   const e=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const titles={schedules:'Team schedules',lists:'Checklists',specials:'Happenings','eighty-six':'86 board',onboarding:'Shift briefing',orders:'Station supplies',reservations:'Reservations',stock:'Stock',menu:'Menu',pos:'POS'};
-  const paths={menu:'M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h5',pos:'M3 7h18v10H3z M3 11h18 M7 15h3',home:'m3 10 9-7 9 7 M5 9v12h14V9 M9 21v-8h6v8',earnings:'M12 2v20 M18 5H9a4 4 0 0 0 0 8h6a3 3 0 0 1 0 6H5',reports:'M4 3v18h17 M8 16v-5 M13 16V6 M18 16v-8',team:'M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M2 21v-3a7 7 0 0 1 14 0v3 M17 4a4 4 0 0 1 0 8 M19 15a6 6 0 0 1 3 6',schedules:'M4 5h16v15H4z M8 3v4 M16 3v4 M4 10h16 M8 14h2 M14 14h2',lists:'M9 5h11 M9 12h11 M9 19h11 M3 5l1 1 2-3 M3 12l1 1 2-3 M3 19l1 1 2-3',specials:'m12 3 2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9L6.5 20l1-6.1L3 9.5l6.3-.9z','eighty-six':'M5 5l14 14 M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20',onboarding:'M4 4h16v13H9l-5 4z M8 8h8 M8 12h5',orders:'M3 4h2l3 12h10l3-9H6 M9 20h.1 M18 20h.1',stock:'M21 8 12 3 3 8v8l9 5 9-5z M3 8l9 5 9-5 M12 13v8',reservations:'M4 9h16v11H4z M8 9V6a4 4 0 0 1 8 0v3 M8 14h8',training:'M12 4 2 9l10 5 10-5-10-5z M6 11.5v4.5c0 1.5 3 3 6 3s6-1.5 6-3v-4.5 M22 9v6',me:'M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2'};
+  const titles={schedules:'Team schedules',lists:'Checklists',specials:'Specials & events','eighty-six':'86 board',onboarding:'Shift briefing',orders:'Station supplies',reservations:'Reservations',stock:'Stock & 86s',menu:'Menu & allergens',pos:'POS'};
+  // One 24px line icon set (stroke 1.8, round caps): house, calendar, ticked list, box, cloche, register, table, star, people, graduation cap, bars, speech bubble, bell.
+  const paths={home:'M3.5 11 12 4l8.5 7 M5.5 9.5V20h13V9.5 M10 20v-6h4v6',schedules:'M4 6.5h16V20H4z M4 11h16 M8 4v4.5 M16 4v4.5',lists:'M9.5 6.5H21 M9.5 12H21 M9.5 17.5H21 M3 6.5l1.5 1.5L7 5 M3 12l1.5 1.5L7 10.5 M3 17.5 4.5 19 7 16',stock:'M12 3l8.5 4.5v9L12 21l-8.5-4.5v-9z M3.5 7.5 12 12l8.5-4.5 M12 12v9',menu:'M3 17h18 M5 17a7 7 0 0 1 14 0 M12 10V8.5 M10.5 8.5h3 M5 20h14',pos:'M4 10.5h16V20H4z M6.5 10.5V5.5h11v5 M9.5 8h5 M7.5 15h3 M13.5 15h3',reservations:'M3 9.5h18 M6 9.5V19 M18 9.5V19 M4.5 19h3 M16.5 19h3 M8.5 9.5V6.5h7v3',specials:'m12 3.5 2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z',team:'M9 11.5a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z M2.5 20.5v-.5a6.5 6.5 0 0 1 13 0v.5 M15.5 4.3a3.75 3.75 0 0 1 0 7.2 M17.5 14.2a6.5 6.5 0 0 1 4 5.8v.5',training:'M2.5 9.5 12 5l9.5 4.5L12 14z M6 11.4V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-4.6 M21.5 9.5v5',reports:'M3.5 20.5h17 M7 20.5v-7 M12 20.5V8 M17 20.5v-4.5',me:'M12 11.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4.5 20.5v-.5a7.5 7.5 0 0 1 15 0v.5',chat:'M20.5 11.5a8.5 8.5 0 0 1-12.4 7.6L3.5 20.5l1.3-4.5A8.5 8.5 0 1 1 20.5 11.5z',bell:'M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z M10 20.5a2 2 0 0 0 4 0',search:'M10.5 17.5a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20.5 20.5l-4.5-4.5',plus:'M12 5v14 M5 12h14',more:'M4 4.5h6.5V11H4z M13.5 4.5H20V11h-6.5z M4 13.5h6.5V20H4z M13.5 13.5H20V20h-6.5z',earnings:'M12 2.5v19 M17 7c-.6-2.3-9.7-2.5-9.7 1.3s9.7 2.6 9.7 7-9.2 4.2-10 1.2','eighty-six':'M12 21.5a9.5 9.5 0 1 0 0-19 9.5 9.5 0 0 0 0 19z M5.3 5.3l13.4 13.4',onboarding:'M4 4.5h16v12H9.5L5 20.5v-4H4z M8 9h8 M8 12.5h5',orders:'M3 4.5h2.5l2.8 11.5h10.2l2.5-8.5H6.3 M9.5 20.5h.01 M17.5 20.5h.01'};
   let notifFilter='all',readNotifs=new Set(),focusBriefing=false;
   try{const savedRead=JSON.parse(storage?.getItem('brigly-read-notifs')||'[]');if(Array.isArray(savedRead))readNotifs=new Set(savedRead);}catch{}
   const saveReadNotifs=()=>{try{storage?.setItem('brigly-read-notifs',JSON.stringify([...readNotifs].slice(-200)));}catch{}};
-  const icon=view=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[view]||paths.schedules}"/></svg>`;
+  const icon=view=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[view]||paths.schedules}"/></svg>`;
   const manager=()=>state.role==='manager', me=()=>B.actor(state.role,state.crewId,state.managerId);
   // Lead permissions open one part of the back office to a crew member.
   const lead=key=>manager()||!!B.permissions?.can(state,key);
@@ -138,7 +139,7 @@
     $('ctx-dialog').dataset.mode=mode;$('service-date').value=state.date;
     $('ctx-services').innerHTML=mode==='service'?'<p class="ctx-label">Service</p><div class="ctx-svc-grid">'+state.setup.services.filter(x=>x.active||x.name===state.service).map(x=>`<button type="button" class="ctx-svc" data-action="ctx-service" data-id="${e(x.name)}" aria-pressed="${x.name===state.service}"><strong>${e(x.name)}</strong><small>${e(x.start)}–${e(x.end)}</small>${liveNow(state.date,x.name)?'<em class="ctx-live">Live</em>':''}</button>`).join('')+'</div>':'';
     const list=state.shifts.filter(x=>(manager()||x.person===me())&&(x.date>=today||(x.date===B.addDays(today,-1)&&liveNow(x.date,x.service)))&&x.date<=B.addDays(today,13)).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start)).filter(x=>{const k=x.date+'|'+x.service;if(seen.has(k))return false;seen.add(k);return true;}).slice(0,8);
-    $('ctx-shifts').innerHTML=mode!=='service'?'':(list.length?`<p class="ctx-label">${manager()?'Coming up':'Your shifts'}</p>`+list.map(x=>{const cur=x.date===state.date&&x.service===state.service,live=liveNow(x.date,x.service),v=serviceOf(x.service);return `<button type="button" class="ctx-shift" data-action="ctx-pick" data-date="${e(x.date)}" data-service="${e(x.service)}" aria-current="${cur}"><span class="ctx-shift-day"><strong>${e(dateLabel(x.date,{day:'numeric'}))}</strong><small>${e(dateLabel(x.date,{weekday:'short'}))}</small></span><span class="ctx-shift-text"><strong>${e(dayWord(x.date)||dateLabel(x.date,{weekday:'long'}))} · ${e(x.service)}</strong><small>${manager()?e((v?.start||x.start)+'–'+(v?.end||x.end)):e(x.start+'–'+x.end+' · '+x.area)}</small></span>${live?'<em class="ctx-live">Live</em>':cur?'<em>Selected</em>':''}</button>`;}).join(''):'')+`<button type="button" class="ctx-more" data-action="app-screen" data-id="shifts">${manager()?'Open the roster':'Open my full schedule'}<span aria-hidden="true">›</span></button>`;
+    $('ctx-shifts').innerHTML=mode!=='service'?'':(list.length?`<p class="ctx-label">${manager()?'Coming up':'Your shifts'}</p>`+list.map(x=>{const cur=x.date===state.date&&x.service===state.service,live=liveNow(x.date,x.service),v=serviceOf(x.service);return `<button type="button" class="ctx-shift" data-action="ctx-pick" data-date="${e(x.date)}" data-service="${e(x.service)}" aria-current="${cur}"><span class="ctx-shift-day"><strong>${e(dateLabel(x.date,{day:'numeric'}))}</strong><small>${e(dateLabel(x.date,{weekday:'short'}))}</small></span><span class="ctx-shift-text"><strong>${e(dayWord(x.date)||dateLabel(x.date,{weekday:'long'}))} · ${e(x.service)}</strong><small>${manager()?e((v?.start||x.start)+'–'+(v?.end||x.end)):e(x.start+'–'+x.end+' · '+x.area)}</small></span>${live?'<em class="ctx-live">Live</em>':cur?'<em>Selected</em>':''}</button>`;}).join(''):'')+`<button type="button" class="ctx-more" data-action="app-screen" data-id="shifts">${manager()?'Open Scheduling':'Open my full schedule'}<span aria-hidden="true">›</span></button>`;
   }
   function openShiftPicker(){paintShiftPicker();if(!$('ctx-dialog').open)$('ctx-dialog').showModal();($('ctx-services').querySelector('[aria-pressed="true"]')||$('service-date')).focus({preventScroll:true});}
   function closeOverlays(){for(const id of ['notif-dialog','app-menu','ctx-dialog','quick-dialog','onboarding-dialog'])$(id)?.open&&$(id).close();}
@@ -164,15 +165,25 @@
     const renderPill=id=>{const b=navBadges[id];return b?`<em class="nav-pill" data-tone="${e(b.tone)}">${e(b.text)}</em>`:'';};
     const navButton=([action,id,label,glyph,tone='slate'],kind='')=>`<button class="${kind} ${N.active(screen,id)?'active':''}" aria-label="${e(label)}" title="${e(label)}" data-tone="${e(tone)}" data-action="${action}" data-id="${id}" ${N.active(screen,id)?'aria-current="page"':''}><span class="nav-icon">${icon(glyph)}</span><span class="nav-label">${e(label)}</span>${renderPill(id)}</button>`;
     $('app-nav').innerHTML=groups.map(group=>'<div class="nav-group"><p>'+group.label+'</p>'+group.items.map(item=>navButton(item)).join('')+'</div>').join('');
-    $('bottom-nav').innerHTML=N.primary(manager()).map(([action,id,label,glyph,tone='slate'])=>'<button data-tone="'+e(tone)+'" data-action="'+action+'" data-id="'+id+'" '+(N.active(screen,id)?'aria-current="page"':'')+'>'+icon(glyph)+'<span>'+label+'</span>'+renderPill(id)+'</button>').join('')+'<button data-tone="slate" data-action="app-menu" '+((manager()?['earnings','manage','reports','requests','myfile','specials','reservations','training','menu','pos']:['specials','reservations','training','menu','pos']).includes(screen)?'aria-current="page"':'')+'><span class="more-icon" aria-hidden="true">•••</span><span>More</span></button>';
-    $('more-links').innerHTML=groups.map(group=>'<section class="explore-group"><h3>'+group.label+'</h3><div>'+group.items.map(item=>navButton(item,'menu-link')).join('')+'</div></section>').join('');
+    // Phone dock: Today · Checklists · Stock · Chat · More. Counts are one number (or a dot) so they never wrap or clip.
+    const pillShort=id=>{const b=navBadges[id];if(!b||b.text==='✓')return '';const n=(b.text.match(/\d+/)||[])[0];return n?`<em class="nav-pill" data-tone="${e(b.tone)}">${n}</em>`:`<em class="nav-pill is-dot" data-tone="${e(b.tone)}" aria-label="${e(b.text)}"></em>`;};
+    const chatUnread=B.chat&&state.chat?B.chat.threads(state,undefined,true).reduce((n,t)=>n+t.unread,0):0,alertsUnread=$('notif-badge')&&!$('notif-badge').hidden?Number($('notif-badge').textContent)||0:0;
+    const dock=N.primary(manager()),onDock=dock.some(([,id])=>N.active(screen,id));
+    $('bottom-nav').innerHTML=dock.map(([action,id,label,glyph,tone='slate'])=>`<button data-tone="${e(tone)}" data-action="${action}" data-id="${id}" ${N.active(screen,id)?'aria-current="page"':''} aria-label="${e(label)}">${icon(glyph)}<span>${e(label)}</span>${pillShort(id)}</button>`).join('')
+     +`<button data-tone="orange" data-action="chat-open" data-id="" aria-label="${chatUnread?'Team chat, '+chatUnread+' unread':'Team chat'}">${icon('chat')}<span>Chat</span>${chatUnread?`<em class="nav-pill" data-tone="orange">${chatUnread}</em>`:''}</button>`
+     +`<button data-tone="slate" data-action="app-menu" ${onDock?'':'aria-current="page"'} aria-label="More">${icon('more')}<span>More</span></button>`;
+    // The More sheet lists every screen in plain words, then the tools (search, new, alerts, chat) and the account.
+    const toolRow=(action,id,label,glyph,count='')=>`<button class="menu-link" data-action="${action}" data-id="${id}" aria-label="${e(label)}"><span class="nav-icon">${icon(glyph)}</span><span class="nav-label">${e(label)}</span>${count?`<em class="nav-pill" data-tone="orange">${e(String(count))}</em>`:''}</button>`;
+    $('more-links').innerHTML=groups.map(group=>'<section class="explore-group"><h3>'+group.label+'</h3><div>'+group.items.map(item=>navButton(item,'menu-link')).join('')+'</div></section>').join('')
+     +'<section class="explore-group explore-tools"><h3>Tools</h3><div>'+toolRow('chat-open','','Team chat','chat',chatUnread||'')+toolRow('notif-open','','Alerts','bell',alertsUnread||'')+toolRow('quick-open','search','Search','search')+toolRow('quick-open','create','New…','plus')+'</div></section>';
     $('sidebar-person').textContent=viewer.name;$('sidebar-access').textContent=(viewer.role||'Team member')+' · '+viewer.area+(manager()&&viewer.role!=='Manager'?' · manager access':'');$('sidebar-avatar').textContent=viewer.initials;
-    $('app-menu-title').textContent=matchMedia('(max-width:760px)').matches?'Explore Brigly':'Profile & preferences';
+    $('app-menu-title').textContent=matchMedia('(max-width:760px)').matches?'More':'Profile & settings';
     for(const table of $('view').querySelectorAll('table:not(.schedule-table)')){table.classList.add('responsive-table');const labels=[...table.querySelectorAll('thead th')].map(x=>x.textContent);for(const row of table.querySelectorAll('tbody tr'))[...row.cells].forEach((cell,i)=>cell.dataset.label=labels[i]||'');}
     document.body.dataset.role=state.role;document.body.dataset.section=screen;document.body.dataset.view=state.view;applyNav();
     // Dock screens are one tap away on phones; everything else gets a way back to Today.
-    document.body.dataset.dock=['home','lists','stock',manager()?'shifts':'me'].includes(screen)||(!manager()&&N.hub.includes(screen))?'true':'false';
-    const heading=screen==='home'?'Today':!manager()&&N.hub.includes(screen)?'My space':screen==='shifts'?'Roster':screen==='earnings'?'Earnings':screen==='requests'?'Requests':screen==='manage'?'Manage':screen==='reports'?'Reports':screen==='myfile'?'My file':screen==='briefing'?'Shift briefing':screen==='training'?'Training':titles[state.view];
+    document.body.dataset.dock=['home','lists','stock'].includes(screen)?'true':'false';
+    paintPrimary(screen);pinHeaders(screen);
+    const heading=screen==='home'?'Today':!manager()&&N.hub.includes(screen)?'My space':screen==='shifts'?'Scheduling':screen==='earnings'?'Earnings':screen==='requests'?'Requests':screen==='manage'?'Team & payroll':screen==='reports'?'Reports':screen==='myfile'?'My file':screen==='briefing'?'Shift briefing':screen==='training'?'Training':titles[state.view];
     if($('breadcrumb').textContent!==heading||!$('breadcrumb').firstElementChild)$('breadcrumb').innerHTML='<span class="chalk-title">'+e(heading)+'</span>';
     document.title=$('breadcrumb').textContent+' · Brigly';
     if(serviceMode)document.body.dataset.service='true';else delete document.body.dataset.service;
@@ -181,6 +192,62 @@
     chatUI.paint();
     if(focusBriefing){focusBriefing=false;requestAnimationFrame(()=>$('view').querySelector('.td-brief, .td-notes')?.scrollIntoView({behavior:'smooth',block:'start'}));}
     onboardingUI.refresh();
+  }
+  // Sticky headers: the tab row and the controls under it stay put while the list scrolls. Each entry is an element the
+  // screen already renders; it gets the pin-head class and a computed top so stacked rows sit flush under the topbar.
+  // d = desktop only, p = phones only (phones pin at most ~40% of the screen, so informational strips scroll there),
+  // w = spans the full width (side rails below it move down by its height through --tb-h on main), bg = surface for rows inside a card.
+  const PINS={
+    stock:[{s:'.sk>.sk-tabs',w:1},{s:'.sk-main>.sk-urgent',d:1},{s:'.sk-main>.sk-toolbar'},{s:'.sk-main>.sk-chips'},{s:'.sk-main>.sk-stages'},{s:'.sk-main>.sk-sheet-head'},{s:'.sk-main>.sk-head:has(button)'}],
+    menu:[{s:'.sk>.sk-tabs',w:1},{s:'.sk-main>.mn-toolbar:not(:has(.sk-hint))',w:1},{s:'.sk-main>.mn-toolbar:has(.sk-hint)',d:1,w:1},{s:'.sk-main>.mn-stats',d:1,w:1},{s:'.sk-main>.mn-chips',d:1,w:1}],
+    pos:[{s:'.ps-bar'},{s:'.ps-strip',d:1}],
+    reservations:[{s:'.fl-bar'},{s:'.fl-strip',d:1}],
+    specials:[{s:'.page-head'}],
+    lists:[{s:'.cl-modes',w:1},{s:'.cl-switch'},{s:'.cl-pane-head:has(button)',d:1}],
+    shifts:[{s:'.planner-head'},{s:'.planner-tools',d:1},{s:'.day-strip',p:1},{s:'.mx-head'}],
+    me:[{s:'.mx-head'}],earnings:[{s:'.mx-head'}],requests:[{s:'.mx-head'}],myfile:[{s:'.mx-head'}],
+    manage:[{s:'.mg-nav',p:1},{s:'.mg-main>.mg-head'}],
+    training:[{s:'.tr-tabs'}],
+    reports:[{s:'.rp-boards'},{s:'.rp-toolbar',d:1}]
+  };
+  let pinned=[],pinScreen='';
+  function pinHeaders(screen){
+    pinScreen=screen;const main=$('demo-main'),phone=matchMedia('(max-width:760px)').matches,tbH=$('topbar').offsetHeight;
+    for(const el of main.querySelectorAll('.pin-head')){el.classList.remove('pin-head','is-stuck','is-first');el.style.top='';el.style.removeProperty('--pin-gap');delete el.dataset.pinBg;}
+    const found=[];
+    for(const spec of PINS[screen]||[]){if((spec.d&&phone)||(spec.p&&!phone))continue;for(const el of $('view').querySelectorAll(spec.s))if(el.getBoundingClientRect().height>0&&!found.some(x=>x.el===el))found.push({el,spec});}
+    found.sort((a,b)=>a.el.compareDocumentPosition(b.el)&Node.DOCUMENT_POSITION_FOLLOWING?-1:1);
+    document.body.dataset.pinned=found.length?'true':'false';
+    found.forEach(({el,spec},i)=>{el.classList.add('pin-head');if(i===0)el.classList.add('is-first');if(spec.bg)el.dataset.pinBg=spec.bg;});
+    // Natural positions first (no sticky offset yet): every row keeps its place in the block, the block starts flush under the topbar.
+    // Measured with stickiness switched off, so a row the base CSS already pins does not skew the layout positions.
+    for(const {el} of found)el.style.position='static';
+    const nat=found.map(({el})=>{const r=el.getBoundingClientRect();return {top:r.top+scrollY,bottom:r.bottom+scrollY,h:r.height};});
+    for(const {el} of found)el.style.position='';
+    // Small layout gaps between rows are kept (and painted over), so the block never shifts; a row that sits far below, like the room chips inside the floor card, stacks flush.
+    let bottom=tbH,wideBottom=0;pinned=[];
+    found.forEach(({el,spec},i)=>{let gap=i?nat[i].top-nat[i-1].bottom:0;if(gap<0||gap>24)gap=0;const top=bottom+gap;el.style.top=top+'px';el.style.setProperty('--pin-gap',gap+'px');pinned.push({el,top});bottom=top+nat[i].h;if(spec.w)wideBottom=Math.max(wideBottom,bottom-tbH);});
+    main.style.setProperty('--tb-h',(tbH+wideBottom)+'px');
+    markStuck();
+  }
+  function markStuck(){let last=null;for(const p of pinned){p.el.classList.remove('is-stuck');if(p.el.getBoundingClientRect().top<=p.top+1)last=p.el;}if(last)last.classList.add('is-stuck');}
+  let pinTimer;addEventListener('resize',()=>{clearTimeout(pinTimer);pinTimer=setTimeout(()=>pinHeaders(pinScreen),120);});
+  // Dialog headings stay put while the dialog scrolls; the alert filters sit right under the heading.
+  function pinDialog(id){const d=$(id);if(!d)return;const head=d.querySelector(':scope>.dialog-heading'),filters=d.querySelector('.notif-filters');if(head&&filters)filters.style.top=head.offsetHeight+'px';}
+  // One obvious thing to do per screen on phones: an action the screen already offers, repeated as a big button above the dock (the in-page copy hides on phones only).
+  function paintPrimary(screen){
+    const bar=$('phone-primary');if(!bar)return;
+    const view=$('view'),q=sel=>view.querySelector(sel),can=key=>manager()||!B.permissions||B.permissions.can(state,key);
+    let p=null;
+    if(screen==='stock')p=state.view==='stock'&&(manager()||can('report86'))?{label:manager()?'86 an item':'Report an 86',action:'stock-report-86',hide:'.sk-head>[data-action="stock-report-86"]'}:null;
+    else if(screen==='menu')p=q('.mn-actions [data-action="mn-item"]')?{label:'Add a dish',action:'mn-item',hide:'.mn-actions [data-action="mn-item"]'}:(B.menu&&state.menu&&can('report86')?{label:'Report an 86',action:'mn-86'}:null);
+    else if(screen==='reservations')p=q('.fl-bar-actions [data-action="edit"]')?{label:'New booking',action:'edit',attrs:'data-collection="reservations"',hide:'.fl-bar-actions [data-action="edit"]'}:null;
+    else if(screen==='specials')p=q('.page-head [data-action="edit"][data-collection="specials"]')?{label:'Add a special',action:'edit',attrs:'data-collection="specials"',hide:'.page-head [data-action="edit"][data-collection="specials"]'}:null;
+    else if(screen==='shifts')p=q('.planner-head [data-action="plan-add"]')?{label:'Add a shift',action:'plan-add',hide:'.planner-head [data-action="plan-add"]'}:null;
+    else if(screen==='me')p=q('[data-action="schedule-timeoff"]')?{label:'Request time off',action:'schedule-timeoff',hide:'.requests-panel>.panel-head>[data-action="schedule-timeoff"]'}:null;
+    for(const el of view.querySelectorAll('.is-phone-dup'))el.classList.remove('is-phone-dup');
+    if(p?.hide){const src=q(p.hide);if(src)src.classList.add('is-phone-dup');}
+    bar.innerHTML=p?`<button type="button" class="button" data-action="${e(p.action)}" data-id="${e(p.id||'')}" ${p.attrs||''}>${e(p.label)}</button>`:'';
   }
   const input=(name,label,value='',type='text',attrs='')=>`<label>${label}<input name="${name}" type="${type}" value="${e(value)}" ${attrs}></label>`;
   const textarea=(name,label,value='',attrs='')=>`<label>${label}<textarea name="${name}" ${attrs.includes('maxlength=')?'':'maxlength="2000"'} ${attrs}>${e(value)}</textarea></label>`;
@@ -252,7 +319,7 @@
     if(action==='ctx-service'){state.service=id;persist();$('ctx-dialog').close();render();return;}
     if(action==='ctx-pick'){state.date=target.dataset.date;state.service=target.dataset.service;week=B.monday(state.date);persist();$('ctx-dialog').close();render();return;}
     if(target.closest('#ctx-dialog'))$('ctx-dialog').close();
-    if(action==='notif-open'){$('app-menu')?.close();renderNotifications();$('notif-dialog')?.showModal();return;}
+    if(action==='notif-open'){$('app-menu')?.close();renderNotifications();$('notif-dialog')?.showModal();pinDialog('notif-dialog');return;}
     if(action==='notif-close'){$('notif-dialog')?.close();return;}
     if(action==='notif-filter'){notifFilter=id||'all';renderNotifications();return;}
     if(action==='res-filter'){resFilter=id||'all';render();return;}
@@ -507,7 +574,7 @@
   const account=$('role').parentElement;
   $('mobile-account').append(account);
   for(const id of ['editor','onboarding-dialog'])$(id)?.addEventListener('click',ev=>{const d=$(id),r=d.getBoundingClientRect();if(ev.target===d&&(ev.clientX<r.left||ev.clientX>r.right||ev.clientY<r.top||ev.clientY>r.bottom))d.close();});
-  matchMedia('(max-width:760px)').addEventListener('change',()=>{$('app-menu-title').textContent=matchMedia('(max-width:760px)').matches?'Explore Brigly':'Profile & preferences';});
+  matchMedia('(max-width:760px)').addEventListener('change',()=>{$('app-menu-title').textContent=matchMedia('(max-width:760px)').matches?'More':'Profile & settings';});
   const operationsUI=createShiftOperationsUI({view:infoDialog,createInContext:(collection,date,service)=>{state.date=date;state.service=service;week=B.monday(date);persist();render();edit(collection);},reportScreen:()=>{if($('editor').open)$('editor').close();reportsUI.show('executive');state.view='schedules';scheduleUI.show('reports');persist();render();window.scrollTo({top:0,behavior:'instant'});},state:()=>state,e,button,badge,input,textarea,select,dateLabel,render,commit,stockAlert:(date,service,id)=>stockUI.alert(date,service,'',id||''),open:(title,fields)=>{editing={type:'operations'};showDialog(title,fields);},navigate:(view,date,service)=>{scheduleUI.show('briefing');state.view=view;state.date=date;state.service=service;week=B.monday(date);persist();render();}});
   const plannerUI=createPlannerUI({close:()=>$('editor').close(),state:()=>state,week:()=>week,e,button,input,select,dateLabel,render,commit,notify,context:()=>'<div class="home-service-links"><button data-action="navigate" data-id="onboarding"><strong>Service details</strong><span>Briefing and notes on Today</span><b>›</b></button></div>',serviceForm:()=>operationsUI.handle('service','',{}),open:(title,fields,save=true)=>{editing={type:'planner'};showDialog(title,fields);$('editor-form').querySelector('[type=submit]').hidden=!save;}});
   const dutiesUI=createDutiesUI({focusShift:(date,service)=>{state.date=date;state.service=service;week=B.monday(date);persist();},openTasks:(title,fields,c)=>{editing={type:c.type||'checklist:add',area:c.area,list:c.list,task:c.task,date:c.date,service:c.service,target:c.target,isDefault:c.isDefault};showDialog(title,fields);if(c.readOnly)$('editor-form').querySelector('[type=submit]').hidden=true;},state:()=>state,e,button,input,textarea,select,render,commit});
@@ -541,7 +608,7 @@
   // Seated-for and running-late timings move with the clock while the floor is open.
   setInterval(()=>{if(((state.view==='reservations'&&floorUI.tab()==='floor')||state.view==='pos')&&!document.querySelector('dialog[open]')&&document.visibilityState==='visible')render();},60000);
   // The command bar lifts off the page once content scrolls under it.
-  const lift=()=>document.body.classList.toggle('is-scrolled',scrollY>4);addEventListener('scroll',lift,{passive:true});lift();
+  const lift=()=>{document.body.classList.toggle('is-scrolled',scrollY>4);markStuck();};addEventListener('scroll',lift,{passive:true});lift();
   // Ctrl/Cmd+K or / opens search anywhere; on Stock, / jumps to the stock search instead.
   document.addEventListener('keydown',ev=>{
     if((ev.ctrlKey||ev.metaKey)&&!ev.altKey&&ev.key.toLowerCase()==='k'){ev.preventDefault();if($('quick-dialog').open)quickUI.close();else quickUI.open('search');return;}

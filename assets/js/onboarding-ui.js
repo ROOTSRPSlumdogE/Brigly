@@ -43,14 +43,14 @@ globalThis.createOnboardingUI=function(api){
   const tasks=f.carried.length?`<ul class="ob-list">${f.carried.map(t=>`<li><span>${e(t.title)}</span><small>${e(t.area)} · ${e(t.list)}</small></li>`).join('')}</ul>`:empty('Nothing was left open.');
   const notes=f.prevNotes.length?f.prevNotes.map(noteRow).join(''):empty('No notes were left.');
   const out=f.prevOut.length?`<ul class="ob-list">${f.prevOut.map(a=>`<li><span>${e(a.name)}</span><small>${e(a.reason)}${a.sub?' · offered '+e(a.sub.name):''}</small></li>`).join('')}</ul>`:'';
-  return `<p class="ob-lead">From ${from}</p>`+section('Still open',tasks)+section('Notes',notes)+(out?section('Was 86’d',out):'');
+  return `<p class="ob-lead">From ${from}</p>`+section('Still open',tasks)+section('Notes',notes)+(out?section('Out',out):'');
  }
  function plan(f){
   const canEdit=f.brief&&(manager()||f.brief.author===me());
   const brief=f.brief?`<div class="ob-brief"><h4>${e(f.brief.title)}</h4><p>${e(f.brief.body)}</p><small>${e(name(f.brief.author))} · revision ${f.brief.revision}${canEdit?` · <button type="button" class="ob-link" data-action="edit" data-collection="briefings" data-id="${e(f.brief.id)}">Edit</button>`:''}</small></div>`
    :`<p class="ob-empty">No briefing posted for ${e(f.service)}.</p>${manager()?`<button type="button" class="button secondary" data-action="ops-context-create" data-id="briefings" data-date="${e(f.date)}" data-service="${e(f.service)}">Post briefing</button>`:''}`;
   const notes=f.notes.length?f.notes.map(noteRow).join(''):'';
-  const out=f.out.length?`<ul class="ob-list">${f.out.map(a=>{const hit=f.affected(a);return `<li><span><b class="ob-status">86’d</b>${e(a.name)}</span><small>${e(a.reason)}${hit.length?' · affects '+e(hit.join(', ')):''}${a.sub?' · offer '+e(a.sub.name)+' instead':''}</small></li>`;}).join('')}</ul>`:empty('Full menu. Nothing is 86’d.');
+  const out=f.out.length?`<ul class="ob-list">${f.out.map(a=>{const hit=f.affected(a);return `<li><span><b class="ob-status">Out</b>${e(a.name)}</span><small>${e(a.reason)}${hit.length?' · affects '+e(hit.join(', ')):''}${a.sub?' · offer '+e(a.sub.name)+' instead':''}</small></li>`;}).join('')}</ul>`:empty('Full menu. Nothing is 86’d.');
   const specials=f.specials.length?`<ul class="ob-list">${f.specials.map(x=>`<li><span>${e(x.name)}<em>${x.price>0?money(x.price):''}</em></span><small>${e([x.time,x.description].filter(Boolean).join(' · '))}</small></li>`).join('')}</ul>`:empty('No specials or events.');
   const guests=f.bookings.reduce((n,r)=>n+(r.guests||0),0);
   const bookings=f.bookings.length?`<p class="ob-lead">${plural(f.bookings.length,'booking')} · ${plural(guests,'guest')}</p><ul class="ob-list">${f.bookings.map(r=>`<li><span><b class="ob-time">${e(r.time)}</b><span class="ob-guest"><strong>${e(r.name)}</strong><small>${plural(r.guests,'guest')}${r.table?' · Table '+e(r.table):''}</small></span></span>${r.note?`<small>${e(r.note)}</small>`:''}</li>`).join('')}</ul>`:empty('No bookings yet.');

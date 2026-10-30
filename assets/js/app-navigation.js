@@ -1,19 +1,19 @@
 /* Shared destinations: daily restaurant operation navigation, semantic color tones, and live shift notifications. */
 globalThis.BriglyNavigation={
  groups(manager){return [
-  {label:'Live service',items:[
+  // Labels are the names the website uses; ids and routes stay (shifts = Scheduling, specials = Specials & events, manage = Team & payroll).
+  {label:'Service',items:[
    ['app-screen','home','Today','home','orange'],
    ['navigate','lists','Checklists','lists','sage'],
-   ['navigate','stock','Stock','stock','danger'],
+   ['navigate','stock','Stock & 86s','stock','danger'],
+   ['navigate','menu','Menu & allergens','menu','amber'],
    ['navigate','pos','POS','pos','orange'],
-   ['navigate','menu','Menu','menu','amber'],
    ['navigate','reservations','Reservations','reservations','slate'],
-   ['navigate','specials','Happenings','specials','amber']
+   ['navigate','specials','Specials & events','specials','amber']
   ]},
-  // Managers plan on the Roster, get things done in Manage and see how the business is doing in Reports.
-  manager?{label:'Team & operations',items:[
-   ['app-screen','shifts','Roster','schedules','slate'],
-   ['app-screen','manage','Manage','team','slate'],
+  manager?{label:'Team',items:[
+   ['app-screen','shifts','Scheduling','schedules','slate'],
+   ['app-screen','manage','Team & payroll','team','slate'],
    ['app-screen','training','Training','training','amber'],
    ['app-screen','reports','Reports','reports','slate']
   ]}:{label:'Me',items:[
@@ -24,25 +24,20 @@ globalThis.BriglyNavigation={
  ];},
  serviceItems(){return [
   ['navigate','lists','Checklists','lists','sage'],
-  ['navigate','stock','Stock','stock','danger'],
+  ['navigate','stock','Stock & 86s','stock','danger'],
   ['navigate','pos','POS','pos','orange'],
-  ['navigate','menu','Menu','menu','amber'],
-  ['navigate','specials','Happenings','specials','amber'],
+  ['navigate','menu','Menu & allergens','menu','amber'],
+  ['navigate','specials','Specials & events','specials','amber'],
   ['navigate','reservations','Reservations','reservations','slate']
  ];},
  hub:['me','shifts','earnings','requests','myfile'],
  active(screen,id){return screen===id||(screen==='briefing'&&id==='home')||(id==='me'&&this.hub.includes(screen));},
  service(screen){return ['lists','stock','specials','reservations','pos','menu'].includes(screen);},
- primary(manager){return manager?[
+ // Phone dock: Today and the two screens everyone uses during service; demo.js adds Chat and More, everything else lives in the More sheet.
+ primary(){return [
   ['app-screen','home','Today','home','orange'],
   ['navigate','lists','Checklists','lists','sage'],
-  ['navigate','stock','Stock','stock','danger'],
-  ['app-screen','shifts','Roster','schedules','slate']
- ]:[
-  ['app-screen','home','Today','home','orange'],
-  ['navigate','lists','Checklists','lists','sage'],
-  ['navigate','stock','Stock','stock','danger'],
-  ['app-screen','me','My space','me','orange']
+  ['navigate','stock','Stock','stock','danger']
  ];},
  badges(state){
   const B=globalThis.Brigly;if(!B||!state)return {};
@@ -98,8 +93,8 @@ globalThis.BriglyNotifications={
       badge:m.absence?'Coverage needed':'Running late',
       time:`${state.service} · ${s.start}–${s.end}`,
       title:`${personName(s.person)} · ${m.absence?'Reported absent':'Reported '+m.late.minutes+' min late'}`,
-      body:`${s.area} station for ${state.service} on ${state.date}. ${m.absence?'Reassign or cover this shift on the roster.':'Confirm arrival time when they check in.'}`,
-      actions:[{label:'Review on roster',action:'notif-go',screen:'shifts',style:'primary'}]
+      body:`${s.area} station for ${state.service} on ${state.date}. ${m.absence?'Reassign or cover this shift in Scheduling.':'Confirm arrival time when they check in.'}`,
+      actions:[{label:'Open Scheduling',action:'notif-go',screen:'shifts',style:'primary'}]
      });
     }
    }
@@ -113,12 +108,12 @@ globalThis.BriglyNotifications={
      id:`86-rep-${a.id}`,
      category:'urgent',
      tone:'danger',
-     badge:'86 approval needed',
+     badge:'86 to approve',
      time:`${a.area} · Reported by ${personName(a.author)}`,
      title:`86 report: ${a.name}`,
      body:(a.reason||'Reported unavailable by the crew. Approve to alert the whole floor and kitchen.')+(a.sub?' Offer '+a.sub.name+' instead.':''),
      actions:[
-      {label:'Approve 86',action:'ops-approve-alert',id:a.id,style:'primary'},
+      {label:'Approve',action:'ops-approve-alert',id:a.id,style:'primary'},
       {label:'Open 86 board',action:'notif-go',view:'eighty-six',style:'secondary'}
      ]
     });
@@ -188,7 +183,7 @@ globalThis.BriglyNotifications={
      title:b.title,
      body:b.body,
      actions:[
-      {label:'I’ve read this',action:'ack',id:b.id,style:'primary'},
+      {label:'Mark as read',action:'ack',id:b.id,style:'primary'},
       {label:'Open briefing',action:'notif-go',screen:'home',style:'secondary'}
      ]
     });
@@ -222,7 +217,7 @@ globalThis.BriglyNotifications={
     time:`Schedule · ${r.date||r.from||state.date}`,
     title:isSwapInvite?`${personName(r.person)} asked to swap a shift with you`:`${personName(r.person)} · ${r.kind==='timeoff'?'Time-off request':r.kind==='swap'?'Shift swap request':'Attendance report'}`,
     body:r.note||B.schedule.requestSummary(r),
-    actions:[{label:manager?'Review on roster':'Open requests',action:'notif-go',screen:manager?'shifts':'requests',style:'primary'}]
+    actions:[{label:manager?'Open Scheduling':'Open requests',action:'notif-go',screen:manager?'shifts':'requests',style:'primary'}]
    });
   }
 

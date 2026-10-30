@@ -69,7 +69,7 @@ globalThis.createManageUI=function(api){
   for(const x of api.hr.attention())push(/paperwork|exit/i.test(x.title)?'team':/rule|trained/i.test(x.title)?'compliance':'team',x.rank,x.tone,x.title,x.sub,x.acts);
   for(const x of api.writeups.attention())push('team',x.rank,x.tone,x.title,x.sub,x.acts);
   for(const x of (api.training?.attention?.()||[]))push(x.group,x.rank,x.tone,x.title,x.sub,x.acts);
-  if(pending.length)push('team',0,'orange',plural(pending.length,'schedule request')+' waiting',[...new Set(pending.map(r=>B.person(r.person)?.name||'Team member'))].slice(0,3).join(', ')+' · time off, swaps and attendance',button('Review on roster','app-screen','shifts','','small'));
+  if(pending.length)push('team',0,'orange',plural(pending.length,'schedule request')+' waiting',[...new Set(pending.map(r=>B.person(r.person)?.name||'Team member'))].slice(0,3).join(', ')+' · time off, swaps and attendance',button('Open Scheduling','app-screen','shifts','','small'));
   // Service: approvals waiting in Stock, and credits vendors owe.
   const reported=st.unavailable.filter(u=>u.status==='Reported'&&u.date>=B.addDays(t0,-1));
   if(reported.length)push('service',0,'danger',plural(reported.length,'86 report')+' to approve',reported.map(u=>u.name+' · '+u.area).join(' · '),button('86 board','navigate','eighty-six','','small'));
@@ -88,7 +88,7 @@ globalThis.createManageUI=function(api){
   for(const p of active.concat(former).filter(p=>p.leftOn&&p.leftOn>=st.date))push('team',1,'amber',first(p)+'’s last day is '+dateLabel(p.leftOn,{weekday:'short',month:'short',day:'numeric'}),p.role+' · reassign later shifts and prepare the final paycheck',act('HR file','profile',p.id,'secondary small'));
   for(const p of active.filter(p=>p.hr?.probationEnds&&p.hr.probationEnds>=st.date&&days(st.date,p.hr.probationEnds)<=14))push('team',2,'slate',first(p)+'’s probation ends '+dateLabel(p.hr.probationEnds,{weekday:'short',month:'short',day:'numeric'}),'Schedule a check-in before then',act('HR file','profile',p.id,'secondary small'));
   const idle=crew.filter(p=>!by.get(p.id).week);
-  if(idle.length)push('fyi',3,'slate',plural(idle.length,'crew member')+' not on this week’s roster',idle.slice(0,4).map(first).join(', ')+(idle.length>4?' and more':''),button('Open roster','app-screen','shifts','','secondary small'));
+  if(idle.length)push('fyi',3,'slate',plural(idle.length,'crew member')+' not on this week’s roster',idle.slice(0,4).map(first).join(', ')+(idle.length>4?' and more':''),button('Open Scheduling','app-screen','shifts','','secondary small'));
   if(off.length)push('fyi',3,'slate','Time off coming up',off.slice(0,3).map(r=>first(B.person(r.person)||{name:'Team member'})+' '+dateLabel(r.from)+(r.to!==r.from?'–'+dateLabel(r.to):'')).join(' · '),'');
   const birthdays=active.filter(p=>{if(!p.hr?.birthDate)return false;const next=st.date.slice(0,4)+p.hr.birthDate.slice(4),d=days(st.date,next<st.date?B.addDays(next,365):next);return d>=0&&d<=7;});
   if(birthdays.length)push('fyi',3,'sage','Birthdays this week',birthdays.map(p=>first(p)+' · '+dateLabel(st.date.slice(0,4)+p.hr.birthDate.slice(4),{weekday:'short',month:'short',day:'numeric'})).join(' · '),'');

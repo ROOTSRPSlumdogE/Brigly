@@ -17,8 +17,8 @@ const common={state:()=>s,e,button,badge,dateLabel,render(){},notify(){},open(){
 
 // Navigation: crew get My space in the sidebar and the dock; the hub screens light it up; managers keep their screens.
 assert.equal(N.groups(false)[1].items.map(x=>x[1]).join(),'me,training','the crew group is My space and Training');
-assert.equal(N.primary(false).map(x=>x[1]).join(),'home,lists,stock,me','My space sits in the crew dock');
-assert.equal(N.primary(true).map(x=>x[1]).join(),'home,lists,stock,shifts','managers keep the roster in the dock');
+assert.equal(N.primary(false).map(x=>x[1]).join(),'home,lists,stock','the crew dock is Today, Checklists and Stock (Chat and More are added by demo.js); My space lives in More');
+assert.equal(N.primary(true).map(x=>x[1]).join(),'home,lists,stock','managers get the same dock; Scheduling lives in More');
 for(const scr of ['me','shifts','earnings','requests','myfile'])assert(N.active(scr,'me'),scr+' lights up My space');assert(!N.active('training','me')&&N.active('training','training'),'Training is its own tab');
 s=as(s,'alex');s=B.change(s,{type:'schedule:timeoff',id:'r-me',from:B.addDays(today,10),to:B.addDays(today,11),note:''});
 assert.equal(N.badges(s).me?.text,'1','open requests ride on the My space pill');

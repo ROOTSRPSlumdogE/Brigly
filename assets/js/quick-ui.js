@@ -21,7 +21,7 @@ globalThis.createQuickUI=function(api){
    add('Order stock','Order sheet, grouped by vendor','cart','amber',{action:'stock-go',id:'orders',stage:'order'},'purchase order supplies vendor');
    add('Assign a stock count','Shows on Today for whoever counts','count','sage',{action:'stock-assign',id:''},'inventory count');
    add('Add checklist tasks','To this shift or a service template','task','sage',{action:'checklist-add',id:''},'checklist task opening closing');
-   add('Add a shift','Roster for '+st.date,'shift','slate',{action:'plan-add',id:''},'roster schedule');
+   add('Add a shift','Scheduling for '+st.date,'shift','slate',{action:'plan-add',id:''},'roster schedule');
    add('Add a reservation','Guest, party size and table','res','slate',{action:'edit',collection:'reservations',id:''},'booking guest table');
    add('Seat a walk-in','Pick a free table on the floor plan','res','sage',{action:'fl-walkin',id:''},'walk in seat table now floor');
    add('Add a special','Dish or drink for '+st.service,'special','amber',{action:'edit',collection:'specials',id:''},'menu feature');

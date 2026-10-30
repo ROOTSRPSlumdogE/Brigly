@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!-- Source for assets/images/social-preview.png. Re-render: chrome --headless=new --hide-scrollbars --allow-file-access-from-files --force-device-scale-factor=1.5 --window-size=1200,630 --screenshot=social-preview.png scripts/social-card.html -->
+<meta charset="utf-8">
+<style>
+@font-face{font-family:'Plus Jakarta Sans';src:url('../assets/fonts/plus-jakarta-sans.ttf') format('truetype');font-weight:200 800}
+@font-face{font-family:'Caveat';src:url('../assets/fonts/caveat.ttf') format('truetype');font-weight:400 700}
+html,body{margin:0;width:1200px;height:630px;overflow:hidden}
+body{position:relative;background:
+  radial-gradient(120% 80% at 20% 0%,rgba(242,239,230,.05),transparent 55%),
+  radial-gradient(90% 70% at 85% 100%,rgba(242,239,230,.04),transparent 60%),
+  #121413;color:#F2EFE6;font-family:'Plus Jakarta Sans',Arial,sans-serif;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:absolute;inset:0;opacity:.08;mix-blend-mode:screen;pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+.logo{position:absolute;left:72px;top:60px;height:38px}
+.copy{position:absolute;left:72px;top:168px;width:760px}
+h1{margin:0;font-family:'Caveat',cursive;font-weight:700;font-size:76px;line-height:1.02;white-space:nowrap;letter-spacing:0;text-shadow:0 0 1px rgba(255,255,255,.35)}
+h1 em{font-style:normal;color:#FFAD8C}
+.flourish{width:300px;height:24px;margin:4px 0 26px;color:#FFAD8C;overflow:visible}
+.flourish path{fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round}
+p{margin:0;font-size:25px;line-height:1.45;color:rgba(242,239,230,.8);max-width:620px}
+.foot{position:absolute;left:72px;bottom:52px;font-size:19px;color:rgba(242,239,230,.56)}
+.art{position:absolute;right:60px;top:150px;width:440px;height:330px;color:#F2EFE6;overflow:visible}
+.art path,.art circle{fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:.92}
+.art .o{stroke:#FFAD8C}
+.art text{font-family:'Caveat',cursive;font-size:24px;font-weight:600;fill:rgba(242,239,230,.6)}
+</style>
+</head>
+<body>
+<img class="logo" src="../assets/logos/brigly-on-dark.svg" alt="">
+<div class="copy">
+  <h1>One app that runs<br>your <em>whole restaurant.</em></h1>
+  <svg class="flourish" viewBox="0 0 300 24"><path d="M4 13Q100 3 292 9"/><path d="M18 20Q140 11 266 16"/></svg>
+  <p>So everyone on your team always knows what to do. Built for independent restaurants and bars.</p>
+</div>
+<div class="foot">Try the live demo · no sign-up</div>
+<svg class="art" viewBox="0 0 640 330">
+<path d="M275 72a45 45 0 0 1 90 0"/><path d="M265 76H375"/><path d="M320 27v-6"/><path d="M314 15a6 6 0 1 0 12 0a6 6 0 1 0-12 0"/><text x="392" y="60">one place to look</text>
+<path d="M320 80L80 152"/><path d="M320 80L200 186"/><path d="M320 80L320 186"/><path d="M320 80L440 186"/><path d="M320 80L560 186"/>
+<path d="M62 210a18 18 0 1 0 36 0a18 18 0 1 0-36 0"/><path d="M34 300q6-54 46-58q40 4 46 58"/><path d="M62 194v-30q18-14 36 0v30"/><path d="M62 194h36"/>
+<path d="M182 210a18 18 0 1 0 36 0a18 18 0 1 0-36 0"/><path d="M154 300q6-54 46-58q40 4 46 58"/><path d="M226 262h16v22h-16Z"/><path d="M230 270h8M230 276h8"/>
+<path d="M302 210a18 18 0 1 0 36 0a18 18 0 1 0-36 0"/><path d="M274 300q6-54 46-58q40 4 46 58"/><path d="M354 298v-24q0-4 2-6v-8h6v8q2 2 2 6v24Z"/>
+<path d="M422 210a18 18 0 1 0 36 0a18 18 0 1 0-36 0"/><path d="M394 300q6-54 46-58q40 4 46 58"/><path d="M470 266l6-6 6 6-6 6Z"/>
+<path d="M542 210a18 18 0 1 0 36 0a18 18 0 1 0-36 0"/><path d="M514 300q6-54 46-58q40 4 46 58"/><path d="M546 208a7 7 0 1 0 14 0a7 7 0 1 0-14 0M560 208a7 7 0 1 0 14 0a7 7 0 1 0-14 0"/>
+<text x="80" y="324" text-anchor="middle">Kitchen</text><text x="200" y="324" text-anchor="middle">Floor</text><text x="320" y="324" text-anchor="middle">Bar</text><text x="440" y="324" text-anchor="middle">Host</text><text x="560" y="324" text-anchor="middle">Office</text>
+<path class="o" d="M104 148l6 6 10-12"/><path class="o" d="M224 182l6 6 10-12"/><path class="o" d="M344 182l6 6 10-12"/><path class="o" d="M464 182l6 6 10-12"/><path class="o" d="M584 182l6 6 10-12"/>
+</svg>
+</body>
+</html>

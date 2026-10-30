@@ -82,7 +82,7 @@ globalThis.createScheduleUI=function(api){
     // Crew: My space is one hub for the schedule, requests, earnings, training and their file.
     if(!manager()&&api.me&&['me','shifts','earnings','requests','myfile'].includes(screen))return api.me(screen);
     if(screen==='training'&&api.training)return api.training();
-    const tabs=manager()?[['shifts','Roster'],['manage','Manage'],['reports','Reports'],['briefing','Briefing']]:[['shifts','My shifts'],['earnings','Earnings'],['requests','Requests'],['myfile','My file']];
+    const tabs=manager()?[['shifts','Scheduling'],['manage','Team & payroll'],['reports','Reports'],['briefing','Briefing']]:[['shifts','My shifts'],['earnings','Earnings'],['requests','Requests'],['myfile','My file']];
     screen=route(screen);if(!tabs.some(x=>x[0]===screen))screen='shifts';
     const nav='<div class="schedule-tabs" aria-label="Schedule sections">'+tabs.map(([id,label])=>actionButton(label,'screen',id,screen===id?'selected':'secondary', 'aria-pressed="'+(screen===id)+'"')).join('')+'</div>';
     const content=screen==='shifts'?(manager()?managerRoster():personal()):screen==='earnings'?earnings():screen==='requests'?requests():screen==='manage'?api.manage():screen==='reports'?api.reportsPage():screen==='myfile'?api.myfile():(api.section?api.section(screen):api.extras());

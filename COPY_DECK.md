@@ -1,5 +1,7 @@
 # Brigly homepage · copy deck
 
+> **Superseded on 2026-10-30.** The whole site was rewritten around one core line: *Brigly is one app that runs your whole restaurant, so everyone on your team always knows what to do.* The H1 is now "One app that runs your whole restaurant." with the lede "So everyone on your team always knows what to do. Built for independent restaurants and bars." A new `#brigade` section ("Named after the kitchen brigade.") sits between the hero and For your team, and the four secondary pages were rewritten in plain words. The headlines below are the 2026-10-28 versions and no longer match `index.html`; read the page itself for current copy.
+
 Every headline, subhead, CTA and FAQ answer on `index.html`, in page order. US English. Feature names used everywhere (page, nav, footer, meta): Today · Scheduling · Checklists · Stock & 86s · Menu & allergens · POS · Reservations · Specials & events · Team & payroll · Training · Reports · Team chat.
 
 ## Meta

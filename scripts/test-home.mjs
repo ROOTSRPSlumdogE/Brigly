@@ -27,7 +27,7 @@ console.log('PASS: time clock merged into the Today hero.');
 // Daily operations navigation & Notification Center engine verification
 const N=c.BriglyNavigation,Notifs=c.BriglyNotifications;
 const mgrGroups=N.groups(true),crewPrimary=N.primary(false);
-assert.equal(mgrGroups[0].label,'Live service');
+assert.equal(mgrGroups[0].label,'Service');
 assert(mgrGroups[0].items.every(item=>['orange','sage','amber','danger','slate'].includes(item[4])));
 assert(crewPrimary.some(item=>item[1]==='lists'&&item[4]==='sage'));
 s=B.starter('2026-10-25');B.configure(s);s.role='manager';
